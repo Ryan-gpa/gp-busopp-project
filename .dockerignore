@@ -1,0 +1,14 @@
+**/node_modules/
+**/dist/
+**/__pycache__/
+**/*.pyc
+.git/
+.venv/
+venv/
+disclosure-review-kit/output/
+disclosure-review-kit/announcements/**/*.pdf
+*.pdf
+*.docx
+*.xlsx
+.vscode/
+.idea/
