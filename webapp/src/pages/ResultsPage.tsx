@@ -19,6 +19,7 @@ export default function ResultsPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const state = location.state as LocationState | null
+  const API_BASE = import.meta.env.VITE_API_URL || ""
 
   const findings = state?.findings
   const allKeys = findings
@@ -36,7 +37,7 @@ export default function ResultsPage() {
   // Load prefs on mount and auto-apply excluded types
   useEffect(() => {
     if (!findings) return
-    fetch("/api/prefs")
+    fetch(`${API_BASE}/api/prefs`)
       .then(r => r.json())
       .then((p: UserPrefs) => {
         setPrefs(p)
@@ -98,7 +99,7 @@ export default function ResultsPage() {
       else typeStats[type] = "included"
     }
     try {
-      const res = await fetch("/api/prefs/record", {
+      const res = await fetch(`${API_BASE}/api/prefs/record`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ typeStats }),
@@ -130,7 +131,7 @@ export default function ResultsPage() {
       .sort((a, b) => b.excluded - a.excluded)
 
     try {
-      const res = await fetch("/api/generate", {
+      const res = await fetch(`${API_BASE}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ selectedKeys: Array.from(selectedKeys), excludedTypeInfo }),
@@ -151,7 +152,7 @@ export default function ResultsPage() {
 
   const handleSavePrefs = async (excludedTypes: string[]) => {
     try {
-      const res = await fetch("/api/prefs", {
+      const res = await fetch(`${API_BASE}/api/prefs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ excludedTypes }),
@@ -272,7 +273,7 @@ export default function ResultsPage() {
           <div className="flex items-center gap-3 shrink-0">
             {docxName && (
               <a
-                href={`/api/download/${encodeURIComponent(docxName)}`}
+                href={`${API_BASE}/api/download/${encodeURIComponent(docxName)}`}
                 download={docxName}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-accent text-accent rounded-sm hover:bg-accent/5 transition-colors"
               >

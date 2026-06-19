@@ -29,6 +29,7 @@ const STAGE_PROGRESS: Record<Stage, number> = {
 
 export default function UploadPage() {
   const navigate = useNavigate()
+  const API_BASE = import.meta.env.VITE_API_URL || ""
   const [mode, setMode] = useState<"file" | "asx">("file")
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -75,7 +76,7 @@ export default function UploadPage() {
 
     try {
       setStage("reviewing")
-      const res = await fetch("/api/review", { method: "POST", body: form })
+      const res = await fetch(`${API_BASE}/api/review`, { method: "POST", body: form })
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         throw new Error(data?.detail || `HTTP ${res.status}`)

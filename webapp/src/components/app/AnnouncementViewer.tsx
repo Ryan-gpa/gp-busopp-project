@@ -28,6 +28,7 @@ const OPPORTUNITY_RULES = [
 ]
 
 export default function AnnouncementViewer({ announcement, checklistItems, onClose }: Props) {
+  const API_BASE = import.meta.env.VITE_API_URL || ""
   const [activeTab, setActiveTab] = useState<"pdf" | "text">("pdf")
   const [text, setText] = useState<string>("")
   const [loadingText, setLoadingText] = useState(false)
@@ -53,7 +54,7 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
     setSaveStatus(null)
     setAnnouncementTypeInput(announcement.type || "")
 
-    fetch(`/api/announcement-text/${announcement.documentKey}`)
+    fetch(`${API_BASE}/api/announcement-text/${announcement.documentKey}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
@@ -123,7 +124,7 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
     }
 
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -152,7 +153,7 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
   }
 
   const pdfUrl = announcement.documentKey
-    ? `/api/announcement/${announcement.documentKey}?t=${new Date().getTime()}`
+    ? `${API_BASE}/api/announcement/${announcement.documentKey}?t=${new Date().getTime()}`
     : ""
 
   return (
