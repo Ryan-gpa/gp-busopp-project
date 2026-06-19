@@ -130,7 +130,7 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
         body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
+      await res.json()
       setSaveStatus({
         type: "success",
         msg: saveType === "customRule"
