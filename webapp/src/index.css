@@ -1,0 +1,47 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 33% 98%;
+    --foreground: 220 45% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 45% 11%;
+    --primary: 220 45% 11%;
+    --primary-foreground: 40 33% 98%;
+    --secondary: 220 20% 95%;
+    --secondary-foreground: 220 45% 11%;
+    --accent: 215 90% 40%;
+    --accent-foreground: 0 0% 100%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 15% 40%;
+    --border: 220 18% 88%;
+    --input: 220 18% 88%;
+    --ring: 215 90% 52%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --navy-deep: 220 50% 7%;
+    --radius: 0.25rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Status chip colours */
+@layer utilities {
+  .status-addressed   { @apply bg-[#C6E0B4] text-[#375623]; }
+  .status-represented { @apply bg-[#FFE699] text-[#806000]; }
+  .status-notfound    { @apply bg-[#FFC7CE] text-[#9C0006]; }
+  .status-below       { @apply bg-[#DDEBF7] text-[#1F4E79]; }
+  .opp-green          { @apply bg-[#C6E0B4] text-[#375623]; }
+  .opp-amber          { @apply bg-[#FFE699] text-[#806000]; }
+}

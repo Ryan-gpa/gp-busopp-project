@@ -1,0 +1,1302 @@
+For personal use onlyName of entity                               Appendix 4D
+
+                      Nanoveu Limited                                   (Rule 4.2A.3)
+
+                                                                    Half year report
+
+                                                                                                         97 624 421 085
+
+                     1. Details of the Reporting Period and the Previous Corresponding Period
+
+                       Financial period ended ("current period")        Financial period ended ("previous period")
+
+                                 30 June 2025                                                 30 June 2024
+
+                     2. Results for Announcement to the Market
+
+                     2.1 Revenue from ordinary activities         up    $'000     %                                      $'000
+                                                                         270   2,450% to                                  281
+                                                                                                                         2,969
+                     2.2 Loss from ordinary activities after up         1,874                    171% to                 2,969
+                             tax attributable to members                1,874                    171% to                 0.44
+                                                                        0.24                     119% to
+                     2.3 Net loss for the period attributable up
+                             to members
+
+                     2.4 Loss per share                           up
+
+                     2.5 Brief explanation of results
+                             For further details, please refer to the interim financial report.
+
+                     3. NTA Backing                                     Current period Previous corresponding
+                      Net tangible asset backing per ordinary security                                            period
+
+                                                                               $0.0028                                   $0.0017
+                     4. Control gained or lost over entities having material effect
+
+For personal use onlyControlled Entities               Country of     Ownership Interest   Ownership Interest
+                                                     Incorporation              2025                 2024
+
+                     Parent Entity                   Australia                       100%                             100%
+                       Nanoveu Ltd
+
+                     Subsidiaries                        Singapore                   100%                             100%
+                       Nanoveu Pte Ltd                    Malaysia                   100%                             100%
+                       Nanoveu Sdn Bhd               Hongkong, China                 51%
+                       Fullveu Technology (HK) Ltd                                                                     0%
+                                                         Singapore                   100%
+                       EMASS Pte Ltd (acquired 18                                                                      0%
+                       March 2025)                        Australia                  100%
+                                                                                                                       0%
+                       Nanoveu EMASS Pty Ltd
+                       (incorporated 12 March 2025)
+
+                     5. Dividends
+
+                       There were no dividends declared or paid during the period and the Board does not recommend that
+                       any dividends be paid.
+
+                     6. Dividend Reinvestment Plans
+                              Not applicable.
+
+                     7. Material interest in entities which are not controlled entities
+                              Not applicable.
+
+                     8. Independent Review Report
+                              Refer to the attached Half Year Financial Report for the half-year ended 30 June 2025.
+
+                     9. Compliance Statement
+
+                              This report should be read in conjunction with the attached Half-year Financial Report for the half-year
+                              ended 30 June 2025.
+
+                       Signed here:                                  Date: 29 August 2025
+
+                       Print name: Alfred Chong
+                                          Managing Director and CEO
+For personal use only          (ACN 624 421 085)
+
+                       INTERIM FINANCIAL REPORT
+                       FOR THE HALF-YEAR ENDED
+
+                                   30 June 2025
+For personal use onlyCONTENTS                                                                 PAGE
+                                                                                                     1
+                     Company Directory
+                     Review of Operations                                                        2-4
+                     Directors' Report                                                           5-6
+                     Auditor's Independence Declaration
+                     Consolidated Statement of Profit or Loss and Other Comprehensive Income         7
+                     Consolidated Statement of Financial Position                                    8
+                     Consolidated Statement of Changes in Equity                                     9
+                     Consolidated Statement of Cash Flows                                     10 ­ 11
+                     Notes to the Consolidated Financial Statements                                 12
+                     Directors' Declaration                                                   13 - 22
+                     Independent Auditor's Review Report                                            23
+                                                                                                    24
+For personal use onlyCOMPANY DIRECTORY                               Registered Office
+                                                                     Level 45, 108
+                     Directors                                       St Georges Terrace
+                     Dr David Pevcic                                 Perth WA 6000
+                     Executive Chairman
+                                                                     Tel: +61 8 6244 9095
+                     Mr Alfred Chong
+                     Managing Director                               Web Address
+                                                                     www.nanoveu.com
+                     Mr Steven Apedaile
+                     Non-executive Director                          Securities Exchange Listing:
+                                                                     ASX Limited
+                     Mr Michael Winlo                                30 Bridge Street
+                     Non-executive Director                          SYDNEY NEW 200
+                                                                     ASX : NVU,
+                     Chief Financial Officer
+                     Raymond Chen                                    OTCQB :NNVUF
+
+                     Company Secretary                               Auditors
+                     Harry Spindler                                  BDO Audit Pty Ltd
+                                                                     Level 9
+                     Share Registry                                  Mia Yellagonga Tower 2
+                     Automic Registry Services                       5 Spring Street
+                     Level 2                                         Perth WA 6000
+                     267 St Georges Terrace                          AUSTRALIA
+                     Perth WA 6000
+                                                                     Solicitors
+                     Telephone (within Australia): 1300 288 664      Steinepreis Paganin
+                     Telephone (outside Australia): +61 2 9698 5414  Level 14
+                     Email: hello@automic.com.au                     QV1 Building
+                                                                     250 St Georges Terrace
+                     ABN:                                            Perth WA 6000
+                     97 624 421 085
+For personal use onlyREVIEW OF OPERATIONS
+
+                     Nanoveu Limited's (Nanoveu, NVU, the Company) leadership continued to develop and commercialise the
+                     Company's core technologies during the half-year ended 30 June 2025.
+
+                     Key Products
+
+                     EMASS
+
+                     Embedded A.I. Systems Pte. Ltd (EMASS) specialises in the design and development of advanced systems-on-
+                     chip (SoC) solutions. These SoCs enable ultra-low-power, AI-driven processing for smart devices, IoT
+                     applications, and 3D content transformation. With its industry-leading technology, EMASS positions Nanoveu
+                     in the rapidly growing 3D content, AI, and edge computing markets, extending the company's commercial
+                     potential across these industries.
+
+                     EYEFLY3DTM
+                     Nanoveu's EyeFly3DTM is a film applied to digital displays that allows users to have a 3D experience on
+                     everyday mobile handheld devices without the need to wear glasses.
+                     The Company has made significant enhancements to its core nano lithography imprinting process, culminating
+                     in the successful development of products for the latest iPhone and Android phone models.
+
+                     NANOSHIELDTM Solar
+                     NanoShieldTM Solar is a clear hydrophobic coating applied to solar panels and concentrating solar plant troughs
+                     and mirrors. NanoShield Solar creates a durable, glossy, hydrophobic surface that can repel water, bird
+                     droppings, algae, oil, soot, and other contaminants for up to 18 months. Cleaner solar panels as a result of
+                     treatment with NanoshieldTM Solar produce more energy and require less maintenance.
+
+                     Nanoveu Corporate and Strategic Highlights for the half-year ended 30 June 2025
+
+                     The half-year to 30June2025 was a transformative period for Nanoveu Limited. Building on the strategic
+                     repositioning undertaken during 2024, the Group continued to commercialise its three core technology platforms
+                     ­ ECS-DoT/EMASS, EyeFly3DTM and NanoshieldTM ­ while strengthening its executive team and funding
+                     base. Key operational highlights for the six-month period are summarised below.
+
+                     EMASS (embedded edge-AI)
+                      100% acquisition of Embedded AI Systems (EMASS). On 18March2025 the Group completed the
+
+                         acquisition of EMASS, providing Nanoveu with a proprietary ultralowpower systemonchip (SoC)
+                         architecture tailored for "edgeAI" applications. The EMASS team continued to operate as a whollyowned
+                         subsidiary and forms the foundation of Nanoveu's ECSDoT (Embedded Control System ­ Dynamic
+                         onChip) business line.
+
+                      ReRAM collaboration with Weebit Nano. In March 2025 EMASS and Weebit Nano Ltd announced a
+                         joint demonstration of Weebit's ReRAM memory integrated with EMASS's ultralowpower AI SoC. The
+                         aim of this collaboration was to deliver a monolithic edgeAI solution that offers improved
+                         energyefficiency and instant wakeup capabilities for smart devices. The partners noted that combining
+                         ReRAM with EMASS's SoC can reduce power consumption and enable faster read/write speeds, addressing
+                         the growing demand for efficient and sustainable edge AI.
+
+                      Benchmarked performance and applications. During the March quarter the ECSDoT chipset continued
+                         to demonstrate outstanding benchmark results, executing anomalydetection models in ~1 millisecond and
+
+                                                                              Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 2
+For personal use onlyREVIEW OF OPERATIONS
+
+                         consuming microjoules per inference. Trials in healthcare and smartcity settings confirmed the chip's
+                         ultralowpower performance and positioned EMASS as a potential leader in alwayson edge computing.
+
+                      Leadership appointments. In January 2025 Nanoveu appointed Mark Goranson as Chief Executive
+                         Officer of semiconductor technologies. Mr Goranson brings more than four decades' experience in scaling
+                         semiconductor businesses. In April 2025, the Company hired Silicon Valley veteran Scott Smyser as
+                         VicePresident of Sales and Marketing to drive market engagement for the ECS-DoT platform in North
+                         America, Europe and Asia. Toward the end of the period, Dr Yehia Ismail ­ Director of the Centre of
+                         Nanoelectronics and Devices (CND) in Cairo and a globally recognised semiconductor expert ­ joined
+                         EMASS as a strategic adviser to guide product development and integration. In parallel, Dr Mohamed Sabry
+                         Aly, founder and full-time CEO of EMASS, continues to lead Nanoveu's semiconductor and AI initiatives,
+                         bringing deep expertise in hardware innovation and IP development.
+
+                      16 nm roadmap and developer kit. By the June quarter the EMASS team had commenced synthesis of a
+                         16 nm FinFET version of the ECSDoT chip and launched a modular developer kit bundled with
+                         softwaredevelopment tools. These initiatives aim to accelerate adoption across autonomous drones,
+                         industrial IoT and healthcare devices.
+
+                      Drone trials. Simulation testing of the ECSDoT SoC on a lightweight MLP drone delivered a 33 %
+                         increase in simulated flight time without any changes to the airframe or battery. Phasetwo simulation trials
+                         commenced in June 2025 targeting additional endurance improvements across a number of different
+                         common drone platforms
+
+                     EyeFly3DTM (glasses-free 3D visualisation)
+                      Algorithm development and EMASS integration. During the period the Company's R&D team enhanced
+
+                         EyeFly3D's monocular depthestimation algorithms to deliver more accurate realtime conversion of 2D
+                         images and video into immersive 3D content.
+
+                      Patent filings and product showcase. A new patent application covering nextgeneration 3D protective
+                         film structures was lodged in Singapore and Hong Kong. The Company opened its first EyeFly3D
+                         showroom in Shenzhen, China, which displays mobilephone, tablet and largeformat 3D screens for
+                         potential customers.
+
+                      Korean distribution and app development. Exclusive Korean distributor Rahum Nano Tech launched the
+                         Viewlay3D app in June 2025 ahead of a planned commercial rollout of EyeFly3D films. Nanoveu granted
+                         Rahum an extension on its anticipated milestones to accommodate the later app launch. Meanwhile, new
+                         EyeFly3D software that will allow users to generate and share 3D content progressed toward launch in
+                         Q3 2025.
+
+                     NanoshieldTM coatings
+                      Solar trials in Morocco and Dubai. NanoshieldTM Solar is a hydrophobic coating designed to keep
+
+                         concentrating solar plant (CSP) mirrors and photovoltaic panels clean. During the June quarter, trials at the
+                         Noor2 CSP plant in Morocco treated more than 600 mirrors and 1500 feet of receiver tubing. A parallel
+                         photovoltaic trial in Dubai recorded a 5­6 % energyoutput increase over three months on
+                         Nanoshieldcoated panels compared with uncoated panels, with no cleaning required.
+
+                      Product development. The formulation of NanoshieldTM Solar and the associated application processes
+                         continued to be refined to enhance durability in harsh climates.
+
+                     Corporate and financial
+                      Capital raisings. Nanoveu completed several funding rounds during the halfyear. In March 2025 the final
+
+                         tranche of a prior placement raised A$0.91 million. During the June quarter the Company secured a
+                         A$3.02 million strategic placement, including A$0.81 million subscribed by management and directors.
+
+                                                                              Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 3
+For personal use onlyREVIEW OF OPERATIONS
+
+                         Subsequent to the halfyear, Nanoveu raised an additional A$2.0 million at A$0.055 per share to accelerate
+                         tapeout of the 16 nm ECSDoT chip and expand EMASS's developer kit.
+                      Executive appointments. In early February 2025 the Company appointed Mr Siyuan (Raymond) Chen as
+                         chief financial officer and Mr Harry Spindler as company secretary.
+                      Financial results. Revenue from ordinary activities for the halfyear was approximately $281,115,
+                         reflecting the earlystage commercialisation of the Group's technologies. Net loss after tax attributable to
+                         members was $3.0million. The consolidated statement of financial position shows net tangible assets of
+                         $0.0028 per share.
+
+                                                                              Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 4
+DIRECTOR'S REPORT
+
+Your Directors submit the financial report of the Company, being Nanoveu Limited, and the entities it controlled
+("the Group"), for the half-year ended 30 June 2025. In order to comply with the provisions of the Corporations
+Act 2001, the Directors report as follows:
+
+For personal use onlyReview of operations Information on the operations and financial position of the Group and its business
+                     strategies and prospects are set out in the Review of Operations on pages 2 to 4 of this report.
+
+                     Directors
+
+                     The names of Directors who held office during or since the end of the half-year and until the date of this report
+                     are as below. Directors were in office for this entire period unless otherwise stated.
+
+                     David Pevcic     Executive Chairman
+
+                     Alfred Chong     Managing Director and CEO
+
+                     Steven Apedaile Independent Non-executive Director
+
+                     Michael Winlo Independent Non-executive Director
+
+                     Chief Financial Officer & Company Secretary
+
+                     The Company's chief financial officer is Mr Raymond Chen and the company secretary is Mr Harry Spindler.
+                     The company secretary and CFO was Naomi Haydari until 4 February 2025.
+
+                     Company Changes
+
+                     During the halfyear the Group completed the acquisition of EMASS Pte Ltd (Singapore) and incorporated
+                     Nanoveu EMASS Pty Ltd (Australia) as wholly-owned subsidiaries. No other material changes to the
+                     Company's structure occurred. The board continued to invest in management capability with the executive and
+                     advisory appointments described above.
+
+                     Significant changes in the state of affairs
+
+                     Other than the EMASS acquisition and subsequent capital raisings, there were no significant changes in the
+                     state of affairs of the Group during the halfyear.
+
+                     Events After Reporting Date
+                     Since 30 June 2025 the following events have occurred:
+
+                     On 11 July 2025, Nanoveu announced a strategic A$2.0 million placement at $0.055 per share. The proceeds
+                     are being used to finalise the 16nm chip tape-out, advance the rollout of the EMASS AIoT platform, support
+                     phase-two drone trials, accelerate EyeFly3D commercialisation, and continue Nanoshield Solar field testing.
+                     The Company's drone program has entered a second phase targeting further endurance improvements following
+                     earlier simulations demonstrated an initial 33% improvement. Nanoveu also commenced trading on the U.S.
+                     OTCQB market under the ticker "NNVUF" to broaden investor access and strengthen its presence in North
+                     America.
+
+                     In August 2025, the Company successfully applied to list its shares on the U.S. OTCQB Market, under the ticker
+                     NNVUF, allowing U.S. investors to trade in USD during local market hours. This is a significant milestone in
+                     Nanoveu's expansion strategy, aligning with strong momentum across EMASS's chip development, EyeFly3D
+                     distribution, and Nanoshield solar trials.
+
+                     Additionally, in August 2025, through its wholly owned subsidiary EMASS, the Group appointed manufacturer
+                     sales representatives covering critical OEM hubs in the West Coast and Midwest regions of North America.
+                     Additional sales team expansion is underway across other key U.S. regions, and in Central and Northern Europe
+                     to strengthen global reach. This newly appointed sales reps cover critical hubs where leading Original
+                     Equipment Manufacturer's ("OEM's") are designing next-generation products in autonomous drones, smart
+                     wearables, edge healthcare, industrial IoT, and robotics/defence. Each rep brings longstanding customer
+                     relationships and deep expertise in complementary technologies, such as sensors, analog components, and
+
+                                      Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 5
+For personal use onlyDIRECTOR'S REPORT
+
+                     communications Integrated Circuits (ICs) ensuring strong synergies with the ECS-DoT. Importantly, the reps
+                     do not carry competitive Edge AI SoC lines, positioning EMASS as their exclusive solution in this category.
+                     No other matter or circumstance has arisen since the end of the halfyear that has significantly affected, or may
+                     significantly affect, the operations of the Group, the results of those operations or the state of affairs of the
+                     Group in subsequent financial periods.
+                     Mr Alfred Chong
+                     Managing Director and CEO
+                     Dated this day of 29 August 2025
+
+                                                                              Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 6
+                                          Tel: +61 8 6382 4600  Level 9, Mia Yellagonga Tower 2
+                                          Fax: +61 8 6382 4601  5 Spring Street
+                                          www.bdo.com.au        Perth, WA 6000
+                                                                PO Box 700 West Perth WA 6872
+                                                                Australia
+
+For personal use only  DECLARATION OF INDEPENDENCE BY JACKSON WHEELER TO THE DIRECTORS OF NANOVEU LIMITED
+
+                       As lead auditor for the review of Nanoveu Limited for the half-year ended 30 June 2025, I declare that,
+                       to the best of my knowledge and belief, there have been:
+                       1. No contraventions of the auditor independence requirements of the Corporations Act 2001 in
+
+                             relation to the review; and
+                       2. No contraventions of any applicable code of professional conduct in relation to the review.
+
+                       This declaration is in respect of Nanoveu Limited and the entities it controlled during the period.
+
+                       Jackson Wheeler
+                       Director
+
+                       BDO Audit Pty Ltd
+                       Perth
+                       29 August 2025
+
+                       BDO Audit Pty Ltd ABN 33 134 022 870 is a member of a national association of independent entities which are all members of A.C.N. 050 110 275 Ltd ABN 77 050 110 275,
+                       an Australian company limited by guarantee. BDO Audit Pty Ltd and A.C.N. 050 110 275 Ltd are members of BDO International Ltd, a UK company limited by guarantee, and
+                       form part of the international BDO network of independent member firms. Liability limited by a scheme approved under Professional Standards Legislation
+                     CONSOLIDATED STATEMENT OF PROFIT OR LOSS AND
+                     OTHER COMPREHENSIVE INCOME
+
+                     HALF-YEAR ENDED 30 JUNE 2025
+
+For personal use only                                                   Note  Half-Year       Half-Year
+                                                                                   Ended           Ended
+                                                                          6
+                                                                          3   30/06/2025      30/06/2024
+                                                                                          $               $
+
+                     Revenue from contracts with customers                    281,115         11,026
+                     Revenue                                                  281,115         11,026
+
+                     Cost of sale of goods                                    (104,080)        3,267
+                     Gross profit                                              177,035        14,293
+
+                     Other operating income                                          5,645           2,674
+                     Selling and distribution expenses                          (112,797)        (55,030)
+                     Administration expenses                                  (1,635,837)     (1,101,048)
+                     Research costs                                             (138,137)          (2,410)
+                     Share based payment expense                              (1,332,119)
+                     Impairment                                                                    45,259
+                     Operating loss                                                        -            (1)
+                                                                              (3,036,210)
+                     Finance income                                                           (1,096,263)
+                     Finance costs
+                     (Loss) before income tax                                        5,168           1,660
+                     Income tax expense                                            (6,554)                 -
+                     Loss for the period after income tax expenses            (3,037,596)
+                                                                                              (1,094,603)
+                     Other comprehensive income / (loss)                                   -              -
+                     Items that may be reclassified to profit or loss:        (3,037,596)
+                     - Foreign Currency translation                                           (1,094,603)
+
+                     Total comprehensive loss for the period                  56,359          (25,729)
+                                                                              56,359          (25,729)
+                     Loss for the year is attributable to:
+                     Non-controlling interest                                 (2,981,237) (1,120,332)
+                     Owners of Nanoveu Limited
+                                                                                 (68,823)                  -
+                     Loss per share ­ basic and diluted (cents)               (2,968,773)     (1,094,603)
+                                                                              (3,037,596)     (1,094,603)
+
+                                                                        3     (0.44)          (0.20)
+
+                       The above Consolidated Statement of Profit or Loss and Other Comprehensive Income should be read in
+                                                             conjunction with the accompanying notes
+
+                       Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 8
+                     CONSOLIDATED STATEMENT OF FINANCIAL POSITION
+
+                     HALF-YEAR ENDED 30 JUNE 2025
+
+                                                                                Note 30 June 2025 31 Dec 2024
+
+For personal use only                                                              $           $
+
+                     CURRENT ASSETS                                                2,075,432   498,303
+                     Cash and cash equivalents                                        34,328    12,599
+                     Trade and other receivables                                     415,543   482,997
+                     Prepayments                                                               993,899
+                     Total Current Assets                                          2,525,303
+
+                     NON-CURRENT ASSETS                                            141,048     63,390
+                     Plant and equipment
+                     Loan receivable                                               441,902 258,663
+                     Intangible Asset
+                     Right of Use Asset                                         8  10,494,942  -
+                     Total Non-current Assets
+                                                                                   207,900     5,920
+                     TOTAL ASSETS
+                                                                                   11,285,792 327,973
+                     CURRENT LIABILITIES
+                     Trade and other payables                                      13,811,095 1,321,872
+                     Contract Liability
+                     Lease Liability                                               492,133     529,961
+                     Provisions                                                    140,620     311,488
+                     Loan                                                          109,937
+                     Total Current Liabilities                                                    6,333
+                                                                                      8,189     15,802
+                     NON CURRENT LIABILITIES                                               -   120,000
+                     Lease Liability ­ long term                                               983,584
+                     Total Non Current Liabilities                                 750,879
+
+                     TOTAL LIABILITIES                                                100,578          -
+                                                                                      100,578          -
+                     NET ASSETS
+                     EQUITY                                                           851,457  983,584
+                                                                                   12,959,638  338,288
+
+                     Issued capital                                             5  35,816,939 21,951,287
+
+                     Accumulated losses                                            (24,337,829) (21,369,056)
+
+                     Reserves                                                      1,586,008 (207,286)
+
+                     Total equity attributable to Nanoveu Limited shareholders     13,065,118  374,945
+
+                     Non-controlling Interest                                      (105,480)   (36,657)
+
+                     TOTAL EQUITY                                                  12,959,638  338,288
+
+                     The above Consolidated Statement of Financial Position should be read in conjunction with the accompanying
+                                                                                    notes
+
+                                                    Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 9
+                   CONSOLIDATED STATEMENT OF FINANCIAL POSITION
+
+                   HALF-YEAR ENDED 30 JUNE 2025
+
+personal use only                                           Issued           Option     Common          Share Based    Foreign    Accumulated      NCI   Total
+                                                            Capital          Reserve    Control           Payment     Currency        Losses               $
+                                                                                        Reserve           Reserve    Translation
+                                                                $                $                                     Reserve
+                                                                                             $
+                                                                                                        $            $            $                $
+
+                   Balance at 1 January 2024                19,718,575       289,005    (1,710,087)     43,081       109,362      (18,559,346)        - (109,410)
+                   Loss for the period                                  -            -               -         -              -    (1,094,603)        - (1,094,603)
+                   Exchange differences on translation of               -            -               -         -
+                   foreign operation                                                                                 (25,729)                   -     -  (25,729)
+                                                                        -            -               -         -
+                   Total comprehensive loss for the year             402             -               -         -     (25,729)     (1,094,603)         - (1,120,332)
+                                                                                                                              -                -
+                   Adjustment to Prior Year                                                                                                           -  402
+
+                   Transactions with owners in their capacity as owners:
+
+                   Placement                                2,289,905                -               -           -          -                   -     - 2,289,905
+                                                                                     -               -           -          -                   -
+                   Share issue expenses-Share Issue Broker  (128,394)         40,000                 -           -          -                   -     - (128,394)
+                   Sixty Two Capital                                  -              -               -  (85,259)            -                   -
+                   Share Based Payments-Options                              329,005    (1,710,087)     (42,178)     83,633       (19,653,949)        -  40,000
+
+                   Share Based Payments-Performance Rights                -                                                                           -  (85,259)
+                   NVU Directors
+
+                   Balance at 30 June 2024                  21,880,487                                                                                -  886,911
+
+                   The above Consolidated Statement of Statement of Changes in Equity should be read in conjunction with the accompanying notes
+
+                                                                                        Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 10
+                   CONSOLIDATED STATEMENT OF CHANGES IN EQUITY
+
+                   HALF-YEAR ENDED 30 JUNE 2025
+
+personal use onlyChange in Equity                        Issued Capital  Option   Common          Share Based   Shares       Foreign                 Accumulated Losses    NCI         Total
+                                                                         Reserve  Control      Payment Reserve   to be      Currency
+                                                                                  Reserve                        issued    Translation                           $           $            $
+                                                                                                         $      Reserve      Reserve                      (21,369,056)   (36,657)     338,288
+                 Balance at 1 January 2025                     $             $          $            428,338                                               (2,968,773)   (68,823)   (3,037,596)
+                                                         21,951,287      570,705  (1,710,087)                       $            $                                                   (56,359)
+                 Loss for the period                                                                     -      400,000      103,758                             -           -
+                 Exchange differences on translation of        -             -          -                -                                                                          (3,093,955)
+                 foreign operation                                                                                  -             -                                      (68,823)
+                                                               -         -        -                                                                                                       -
+                                                                                                                    -        (56,359)                                                3,530,096
+                                                                                                                                                                                     (281,306)
+                 Total comprehensive loss for the year   -               -        -            -                -          (56,359)                  (2,968,773)                     9,137,931
+                                                                                                                                                                                     1,334,235
+                 Transactions with owners in their capacity as owners:                                                                                                                285,591
+                                                                                                                                                                                     1,046,527
+                 Transfer back share to be issued         400,000        -        -                 -           (400,000)     -                             -                 -       662,231
+                 reserve                                 3,530,096                                  -                -        -                             -                 -     12,959,638
+                 Placement                               (281,306)       -        -                 -                -        -                             -                 -
+                                                         9,137,931                                  -                -        -                             -                 -
+                 Costs of share issue                                    -        -            1,334,235             -        -                             -                 -
+                                                               -
+                 Share issue - EMASS acquisition                         -        -            (131,109)             -        -                             -                 -
+                 Share Based Payments-Performance         416,700
+                 Rights EMASS acquisition                                -        -            1,046,527             -        -                             -                 -
+                 Share Based Payments-Corporate                -                                    -                -        -                             -                 -
+                 Advisory                                 662,231        -        -                                  -     47,399                    (24,337,829)        (105,480)
+                 Share Based Payments-Performance        35,816,939                            2,677,991
+                 Rights NVU                                              -        -
+                 Share Options on conversion
+                                                                         -        -
+                 Balance at 30 June 2025
+                                                                         570,705 (1,710,087)
+
+                   The above Consolidated Statement of Statement of Changes in Equity should be read in conjunction with the accompanying notes
+
+                                                            Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 11
+CONSOLIDATED STATEMENT OF CASH FLOWS
+
+HALF-YEAR ENDED 30 JUNE 2025
+
+For personal use onlyCash flows from Operating Activities                      Half-Year      Half-Year
+                     Receipts from customers                                        Ended          Ended
+                     Payments to suppliers and employees
+                     Interest received                                         30/06/2025     30/06/2024
+                     Interest Paid                                                         $              $
+                     Net cash (used in) operating activities
+                                                                                   131,765        116,617
+                                                                               (2,082,572)    (1,043,969)
+
+                                                                                      5,168          2,674
+                                                                                  (48,888)                 -
+                                                                               (1,994,527)
+                                                                                                (924,678)
+
+                     Cash Flows from Investing Activities                      2,909          -
+                     Cash acquired through EMASS acquisition
+                     Funds loaned to third parties                             (183,239)      -
+
+                     Net cash flows/(used in) investing activities             (180,330)      -
+
+                     Cash Flows from Financing Activities                      3,916,520      2,011,912
+                     Proceeds from issue of shares (net of issue costs)        (120,000)                 -
+                     Interest Free Loan Proceeds/(Repayment)                                             -
+                     Repayment of lease Liabilities                             (44,534)
+                     Net cash provided by/(used in) financing activities       3,751,986      2,011,912
+
+                     Net decrease in cash and cash equivalents                 1,577,129      1,087,234
+                     Cash and cash equivalents at the beginning of the period    498,303         73,069
+                     Cash at the end of the financial period
+                                                                               2,075,432      1,160,303
+
+                     The above Consolidated Statement of Cash Flows should be read in conjunction with the accompanying notes
+
+                       Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 12
+                                                        Nanoveu Limited
+
+                     Notes to the Financial Statements
+
+For personal use only1. MATERIAL ACCOUNTING POLICIES
+
+                     Basis of Preparation
+
+                     These general purpose financial statements for the interim half-year reporting period ended 30 June 2025 have
+                     been prepared in accordance with Australian Accounting Standard AASB 134 'Interim Financial Reporting' and
+                     the Corporations Act 2001, as appropriate for for-profit oriented entities. Compliance with AASB 134 ensures
+                     compliance with International Financial Reporting Standard IAS 34 'Interim Financial Reporting'.
+
+                     It is recommended that the financial statements are read in conjunction with the annual financial report for the
+                     year ended 31 December 2024 and any public announcements made by the Company during the half-year in
+                     accordance with continuous disclosure requirements arising under the Corporations Act 2001 and the ASX
+                     Listing Rules.
+
+                     The interim financial statements have been approved and authorised for issue by the Board on 29 August 2025
+
+                     The principal accounting policies adopted are consistent with those of the previous financial year and
+                     corresponding interim reporting period, unless otherwise stated.
+
+                     Going concern
+
+                     The interim financial report has been prepared on a going concern basis, which contemplates the continuity of
+                     normal business activities and the realisation of assets and settlement of liabilities in the ordinary course of
+                     business.
+
+                     For the half year ended 30 June 2025, the Group incurred a loss of $3,037,596 (2024: $1,120,332) and net cash
+                     outflows from operating activities of $1,994,527 (2024: $924,678). The Group's ability to continue as a going
+                     concern is dependent on generating sufficient cash inflows from forecast revenue streams and securing
+                     additional funding if required.
+
+                     The ability of the Group to continue as a going concern is dependent on securing additional funding through
+                     either equity, debt or receipts, or a combination of all, to continue to fund its operational and technology
+                     development activities. These conditions indicate a material uncertainty that may cast a significant doubt about
+                     the Group's ability to continue as a going concern and, therefore, that it may be unable to realise its assets and
+                     discharge its liabilities in the normal course of business.
+
+                     The Directors believe that there are sufficient funds available to continue to meet the Group's working capital
+                     requirements as at the date of this report and that sufficient funds will be available to finance the operations of
+                     the Group for the following reasons:
+
+                          The Directors of Nanoveu Limited have assessed the likely cash flow for the 12-month period from the
+                              date of signing this financial report and its impact on the Group, and believe there will be sufficient
+                              funds to meet the Group's working capital requirements as at the date of this report. This assessment is
+                              based on the expectation of additional receipts from product sales to finance the Group's activities;
+
+                          Nanoveu Limited completed a strategic placement on 21 July 2025, whereby 36,363,637 shares were
+                              issued at an issue price of $0.055 per share to raise $2,000,000 (before costs). In addition, the Company
+                              raised more than $150,000 from option conversions, further strengthening its cash position;
+
+                          The Group has historically demonstrated its ability to raise capital to satisfy its immediate funding
+                              requirements; and
+
+                          The Directors would consider a variety of funding options, including further equity or debt raisings, to
+                              ensure adequate funding is secured on the best available terms and in alignment with the timing of
+                              expected sales revenues.
+
+                     Should the Group not be able to continue as a going concern, it may be required to realise its assets and discharge
+                     its liabilities other than in the ordinary course of business, and at amounts that differ from those stated in the
+                     financial statements, or raise additional capital through equity or debt raisings. The interim financial report does
+                     not include any adjustments relating to the recoverability and classification of recorded asset amounts or
+
+                                                                            Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 13
+                                                        Nanoveu Limited
+
+                     Notes to the Financial Statements
+
+For personal use onlyliabilities that might be necessary should the Group not continue as a going concern and meet its debts as and
+                     when they fall due.
+
+                     Basis of Measurement and Reporting Conventions
+
+                     The financial statements, except for cash flow information, have been prepared on an accruals basis and are
+                     based on historical costs, modified, where applicable, by the measurement at fair value of selected non-current
+                     assets, financial assets and financial liabilities. The amounts presented in the financial statements have been
+                     rounded off to the nearest dollar unless stated otherwise.
+
+                     The accounting policies adopted are consistent with the accounting policies adopted in the Group's last annual
+                     financial statements for the year ended 31 December 2024 except for the adoption of new and amended
+                     standards adopted by the Group. Comparative figures have been adjusted to conform to changes in presentation
+                     for the current financial year.
+
+                     New, revised or amending Accounting Standards and Interpretations adopted
+
+                     The Group has adopted all of the new, revised or amending Accounting Standards and Interpretations issued by
+                     the Australian Accounting Standards Board that are mandatory for the current reporting period. The adoption
+                     of these Accounting Standards and Interpretations did not have any significant or material change to the Group's
+                     accounting policies.
+
+                     Any new, revised or amending Accounting Standards or Interpretations that are not yet mandatory have not
+                     been early adopted.
+
+                     Functional and presentation currency
+
+                     These financial statements are presented in Australian dollars, which is the functional currency of Nanoveu
+                     Limited.
+
+                     Critical estimates and judgements
+
+                     Performance rights
+
+                     118,010,833 performance rights are on issue, at 30 June 2025, which convert into fully paid ordinary shares on
+                     the achievement of the milestones as disclosed in Note 6. If the milestone is not satisfied on or before expected
+                     achievement dates, the Performance Rights will expire.
+
+                     For remuneration and expense recognition purposes the value attributable to the performance right is the number
+                     of performance rights granted, multiplied by the share price at date of grant and the value being amortised over
+                     the period to the expected vesting date after assessing the likelihood, probability and date of achieving these
+                     milestones. These are then reassessed at each reporting date for performance rights which have not been
+                     achieved nor expired.
+
+                     Variable payments in an Asset Acquisition
+
+                     Contingent cash consideration is recognised as a financial liability only when the obligation is contingent upon
+                     future events that are outside the control of Nanoveu Limited. Where the payment is conditional on events or
+                     decisions within the Group's control, the liability is recognised only from the date when the contingent payment
+                     crystallises.
+
+                     Contingent non-cash consideration, settled by equity instruments, is measured with reference to the fair value
+                     of the equity instruments at the date of the acquisition. In applying AASB 2, paragraph 13, the Group considered
+                     whether the transaction should be accounted for as a share-based payment. The Group rebutted this treatment
+                     on the basis that the transaction was not with employees or other parties providing services but rather with the
+                     vendors of the EMASS assets. Accordingly, the fair value of the equity instruments issued has been attributed
+                     to the identifiable assets acquired, with the residual allocated to intangible assets.
+
+                     Judgement ­ Asset Acquisition vs Business Combination
+
+                     Management exercised significant judgement in determining whether the EMASS transaction represented a
+                     business combination under AASB 3 or an asset acquisition. Having regard to the substance of the transaction,
+
+                                                                            Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 14
+                                                                                          Nanoveu Limited
+
+                     Notes to the Financial Statements
+
+For personal use onlyincluding the absence of processes and workforce at acquisition date, the Group concluded that the acquisition
+                     did not constitute a business combination but an asset acquisition, with the consideration allocated to intangible
+                     assets representing R&D and IP.
+
+                     Judgement ­ Performance Rights Consideration
+
+                     The Company also exercised judgement in assessing the probability of the vesting conditions attached to the
+                     performance rights issued as part of the consideration. Based on current development milestones and market
+                     conditions, management considers it likely that certain performance hurdles (Classes A-C in Note 6) will be
+                     satisfied, and has accordingly reflected this in the measurement of the intangible asset.
+
+                     2. SEGMENT REPORTING
+
+                     The Group is primarily engaged in the development and commercialisation of nanotechnology-based products.
+                     For management reporting purposes, the Group is now organised into three reportable operating segments based
+                     on product lines, which reflect the structure used by the Board of Directors and senior management for
+                     monitoring performance and allocating resources. The reportable segments are:
+
+                          Semiconductor ­ development and commercialisation of ultra-low-power AI System-on-Chip (SoC)
+                              technologies through the EMASS platform;
+
+                          EyeFly 3D ­ licensing, development and distribution of glasses-free 3D screen and content solutions;
+
+                          Nanoshield ­ commercialisation of antimicrobial and self-cleaning film technologies, including
+                              Nanoshield Marine and Solar.
+
+                     No operating segments have been aggregated to form these reportable segments.
+
+                     Management monitors the operating results of each business segment separately for the purpose of assessing
+                     performance and allocating resources. Segment performance is evaluated based on segment profit or loss,
+                     measured consistently with the Group's consolidated financial results.
+
+                     The Group's financing activities and income tax are not allocated to the product-based segments and are
+                     reported separately under the Corporate segment.
+
+                     Transfer pricing between segments, where applicable, is conducted on an arm's length basis, consistent with
+                     transactions with third parties.
+
+                     Half-Year Ended 30     Semiconductor Eyefly 3D Nanoshield         Total Corporate    Total
+                     June 2025                                                   Operating
+                                                                                  Segments              281,114
+                     Revenue                                                                                    -
+                     External customers     -                       12,410       281,114  -
+                                                                                                        281,114
+                     Inter-segment                       268,704          -
+                     Total revenue                                  12,410
+                                            -            -                       -        -
+                     Income/(expenses)
+                     Depreciation &         -            268,704                 281,114  -
+                     Amortisation
+                     Segment profit/(loss)      (4,292)   (51,620)            -     (55,912) (19,020) (74,932)
+                     Total assets
+                     Total liabilities       (347,316)   (265,649)  (117,466)     (730,431) (2,307,165) (3,037,596)
+                                            10,522,954   1,366,879            -  11,889,832 1,921,263 13,811,095
+                                                         (474,585)            -
+                                               (16,751)                           (491,336) (360,121) (851,457)
+
+                                            Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 15
+                                                                                                                          Nanoveu Limited
+
+                     Notes to the Financial Statements
+
+                     Half-Year Ended 30 Semiconductor      Eyefly 3D    Nanoshield                  Total  Corporate          Total
+                     June 2024                                                                Operating
+                                                               11,026                          Segments                      11,026
+For personal use only                                                -                                                              -
+                     Revenue
+                                                               11,026                                                        11,026
+                     External customers                 -                        -            11,026                      -
+                                                             (53,813)
+                     Inter-segment                      -  (461,867)             -            -                           -
+
+                     Total revenue                      -    603,598             -            11,026                      -
+                                                           (392,660)
+                     Income/(expenses)
+
+                     Depreciation &                     -                                 -    (53,813)              -                    -
+                     Amortisation
+                                                                                 (98,591)     (560,458)    (534,145)         (1,094,603)
+                     Segment profit/(loss)              -                                 -    603,598       718,274           1,321,872
+                                                                                          -                                    (983,584)
+                     Total assets                       -                                     (392,660)    (590,924)
+
+                     Total liabilities                  -
+
+                     3. LOSS PER SHARE
+
+                     (Loss) for the period                                                       Half-year                      Half-year
+                                                                                                     Ended                          Ended
+
+                                                                                               30/06/2025                     30/06/2024
+
+                                                                                              ($3,037,596)                   ($1,094,603)
+
+                     Weighted average number of ordinary shares used in the (loss) per share  693,931,856 441,660,120
+                     calculations
+                     Basic and diluted (loss) per share (cents)                                            (0.44)            (0.20)
+
+                     4. DIVIDENDS PAID OR PROPOSED
+
+                     No dividends were paid or declared during the half-year ended 30 June 2025 (30 June 2024: nil).
+
+                     5. ISSUED CAPITAL
+
+                     (a) Ordinary shares
+
+                                                                                                           As at             As at
+
+                                                                                                           30/06/2025 31/12/2024
+
+                     Paid up capital ­ ordinary shares                                                     37,674,330        23,527,372
+                     Capital raising costs                                                                 (1,857,391)       (1,576,085)
+                                                                                                           35,816,939        21,951,287
+
+                     746,916,586 (2024: 507,565,049) fully paid ordinary shares                                   2025              2024
+                                                                                                                       $                 $
+                     At the beginning of the reporting period
+                     Issue of shares ­ capital raise                                                       35,816,939        22,351,287
+                     Issue of shares ­ EMASS acquisition
+                     Issue of shares ­ share based payments                                                21,951,287        19,718,290
+                     Less share issue costs                                                                 4,592,327         2,360,346
+                     At reporting date                                                                      9,137,931
+                                                                                                                                         -
+                                                                                                              416,700                    -
+                                                                                                            (281,306)         (127,349)
+                                                                                                           35,816,939        21,951,287
+
+                                                        Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 16
+                                                                                                           Nanoveu Limited
+
+                     Notes to the Financial Statements
+
+For personal use onlyAt the beginning of the reporting period                                        2025                     2024
+                     Issue of shares ­ capital raise                                        No. of shares            No. of shares
+                     Issue of shares ­ performance rights conversion                        507,565,049              401,577,967
+                     Issue of shares ­ EMASS acquisition                                    152,383,285              105,987,082
+                     Issue of shares ­ share based payments
+                     At reporting date                                                        40,080,000                           -
+                                                                                            172,413,793                            -
+                                                                                              10,140,000                           -
+                                                                                            882,582,127              507,565,049
+
+                     (b) Share options
+                              Unissued ordinary shares of the Company under options at 30 June 2025 are as follows:
+
+                                                                                            30 June 31 December
+
+                                                                              Exercise      2025                     2024
+                                                                             Price (US$)    Number                   Number
+                      Type                                   Expiry Date
+                                                                                   Various  203,891,402              128,756,794
+                     Options issued as share-based payments         Various        Various   57,358,065                            -
+                      Unlisted ­ refer Note 6                       Various                 261,249,467
+                      Listed ­ refer Note 6                                                                          128,756,794
+
+                      Total
+
+                     (c) Performance rights
+
+                           Unissued ordinary shares of the Company held as performance rights at 30 June 2025 are as follows:
+
+                                                                                            30 June 31 December
+
+                                                                                            2025                     2024
+                                                                                            Number                   Number
+                     Type
+
+                     Performance Rights                                                     118,010,833              30,558,975
+                     Total                                                                  118,010,833              30,558,975
+
+                     6. SHARE-BASED PAYMENTS
+
+                     Performance rights expensed                                             Half-year                Half-year
+                     Performance rights lapsed                                                   Ended                    Ended
+
+                     Performance Rights                                                     30/06/2025               30/06/2024
+                                                                                                        $                        $
+
+                                                                                             1,531,987                    68,553
+
+                                                                                             (199,868)                (113,812)
+
+                                                                                             1,332,119                  (45,259)
+
+                     The following table details the number and weighted average grant-date fair value of Performance Rights
+                     granted during the period.
+
+                       Grant date        Expiry date         Performance                              No.        Weighted
+                                                                Hurdle                                     average grant
+                       18/03/2025           18/03/2030                                       27,777,778    date fair value
+                       18/03/2025           18/03/2030             (A)                       27,777,778
+                       18/03/2025           18/03/2030             (B)                       27,777,777            $0.0160
+                       30/05/2025           14/04/2030             (C)                         7,500,000           $0.0160
+                       30/05/2025           14/04/2030             (D)                                             $0.0160
+                       30/05/2025           14/04/2030             (E)                         7,500,000           $0.0432
+                                                                   (F)                         7,500,000           $0.0397
+                                                                                            105,833,333            $0.0344
+                                                                                                                   $0.0209
+
+                                                  Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 17
+                                                        Nanoveu Limited
+
+                     Notes to the Financial Statements
+
+For personal use onlyThe EMASS Performance Rights were issued as part of the consideration for the EMASS acquisition. The rights
+                     are subject to defined technical, intellectual property and commercial milestones. Upon vesting, they convert
+                     into ordinary shares of the Company. The number of shares ultimately issued on conversion will vary, as each
+                     right converts at $0.06 divided by the greater of $0.06 and the 20-day VWAP at the vesting date. Accordingly,
+                     the consideration transferred includes a variable number of shares, determined by the Company's share price at
+                     the time the vesting conditions are achieved.
+
+                         (A) The Performance Rights shall vest upon the Company migrating its developed AI monocular depth
+                              estimation model, to convert 2D content into 3D, to an entity component system data oriented
+                              technology stack (ECS-DoT), including achieving an active power of ~2mW, while providing up to 30
+                              GOPs/sec, as a result of which the purchaser is able to broaden the application of its EyeFly3D
+                              technology to larger TV screens, and mobile devices (such as smartphones and tablets) with less
+                              computational power
+
+                         (B) The Performance Rights shall vest upon the Company either:
+                              a) filing and being granted a patent relating to the purchaser's proprietary artificial intelligence driven
+                              algorithm for real time 2D to 3D conversion using a SoC; or
+                              b) filing an application for amendment of its existing patents and 12 months elapsing from the date of
+                              filing of the application
+
+                         (C) The Performance Rights shall vest upon the purchaser having executed one or more legally binding
+                              unconditional contracts for the sale of products incorporating the Company's technology with
+                              customers which will result in a cumulative revenue of not less than $1,000,000 based on actual revenue
+                              billed by the Company to customers over a 12-month period ending on 31 December or 30 June as
+                              validated by the purchaser's audit
+
+                     The remaining Performance Rights were issued under the Company's Employee Incentive Performance Plan.
+                     These rights are subject to vesting conditions linked to the Company's share price performance and require a
+                     minimum of 12 months' continuous engagement. Specifically, they vest as follows:
+
+                         (D) The Performance Rights will vest upon the Company's share price being $0.10 or greater based on a 20
+                              Day volume weighted average price (VWAP) calculated and a minimum of 12-months continuous
+                              engagement
+
+                         (E) The Performance Rights will vest upon the Company's share price being $0.15 or greater based on a 20
+                              Day volume weighted average price (VWAP) calculated and a minimum of 12-months continuous
+                              engagement
+
+                         (F) The Performance Rights will vest upon the Company's share price being $0.20 or greater based on a 20
+                              Day volume weighted average price (VWAP) calculated and a minimum of 12-months continuous
+                              engagement
+
+                     Valuation of Performance Rights
+
+                     The fair value of the services received in return for PRs granted are measured by reference to the fair value of
+                     the PRs granted. The fair value of the services is recognised as an expense on a straight-line basis over the
+                     vesting period and is determined by multiplying the fair value per PR by the number of PRs expected to vest.
+
+                     The probability of achieving market performance conditions is incorporated into the determination of the fair
+                     value per PR. No adjustment is made to the expense for PRs that fail to meet the market condition. The number
+                     of PRs expected to vest based on achievement of operational conditions, are adjusted over the vesting period in
+                     determining the expense to be recognised in the consolidated income statement. In order to convert PRs, the
+                     holders are required to be continually engaged with the Group at the time of achieving the performance hurdles.
+
+                     In determining the fair value of PRs granted during the half year ended 30 June 2025 the Company engage a
+                     third party corporate finance consultant, for those PRs with market-based vesting conditions, the fair value
+                     calculation was completed using the Monte Carlo model.
+
+                       Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 18
+                                                                                                            Nanoveu Limited
+
+Notes to the Financial Statements
+
+Market Performance Rights Valuation
+
+For personal use only                                 Class A Performance Class B Performance  Class C Performance
+                                                                                                        Rights
+                                                      Rights       Rights
+                                                                                                     Monte Carlo
+                       Methodology                    Monte Carlo  Monte Carlo
+                         Iterations
+                                                      100,000      100,000                                  100,000
+
+                       Grant date                     18-Mar-25    18-Mar-25                                18-Mar-25
+
+                       Expiry date                    18-Mar-30    18-Mar-30                                18-Mar-30
+
+                       Share price at grant date ($)  0.053        0.053                                    0.053
+
+                       Exercise price ($)             nil          nil                                      nil
+                       VWAP hurdle ($)
+                                                      For the EMASS Performance Rights, the conversion terms specify that each
+
+                                                      right converts into ordinary shares at $0.06 divided by the greater of $0.06
+
+                                                      and the 20-day VWAP of the Company's shares at the vesting date. This
+
+                                                      means the number of shares ultimately issued on conversion will vary
+
+                                                      depending on the Company's share price performance when the vesting
+
+                                                      conditions are met. In valuing these rights, this variability was incorporated
+
+                                                      through a Monte Carlo simulation, which modelled share price paths,
+
+                                                      calculated the 20-day VWAP at expiry, and determined the expected number
+
+                                                      of shares to be issued under the conversion formula.
+
+                       Risk-free rate (%)             3.837        3.837                                    3.837
+
+                       Volatility (%)                 90           90                                       90
+
+                     Fair value per Performance       0.016        0.016                                    0.016
+                     Right ($)
+
+                                                      Class D Performance Class E Performance               Class F Performance
+                                                                                                                     Rights
+                                                      Rights       Rights
+                                                                                                                 Monte Carlo
+                     Methodology                      Monte Carlo  Monte Carlo
+                                                                                                                    100,000
+                     Iterations                         100,000      100,000                                      30-May-25
+                     Grant date                       30-May-25    30-May-25                                       14-Apr-30
+                     Expiry date                       14-Apr-30    14-Apr-30
+                     Share price at grant date ($)                                                                    0.048
+                     Exercise price ($)                   0.048        0.048                                           nil
+                     VWAP hurdle ($)                        nil          nil                                          0.20
+                     Risk-free rate (%)                    0.1          0.15
+                     Volatility (%)                                                                                   3.485
+                                                          3.485        3.485                                            90
+                     Fair value per Performance             90           90
+                     Right ($)                                                                                       0.0344
+                                                         0.0432       0.0397
+
+7. RELATED PARTY TRANSACTIONS
+
+During the period, Performance Rights previously issued to related parties (NVU Directors) were converted
+into fully paid ordinary shares following satisfaction of vesting conditions. The conversion was undertaken in
+accordance with the terms approved by shareholders.
+
+                                                      Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 19
+                                                                                                       Nanoveu Limited
+
+                     Notes to the Financial Statements
+
+                     The details of the conversions during the period are as follows:
+
+For personal use onlyPerson/Company   Performance              Ordinary Shares Issued  Value at Conversion
+                     David Pevcic     Rights Converted         30,000,000              $906,804
+
+                                      30,000,000
+
+                     Alfred Chong     5,000,000                5,000,000               $163,997
+
+                     Steven Apedaile  2,040,000                2,040,000               $61,663
+
+                     Michael Winlo    2,040,000                2,040,000               $61,663
+
+                     Total            39,080,000               39,080,000              $1,194,127
+
+                     8. INTANGIBLE ASSETS                                                  30 June     31 December
+                                                                                               2025              2024
+                     Intangible assets ­ EMASS acquisition                                          $                $
+                     Intangible assets - others                                                                      -
+                                                                                       10,492,474                    -
+                                                                                             2,468
+                                                                                                                     -
+                                                                                       10,494,942
+
+                     At the beginning of the reporting period                             30 June      31 December
+                     Additions on acquisition                                                 2025               2024
+                     Amortisation                                                                  $                  $
+                     Impairment                                                                    -                  -
+                                                                                                                      -
+                     At reporting date                                                 10,494,942                     -
+                                                                                                   -                  -
+                                                                                                   -
+                                                                                                                      -
+                                                                                       10,494,942
+
+                     Acquisition of Embedded A.I. Systems Pte Ltd (EMASS)
+
+                     On 18 March 2025, the Company completed the acquisition of 100% of the issued shares of Embedded A.I.
+                     Systems Pte Ltd (EMASS), a Singapore-based developer of ultra-low power edge AI System-on-Chip (SoC)
+                     technology. EMASS was assessed as not being a business and the acquisition has been accounted for as an asset
+                     acquisition. As the consideration consisted the shares and performance rights, the principles of AASB 2 Share
+                     Based Payments have been applied.
+
+                     Consideration Structure
+                     The acquisition consideration comprised:
+
+                          172,413,793 in ordinary shares, issued at a market price on transaction date of $0.053 per share, and
+
+                          83,333,333 performance rights, subject to non-market vesting conditions.
+
+                     Net tangible liability acquired amounted to SGD $16,986 (~AUD $20,308).
+
+                                      Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 20
+                                                                                                     Nanoveu Limited
+
+                     Notes to the Financial Statements
+
+                     Component                       Units        Valuation Basis                    AUD
+
+For personal use onlyOrdinary shares                 172,413,793  $0.053 per share (arms-length      $9,137,931
+                                                                                       negotiation)
+
+                     Performance rights (non-        83,333,333   Refer to the valuation of A-C      $1,334,235
+                     market)                                      Performance Rights in Note 6
+
+                     Net other (assets)/liabilities  ­            SGD $16,986 (~AUD $20,308)         $20,308
+                     acquired
+
+                     Total consideration                                                             $10,492,474
+
+                     Accounting Treatment ­ AASB 2 Share-based Payment
+                     As consideration was provided in the form of equity instruments (ordinary shares and performance rights), the
+                     fair value of the instruments issued was used to measure the cost of the asset acquired.
+
+                          Fair Value of Consideration Shares: $9,137,931, based on a market price on transaction date of 5.3 cents
+                              per share, negotiated at arm's length between unrelated parties.
+
+                          Performance Rights: These relate to three tranches (Class A, B, and C), each subject to non-market
+                              vesting conditions, including technical completion, patent development, and revenue milestones. Each
+                              right converts into a number of shares based on a VWAP-based market conversion formula, where the
+                              number of shares is calculated as $0.06 divided by the higher of the 20-day VWAP prior to milestone
+                              achievement or $0.06.
+
+                     An independent valuation was performed by external valuer, dated 18 August 2025, using a Monte Carlo
+                     simulation to capture the market-linked conversion mechanism. The total fair value of the performance rights
+                     was assessed at $1,334,235 (i.e. $444,745 per tranche). Management concluded that, in aggregate, vesting was
+                     more likely than not (>50%), and thus the full fair value of $1,334,235 was recognised.
+
+                     Performance Milestones
+
+                     The 83,333,333 performance rights vest upon the achievement of three milestone conditions:
+
+                          Class A: Completion of ECS-DoT based migration of the AI engine, meeting specified
+                              power/performance criteria.
+
+                          Class B: Filing and approval (or amendment) of patents related to Nanoveu's AI-driven 2D-to-3D SoC
+                              conversion algorithm.
+
+                          Class C: Execution of binding sales contracts resulting in $1 million cumulative revenue over a 12-
+                              month period.
+
+                     All milestones must be met prior to expiry on 18 March 2030.
+
+                     Accounting policy for intangible assets
+
+                     Intangible assets acquired separately are initially recognised at cost. Indefinite life intangible assets are not
+                     amortised and are subsequently measured at cost less any impairment. Finite life intangible assets are
+                     subsequently measured at cost less amortisation and any impairment. The gains or losses recognised in profit
+                     or loss arising from the derecognition of intangible assets are measured as the difference between net disposal
+                     proceeds and the carrying amount of the intangible asset. The method and useful lives of finite life intangible
+                     assets are reviewed annually. Changes in the expected pattern of consumption or useful life are accounted for
+                     prospectively by changing the amortisation method or period.
+
+The Group tests whether carrying value of intangible assets not yet ready for use have suffered any impairment
+on an annual basis in accordance with AASB 136.
+
+                                                     Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 21
+                                                        Nanoveu Limited
+
+                     Notes to the Financial Statements
+
+For personal use only9. COMMITMENTS AND CONTINGENCIES
+
+                     There have been no other changes in commitments or contingent liabilities since the last annual reporting date.
+
+                     10. EVENTS AFTER THE BALANCE SHEET DATE
+
+                     On 11 July 2025, Nanoveu Limited secured firm commitments to raise $2.0 million (before costs) via a
+                     placement of 36,363,637 fully paid ordinary shares at $0.055 per share. The funds will support the
+                     commercialisation of the Company's ECS-DoT chip platform, including 16nm tape-out, drone trials, and rollout
+                     of EMASS's AIoT development kit, as well as working capital and global expansion initiatives. Settlement
+                     occurred on 22 July 2025 under the Company's existing placement capacity.
+
+                     On 7 August 2025, Nanoveu commenced trading on the U.S. OTCQB Market under the ticker "NNVUF",
+                     providing access for U.S. investors to trade in USD during local market hours. The dual listing enhances
+                     Nanoveu's visibility and investor reach in North America and aligns with its global growth strategy, particularly
+                     in edge AI, 3D visualisation, and semiconductor technologies.
+
+                     Other than the matters described above, there are no events subsequent to the reporting date that have materially
+                     affected or may materially affect the Group's financial position or operations.
+
+                       Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 22
+For personal use onlyDIRECTORS' DECLARATION
+
+                     In the directors' opinion:
+                          the attached financial statements and notes comply with the Corporations Act 2001, Australian
+                              Accounting Standard AASB 134 'Interim Financial Reporting', the Corporations Regulations 2001 and
+                              other mandatory professional reporting requirements;
+                          the attached financial statements and notes give a true and fair view of the Group's financial position as
+                              at 30 June 2025 and of its performance for the financial half-year ended on that date; and
+                          there are reasonable grounds to believe that the Company will be able to pay its debts as and when they
+                              become due and payable.
+
+                     Signed in accordance with a resolution of directors made pursuant to section 303(5)(a) of the Corporations Act
+                     2001.
+                     On behalf of the directors
+
+                     Mr Alfred Chong
+                     Managing Director and CEO
+                     29 August 2025
+
+                                                                            Interim Financial Report for the half-year ended 30 June 2025 Nanoveu Limited Page | 23
+                       Tel: +61 8 6382 4600                 Level 9, Mia Yellagonga Tower 2
+                       Fax: +61 8 6382 4601                 5 Spring Street
+                       www.bdo.com.au                       Perth, WA 6000
+                                                            PO Box 700 West Perth WA 6872
+                                                            Australia
+
+For personal use only  INDEPENDENT AUDITOR'S REVIEW REPORT
+
+                       To the members of Nanoveu Limited
+
+                       Report on the Half-Year Financial Report
+
+                       Conclusion
+
+                       We have reviewed the half-year financial report of Nanoveu Limited (the Company) and its subsidiaries
+                       (the Group), which comprises the consolidated statement of financial position as at 30 June 2025, the
+                       consolidated statement of profit or loss and other comprehensive income, the consolidated statement
+                       of changes in equity and the consolidated statement of cash flows for the half-year ended on that
+                       date, material accounting policy information and other explanatory information, and the directors'
+                       declaration.
+
+                       Based on our review, which is not an audit, we have not become aware of any matter that makes us
+                       believe that the accompanying half-year financial report of the Group does not comply with the
+                       Corporations Act 2001 including:
+
+                         i. Giving a true and fair view of the Group's financial position as at 30 June 2025 and of its
+                               financial performance for the half-year ended on that date; and
+
+                        ii. Complying with Accounting Standard AASB 134 Interim Financial Reporting and the Corporations
+                               Regulations 2001.
+
+                       Basis for conclusion
+
+                       We conducted our review in accordance with ASRE 2410 Review of a Financial Report Performed by the
+                       Independent Auditor of the Entity. Our responsibilities are further described in the Auditor's
+                       Responsibilities for the Review of the Financial Report section of our report. We are independent of
+                       the Company in accordance with the auditor independence requirements of the Corporations Act 2001
+                       and the ethical requirements of the Accounting Professional and Ethical Standards Board's APES 110
+                       Code of Ethics for Professional Accountants (including Independence Standards) (the Code) that are
+                       relevant to the audit of the annual financial report in Australia. We have also fulfilled our other ethical
+                       responsibilities in accordance with the Code.
+
+                       We confirm that the independence declaration required by the Corporations Act 2001 which has been
+                       given to the directors of the Company, would be the same terms if given to the directors as at the time
+                       of this auditor's review report.
+
+                       Material uncertainty relating to going concern
+
+                       We draw attention to Note 1 in the financial report which describes the events and/or conditions which
+                       give rise to the existence of a material uncertainty that may cast significant doubt about the Group's
+                       ability to continue as a going concern and therefore the Group may be unable to realise its assets and
+                       discharge its liabilities in the normal course of business. Our conclusion is not modified in respect of
+                       this matter.
+
+                       BDO Audit Pty Ltd ABN 33 134 022 870 is a member of a national association of independent entities which are all members of A.C.N. 050 110 275 Ltd ABN 77 050 110 275,
+                       an Australian company limited by guarantee. BDO Audit Pty Ltd and A.C.N. 050 110 275 Ltd are members of BDO International Ltd, a UK company limited by guarantee, and
+                       form part of the international BDO network of independent member firms. Liability limited by a scheme approved under Professional Standards Legislation
+For personal use only  Responsibility of the directors for the financial report
+                       The directors of the company are responsible for the preparation of the half-year financial report that
+                       gives a true and fair view in accordance with Australian Accounting Standards and the Corporations Act
+                       2001 and for such internal control as the directors determine is necessary to enable the preparation of
+                       the half-year financial report that is true and fair and is free from material misstatement, whether due
+                       to fraud or error.
+                       Auditor's responsibility for the review of the financial report
+                       Our responsibility is to express a conclusion on the half-year financial report based on our review. ASRE
+                       2410 requires us to conclude whether we have become aware of any matter that makes us believe
+                       that the half-year financial report is not in accordance with the Corporations Act 2001 including giving
+                       a true and fair view of the Group's financial position as at 30 June 2025 and its performance for the
+                       half-year ended on that date, and complying with Accounting Standard AASB 134 Interim Financial
+                       Reporting and the Corporations Regulations 2001.
+                       A review of a half-year financial report consists of making enquiries, primarily of persons responsible
+                       for financial and accounting matters, and applying analytical and other review procedures. A review is
+                       substantially less in scope than an audit conducted in accordance with Australian Auditing Standards
+                       and consequently does not enable us to obtain assurance that we would become aware of all significant
+                       matters that might be identified in an audit. Accordingly, we do not express an audit opinion.
+
+                       BDO Audit Pty Ltd
+
+                       Jackson Wheeler
+                       Director
+
+                       Perth, 29 August 2025
+

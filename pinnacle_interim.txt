@@ -1,0 +1,1920 @@
+00
+1. Company details
+Name of entity:
+Pinnacle Listed Comprehensive Interim Limited
+ABN:
+12 345 678 901
+Reporting period:
+For the half-year ended 30 June 2026
+Previous period:
+For the half-year ended 30 June 2025
+2. Results for announcement to the market
+$'000
+Revenues from ordinary activities
+up
+6.7%
+to
+233,900
+Profit from ordinary activities after tax attributable to the owners of Pinnacle Listed Comprehensive Interim Limited
+up
+82.2%
+to
+14,526
+Profit for the half-year attributable to the owners of Pinnacle Listed Comprehensive Interim Limited
+up
+82.2%
+to
+14,526
+Dividends
+Amount per security
+Franked amount per security
+Cents
+Cents
+Final dividend for the year ended 30 June 2025 paid on [date]
+15.0
+15.0
+On [date] the directors declared an interim dividend for the year ending 31 December 2026 of 5 cents per ordinary share with a record date of [date] to be paid on [date].
+Comments
+The profit for the consolidated entity after providing for income tax and non-controlling interest amounted to $14,526,000 (30 June 2025: $7,972,000).
+All three of the consolidated entity's divisions improved their profit results. The computer manufacturing division further increased its profit following the re-engineering of its processes, which has resulted in increased production and a reduction in product defects. The computer retailing division had a 6.7% increase in sales largely from higher value products. The computer distribution division benefited greatly from the final integration of the acquired CompCarrier business, which saw its existing administrative function better utilised.
+Whilst less than 25% of sales are provided on credit, the consolidated entity has increased its monitoring of debt recovery as there is an increased probability of customers delaying payment or being unable to pay in the current environment. As a result, we have increased our allowance of expected credit losses as at 30 June 2026.
+The financial position of the consolidated entity is strong with excellent liquidity and a large asset base, which is being fully utilised. With the predicted continued profitability of the consolidated entity, bank borrowings are expected to reduce significantly during the second half of the financial year ending 31 December 2026 from current cash on deposit and future earnings, without necessarily reducing dividend payments.
+The computer industry is a fast moving industry and the rate of technological change is astronomical. The main risk for the consolidated entity, and therefore the focus of management, is inventory management. During the financial half-year the inventory module of the management information system was updated to provide 'real time' information on stock turn and the identification of slow moving inventory. This allows management to make special offers to customers to clear the inventory before it becomes completely obsolete.
+3. Net tangible assets
+Reporting period
+Previous period
+Cents
+Cents
+Net tangible assets per ordinary security
+149.41
+151.54
+4. Control gained over entities
+Name of entities (or group of entities)
+Pinnacle CompCarrier Pty Limited
+Date control gained
+[date]
+$'000
+Contribution of such entities to the reporting entity's profit/(loss) from ordinary activities before income tax during the period (where material)
+364
+Profit/(loss) from ordinary activities before income tax of the controlled entity (or group of entities) for the whole of the previous period (where material)
+-
+5. Loss of control over entities
+Name of entities (or group of entities)
+Pinnacle Retailing International Limited
+Date control lost
+[date]
+$'000
+Contribution of such entities to the reporting entity's profit/(loss) from ordinary activities before income tax during the period (where material)
+1,138
+Profit/(loss) from ordinary activities before income tax of the controlled entity (or group of entities) whilst controlled during the whole of the previous period (where material)
+1,314
+6. Details of associates and joint venture entities
+Reporting entity's percentage holding
+Contribution to profit/(loss) (where material)
+Reporting period
+Previous period
+Reporting period
+Previous period
+Name of associate / joint venture
+%
+%
+$'000
+$'000
+Compdesign Partnership
+35.00%
+35.00%
+2,308
+2,053
+Group's aggregate share of associates and joint venture entities' profit/(loss) (where material)
+Profit/(loss) from ordinary activities before income tax
+2,308
+2,053
+Income tax on operating activities
+692
+616
+7. Audit qualification or review
+Details of audit/review dispute or qualification (if any):
+The financial statements were subject to a review by the auditors and the review report is attached as part of the Interim Report.
+8. Attachments
+Details of attachments (if any):
+The Interim Report of Pinnacle Listed Comprehensive Interim Limited for the half-year ended 30 June 2026 is attached.
+9. Signed
+Signed ___________________________
+Date: 24 August 2026
+Daniel Example
+Director
+Sydney
+Pinnacle Listed Comprehensive Interim Limited
+ABN 12 345 678 901
+Interim Report - 30 June 2026
+The directors present their report, together with the financial statements, on the consolidated entity (referred to hereafter as the 'consolidated entity') consisting of Pinnacle Listed Comprehensive Interim Limited (referred to hereafter as the 'company' or 'parent entity') and the entities it controlled at the end of, or during, the half-year ended 30 June 2026.
+Directors
+The following persons were directors of Pinnacle Listed Comprehensive Interim Limited during the whole of the financial half-year and up to the date of this report, unless otherwise stated:
+Anthony Example
+Brad Example
+Christina Example
+Daniel Example
+Elizabeth Example (resigned on 20 August 2026)
+Principal activities
+During the financial half-year the principal continuing activities of the consolidated entity consisted of:
+●
+Computer manufacturing
+●
+Computer retailing
+●
+Computer distribution
+The computer distribution division was significantly enhanced during the half-year with the acquisition of Pinnacle CompCarrier Pty Limited.
+Review of operations
+The profit for the consolidated entity after providing for income tax and non-controlling interest amounted to $14,526,000 (30 June 2025: $7,972,000).
+All three of the consolidated entity's divisions improved their profit results. The computer manufacturing division further increased its profit following the re-engineering of its processes, which has resulted in increased production and a reduction in product defects. The computer retailing division had a 6.7% increase in sales largely from higher value products. The computer distribution division benefited greatly from the final integration of the acquired CompCarrier business, which saw its existing administrative function better utilised.
+Whilst less than 25% of sales are provided on credit, the consolidated entity has increased its monitoring of debt recovery as there is an increased probability of customers delaying payment or being unable to pay in the current environment. As a result, we have increased our allowance of expected credit losses as at 30 June 2026.
+The financial position of the consolidated entity is strong with excellent liquidity and a large asset base, which is being fully utilised. With the predicted continued profitability of the consolidated entity, bank borrowings are expected to reduce significantly during the second half of the financial year ending 31 December 2026 from current cash on deposit and future earnings, without necessarily reducing dividend payments.
+The computer industry is a fast moving industry and the rate of technological change is astronomical. The main risk for the consolidated entity, and therefore the focus of management, is inventory management. During the financial half-year the inventory module of the management information system was updated to provide 'real time' information on stock turn and the identification of slow moving inventory. This allows management to make special offers to customers to clear the inventory before it becomes completely obsolete.
+Significant changes in the state of affairs
+On [date] Pinnacle Logistics Pty Limited, a subsidiary of Pinnacle Listed Comprehensive Interim Limited, acquired 100% of the ordinary shares of Pinnacle CompCarrier Pty Limited (formerly known as CompCarrier Pty Limited) for the total consideration transferred of $8,230,000. This is a freight business and operates in the computer distribution division of the consolidated entity.
+On [date] the consolidated entity sold Pinnacle Retailing International Limited (incorporated in New Zealand), a subsidiary of Pinnacle Listed Comprehensive Interim Limited, for consideration of $270,000 resulting in a loss on sale before income tax of $637,000. Whilst Pinnacle Retailing International Limited was sufficiently profitable up to the date of sale, future losses were projected due to new retail regulations being introduced into New Zealand. Also, its geographical isolation meant that it was difficult to incorporate into the consolidated entity's long term strategy and the directors decided to dispose of it.
+There were no other significant changes in the state of affairs of the consolidated entity during the financial half-year.
+Rounding of amounts
+The company is of a kind referred to in Corporations Instrument 2026/183, issued by the Australian Securities and Investments Commission, relating to 'rounding-off'. Amounts in this report have been rounded off in accordance with that Corporations Instrument to the nearest thousand dollars, or in certain cases, the nearest dollar.
+Auditor's independence declaration
+A copy of the auditor's independence declaration as required under section 307C of the Corporations Act 2001 is set out immediately after this directors' report.
+This report is made in accordance with a resolution of directors, pursuant to section 306(3)(a) of the Corporations Act 2001.
+On behalf of the directors
+___________________________
+Daniel Example
+Director
+24 August 2026
+Sydney
+[This page has intentionally been left blank for the insertion of the auditor's independence declaration]
+TOC \f x Statement of profit or loss and other comprehensive income PAGEREF _Toc256000000 \h 5
+Statement of financial position PAGEREF _Toc256000001 \h 7
+Statement of changes in equity PAGEREF _Toc256000002 \h 9
+Statement of cash flows PAGEREF _Toc256000003 \h 10
+Notes to the financial statements PAGEREF _Toc256000004 \h 11
+Directors' declaration PAGEREF _Toc256000005 \h 27
+Independent auditor's review report to the members of Pinnacle Listed Comprehensive Interim Limited PAGEREF _Toc256000006 \h 28
+General information
+The financial statements cover Pinnacle Listed Comprehensive Interim Limited as a consolidated entity consisting of Pinnacle Listed Comprehensive Interim Limited and the entities it controlled at the end of, or during, the half-year. The financial statements are presented in Australian dollars, which is Pinnacle Listed Comprehensive Interim Limited's functional and presentation currency.
+Pinnacle Listed Comprehensive Interim Limited is a listed public company limited by shares, incorporated and domiciled in Australia. Its registered office and principal place of business are:
+Registered office
+Principal place of business
+10th Floor
+5th Floor
+Universal Administration Building
+Pinnacle Business Centre
+12 Highland Street
+247 Edward Street
+Sydney NSW 2000
+Brisbane QLD 4000
+A description of the nature of the consolidated entity's operations and its principal activities are included in the directors' report, which is not part of the financial statements.
+The financial statements were authorised for issue, in accordance with a resolution of directors, on 24 August 2026.
+TC "Statement of profit or loss and other comprehensive income"\f x \l 1Revenue from continuing operations
+HYPERLINK \l "_ArvNote_TOC"3
+208,736
+195,444
+Share of profits of associates accounted for using the equity method
+HYPERLINK \l "_AraNote_TOC"4
+1,616
+1,437
+Other income
+HYPERLINK \l "_AroNote_TOC"5
+692
+192
+Interest revenue calculated using the effective interest method
+513
+260
+Net gain on derecognition of financial assets at amortised cost
+50
+-
+Expenses
+Changes in inventories
+(516)
+(706)
+Raw materials and consumables used
+(51,121)
+(49,382)
+Employee benefits expense
+(104,765)
+(101,095)
+Depreciation and amortisation expense
+(25,825)
+(25,321)
+Impairment of receivables
+(256)
+(262)
+Other expenses
+(865)
+(534)
+Finance costs
+HYPERLINK \l "_AexNote_TOC"6
+(9,465)
+(10,907)
+Profit before income tax expense from continuing operations
+18,794
+9,126
+Income tax expense
+(5,335)
+(2,354)
+Profit after income tax expense from continuing operations
+13,459
+6,772
+Profit after income tax expense from discontinued operations
+HYPERLINK \l "_AdoNote_TOC"7
+1,138
+1,314
+Profit after income tax expense for the half-year
+14,597
+8,086
+Other comprehensive income
+Items that will not be reclassified subsequently to profit or loss
+Gain on the revaluation of equity instruments at fair value through other comprehensive income, net of tax
+35
+-
+Items that may be reclassified subsequently to profit or loss
+Cash flow hedges transferred to profit or loss, net of tax
+-
+(2)
+Cash flow hedges transferred to inventory in the statement of financial position, net of tax
+(1)
+(5)
+Net change in the fair value of cash flow hedges taken to equity, net of tax
+(3)
+(12)
+Foreign currency translation
+(157)
+(98)
+Derecognition of foreign currency reserve
+769
+-
+Other comprehensive income for the half-year, net of tax
+643
+(117)
+Total comprehensive income for the half-year
+15,240
+7,969
+Profit for the half-year is attributable to:
+Non-controlling interest
+71
+114
+Owners of Pinnacle Listed Comprehensive Interim Limited
+14,526
+7,972
+14,597
+8,086
+Total comprehensive income for the half-year is attributable to:
+Continuing operations
+71
+114
+Discontinued operations
+-
+-
+Non-controlling interest
+71
+114
+Continuing operations
+14,031
+6,541
+Discontinued operations
+1,138
+1,314
+Owners of Pinnacle Listed Comprehensive Interim Limited
+15,169
+7,855
+15,240
+7,969
+Cents
+Cents
+Earnings per share for profit from continuing operations attributable to the owners of Pinnacle Listed Comprehensive Interim Limited
+Basic earnings per share
+HYPERLINK \l "_OepNote_TOC"23
+9.12
+4.72
+Diluted earnings per share
+HYPERLINK \l "_OepNote_TOC"23
+9.12
+4.72
+Earnings per share for profit from discontinued operations attributable to the owners of Pinnacle Listed Comprehensive Interim Limited
+Basic earnings per share
+HYPERLINK \l "_OepNote_TOC"23
+0.77
+0.93
+Diluted earnings per share
+HYPERLINK \l "_OepNote_TOC"23
+0.77
+0.93
+Earnings per share for profit attributable to the owners of Pinnacle Listed Comprehensive Interim Limited
+Basic earnings per share
+HYPERLINK \l "_OepNote_TOC"23
+9.89
+5.66
+Diluted earnings per share
+HYPERLINK \l "_OepNote_TOC"23
+9.89
+5.66
+TC "Statement of financial position"\f x \l 1Assets
+Current assets
+Cash and cash equivalents
+HYPERLINK \l "_CacNote_TOC"8
+26,136
+22,258
+Trade and other receivables
+13,074
+12,958
+Contract assets
+2,458
+2,508
+Inventories
+38,692
+40,185
+Financial assets at fair value through profit or loss
+360
+-
+Other
+3,907
+3,444
+84,627
+81,353
+Non-current assets classified as held for sale
+HYPERLINK \l "_CahNote_TOC"9
+6,000
+-
+Total current assets
+90,627
+81,353
+Non-current assets
+Receivables
+145
+135
+Investments accounted for using the equity method
+34,192
+32,576
+Financial assets at fair value through other comprehensive income
+170
+-
+Investment properties
+46,900
+46,900
+Property, plant and equipment
+HYPERLINK \l "_NaaNote_TOC"10
+116,698
+125,067
+Right-of-use assets
+318,292
+331,608
+Intangibles
+HYPERLINK \l "_NaiNote_TOC"11
+12,170
+12,357
+Deferred tax
+14,490
+12,974
+Other
+2,262
+2,220
+Total non-current assets
+545,319
+563,837
+Total assets
+635,946
+645,190
+Liabilities
+Current liabilities
+Trade and other payables
+18,854
+19,468
+Contract liabilities
+2,269
+2,135
+Borrowings
+HYPERLINK \l "_CllNote_TOC"12
+4,500
+3,000
+Lease liabilities
+22,072
+20,950
+Derivative financial instruments
+122
+116
+Income tax
+6,701
+4,497
+Employee benefits
+8,084
+8,270
+Provisions
+3,494
+3,362
+Other
+2,083
+2,159
+68,179
+63,957
+Liabilities directly associated with assets classified as held for sale
+4,000
+-
+Total current liabilities
+72,179
+63,957
+Non-current liabilities
+Borrowings
+HYPERLINK \l "_NllNote_TOC"13
+19,000
+19,000
+Lease liabilities
+310,978
+322,031
+Deferred tax
+4,617
+4,446
+Employee benefits
+10,818
+10,975
+Provisions
+1,445
+1,325
+Total non-current liabilities
+346,858
+357,777
+Total liabilities
+419,037
+421,734
+Net assets
+216,909
+223,456
+Equity
+Issued capital
+HYPERLINK \l "_EqcNote_TOC"14
+182,953
+182,703
+Reserves
+4,045
+3,402
+Retained profits
+12,548
+20,059
+Equity attributable to the owners of Pinnacle Listed Comprehensive Interim Limited
+199,546
+206,164
+Non-controlling interest
+17,363
+17,292
+Total equity
+216,909
+223,456
+Issued
+Retained
+Non-controlling
+Total equity
+capital
+Reserves
+profits
+interest
+Consolidated
+$'000
+$'000
+$'000
+$'000
+$'000
+TC "Statement of changes in equity"\f x \l 1Balance at 1 January 2025
+182,678
+3,625
+14,977
+17,107
+218,387
+Profit after income tax expense for the half-year
+-
+-
+7,972
+114
+8,086
+Other comprehensive income for the half-year, net of tax
+-
+(117)
+-
+-
+(117)
+Total comprehensive income for the half-year
+-
+(117)
+7,972
+114
+7,969
+Transactions with owners in their capacity as owners:
+Dividends paid (note 15)
+-
+-
+(11,744)
+-
+(11,744)
+Balance at 30 June 2025
+182,678
+3,508
+11,205
+17,221
+214,612
+Issued
+Retained
+Non-controlling
+Total equity
+capital
+Reserves
+profits
+interest
+Consolidated
+$'000
+$'000
+$'000
+$'000
+$'000
+Balance at 1 January 2026
+182,703
+3,402
+20,059
+17,292
+223,456
+Profit after income tax expense for the half-year
+-
+-
+14,526
+71
+14,597
+Other comprehensive income for the half-year, net of tax
+-
+643
+-
+-
+643
+Total comprehensive income for the half-year
+-
+643
+14,526
+71
+15,240
+Transactions with owners in their capacity as owners:
+Share-based payments
+250
+-
+-
+-
+250
+Dividends paid (note 15)
+-
+-
+(22,037)
+-
+(22,037)
+Balance at 30 June 2026
+182,953
+4,045
+12,548
+17,363
+216,909
+TC "Statement of cash flows"\f x \l 1Cash flows from operating activities
+Receipts from customers (inclusive of GST)
+253,020
+237,416
+Payments to suppliers and employees (inclusive of GST)
+(200,907)
+(195,836)
+52,113
+41,580
+Interest received
+543
+272
+Other revenue
+2,123
+1,691
+Interest and other finance costs paid
+(9,465)
+(10,907)
+Income taxes paid
+(5,266)
+(4,231)
+Net cash from operating activities
+HYPERLINK \l "_OcfNote_TOC"22
+40,048
+28,405
+Cash flows from investing activities
+Payment for purchase of business, net of cash acquired
+HYPERLINK \l "_ObcNote_TOC"20
+(8,072)
+-
+Payments for investments
+(510)
+-
+Payments for property, plant and equipment
+-
+(1,524)
+Proceeds from sale of subsidiary
+41
+-
+Proceeds from disposal of investments
+80
+-
+Proceeds from disposal of property, plant and equipment
+1,511
+250
+Net cash used in investing activities
+(6,950)
+(1,274)
+Cash flows from financing activities
+Proceeds from borrowings
+10,000
+-
+Dividends paid
+HYPERLINK \l "_EqdNote_TOC"15
+(22,037)
+(11,744)
+Repayment of borrowings
+(4,500)
+(11,500)
+Repayment of lease liabilities
+(12,692)
+(10,012)
+Net cash used in financing activities
+(29,229)
+(33,256)
+Net increase/(decrease) in cash and cash equivalents
+3,869
+(6,125)
+Cash and cash equivalents at the beginning of the financial half-year
+22,258
+10,371
+Effects of exchange rate changes on cash and cash equivalents
+9
+5
+Cash and cash equivalents at the end of the financial half-year
+26,136
+4,251
+TC "Notes to the financial statements"\f x \l 1TC "Note 1. Material accounting policy information"\f n \l 1Note 1. Material accounting policy information
+These general purpose financial statements for the interim half-year reporting period ended 30 June 2026 have been prepared in accordance with Australian Accounting Standard AASB 134 'Interim Financial Reporting' and the Corporations Act 2001, as appropriate for for-profit oriented entities. Compliance with AASB 134 ensures compliance with International Financial Reporting Standard IAS 34 'Interim Financial Reporting'.
+These general purpose financial statements do not include all the notes of the type normally included in annual financial statements. Accordingly, these financial statements are to be read in conjunction with the annual report for the year ended 31 December 2025 and any public announcements made by the company during the interim reporting period in accordance with the continuous disclosure requirements of the Corporations Act 2001.
+The accounting policies adopted are consistent with those of the previous financial year and corresponding interim reporting period, unless otherwise stated.
+New or amended Accounting Standards and Interpretations adopted
+The consolidated entity has adopted all of the new or amended Accounting Standards and Interpretations issued by the Australian Accounting Standards Board ('AASB') that are mandatory for the current reporting period.
+Any new or amended Accounting Standards or Interpretations that are not yet mandatory have not been early adopted.
+TC "Note 2. Operating segments"\f n \l 1Note 2. Operating segments
+Identification of reportable operating segments
+The consolidated entity is organised into three operating segments based on differences in products and services provided: computer manufacturing, computer retailing and computer distribution. These operating segments are based on the internal reports that are reviewed and used by the Board of Directors (who are identified as the Chief Operating Decision Makers ('CODM')) in assessing performance and in determining the allocation of resources. There is no aggregation of operating segments.
+Other segments represent the investment property holdings and rental income of the consolidated entity.
+The CODM reviews EBITDA (earnings before interest, tax, depreciation and amortisation). The accounting policies adopted for internal reporting to the CODM are consistent with those adopted in the financial statements.
+The information reported to the CODM is on a monthly basis.
+Types of products and services
+The principal products and services of each of these operating segments are as follows:
+Computer manufacturing
+the manufacture and wholesaling of computers and components in Australia
+Computer retailing
+the retailing of computers and components predominately in Australia
+Computer distribution
+the freight and cartage of computers and components to customers in Australia
+Intersegment transactions
+Intersegment transactions were made at market rates. The computer retailing operating segment purchases finished goods from the computer manufacturing operating segment and pays for freight costs to the computer distribution operating segment. Intersegment transactions are eliminated on consolidation.
+Intersegment receivables, payables and loans
+Intersegment loans are initially recognised at the consideration received. Intersegment loans receivable and loans payable that earn or incur non-market interest are not adjusted to fair value based on market interest rates. Intersegment loans are eliminated on consolidation.
+Operating segment information
+Computer
+Computer
+Computer
+Other
+manufacturing
+retailing
+distribution
+segments
+Total
+Consolidated - 30 Jun 2026
+$'000
+$'000
+$'000
+$'000
+$'000
+Revenue
+Sales to external customers
+13,233
+216,423
+1,848
+-
+231,504
+Intersegment sales
+101,008
+-
+4,453
+-
+105,461
+Total sales revenue
+114,241
+216,423
+6,301
+-
+336,965
+Other revenue
+-
+-
+-
+1,853
+1,853
+Total segment revenue
+114,241
+216,423
+6,301
+1,853
+338,818
+Intersegment eliminations
+(105,461)
+Unallocated revenue:
+Interest revenue
+543
+Total revenue
+233,900
+EBITDA
+8,393
+45,494
+1,804
+62
+55,753
+Depreciation and amortisation
+(26,138)
+Interest revenue
+543
+Finance costs
+(9,465)
+Profit before income tax expense
+20,693
+Income tax expense
+(6,096)
+Profit after income tax expense
+14,597
+Assets
+Segment assets
+155,823
+432,215
+21,405
+-
+609,443
+Intersegment eliminations
+(15,568)
+Unallocated assets:
+Cash and cash equivalents
+18,551
+Ordinary shares
+530
+Land and buildings
+8,500
+Deferred tax asset
+14,490
+Total assets
+635,946
+Liabilities
+Segment liabilities
+41,390
+366,036
+6,861
+-
+414,287
+Intersegment eliminations
+(15,568)
+Unallocated liabilities:
+Provision for income tax
+6,701
+Bank loans
+9,000
+Deferred tax liability
+4,617
+Total liabilities
+419,037
+Computer
+Computer
+Computer
+Other
+manufacturing
+retailing
+distribution
+segments
+Total
+Consolidated - 30 Jun 2025
+$'000
+$'000
+$'000
+$'000
+$'000
+Revenue
+Sales to external customers
+12,169
+202,906
+2,165
+-
+217,240
+Intersegment sales
+95,711
+-
+1,404
+-
+97,115
+Total sales revenue
+107,880
+202,906
+3,569
+-
+314,355
+Other revenue
+-
+-
+-
+1,691
+1,691
+Total segment revenue
+107,880
+202,906
+3,569
+1,691
+316,046
+Intersegment eliminations
+(97,115)
+Unallocated revenue:
+Interest revenue
+272
+Total revenue
+219,203
+EBITDA
+5,991
+39,458
+847
+1,014
+47,310
+Depreciation and amortisation
+(25,672)
+Interest revenue
+272
+Finance costs
+(10,907)
+Profit before income tax expense
+11,003
+Income tax expense
+(2,917)
+Profit after income tax expense
+8,086
+TC "Note 3. Revenue"\f n \l 1Note 3. Revenue
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+From continuing operations
+Revenue from contracts with customers
+Sale of goods
+205,035
+191,588
+Rendering of services
+1,848
+2,165
+206,883
+193,753
+Other revenue
+Rent from investment properties
+1,812
+1,655
+Other revenue
+41
+36
+1,853
+1,691
+Revenue from continuing operations
+208,736
+195,444
+Disaggregation of revenue
+The disaggregation of revenue from contracts with customers is as follows:
+Computer
+Computer
+Computer
+manufacturing
+retailing
+distribution
+Total
+Consolidated - 30 Jun 2026
+$'000
+$'000
+$'000
+$'000
+Major product lines
+Laptops
+6,699
+159,505
+1,646
+167,850
+Desktops
+2,106
+20,927
+202
+23,235
+Components
+4,428
+11,370
+-
+15,798
+13,233
+191,802
+1,848
+206,883
+Geographical regions
+Australia
+11,478
+185,375
+1,848
+198,701
+New Zealand
+1,147
+-
+-
+1,147
+Rest of the World
+608
+6,427
+-
+7,035
+13,233
+191,802
+1,848
+206,883
+Timing of revenue recognition
+Goods transferred at a point in time
+13,233
+191,802
+-
+205,035
+Services transferred over time
+-
+-
+1,848
+1,848
+13,233
+191,802
+1,848
+206,883
+Computer
+Computer
+Computer
+manufacturing
+retailing
+distribution
+Total
+Consolidated - 30 Jun 2025
+$'000
+$'000
+$'000
+$'000
+Major product lines
+Laptops
+6,057
+146,277
+1,878
+154,212
+Desktops
+2,421
+23,683
+287
+26,391
+Components
+3,691
+9,459
+-
+13,150
+12,169
+179,419
+2,165
+193,753
+Geographical regions
+Australia
+10,807
+174,848
+2,165
+187,820
+New Zealand
+955
+-
+-
+955
+Rest of the World
+407
+4,571
+-
+4,978
+12,169
+179,419
+2,165
+193,753
+Timing of revenue recognition
+Goods transferred at a point in time
+12,169
+179,419
+-
+191,588
+Services transferred over time
+-
+-
+2,165
+2,165
+12,169
+179,419
+2,165
+193,753
+TC "Note 4. Share of profits of associates accounted for using the equity method"\f n \l 1Note 4. Share of profits of associates accounted for using the equity method
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Share of profit - associates
+1,616
+1,437
+TC "Note 5. Other income"\f n \l 1Note 5. Other income
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Net gain on disposal of property, plant and equipment
+422
+192
+Government grants
+50
+-
+Insurance recoveries
+220
+-
+Other income
+692
+192
+TC "Note 6. Expenses"\f n \l 1Note 6. Expenses
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Profit before income tax from continuing operations includes the following specific expenses:
+Cost of sales
+Cost of sales
+142,226
+138,991
+Finance costs
+Interest and finance charges paid/payable on borrowings
+942
+1,489
+Interest and finance charges paid/payable on lease liabilities
+8,523
+9,418
+Finance costs expensed
+9,465
+10,907
+Net foreign exchange loss
+Net foreign exchange loss
+9
+4
+Leases
+Variable lease payments
+584
+549
+Short-term lease payments
+51
+64
+Low-value assets lease payments
+67
+59
+702
+672
+Superannuation expense
+Defined contribution superannuation expense
+9,044
+8,814
+Share-based payments expense
+Share-based payments expense
+250
+-
+Write off of assets
+Inventories
+269
+56
+TC "Note 7. Discontinued operations"\f n \l 1Note 7. Discontinued operations
+Description
+On [date] the consolidated entity sold Pinnacle Retailing International Limited (incorporated in New Zealand), a subsidiary of Pinnacle Listed Comprehensive Interim Limited, for consideration of $270,000 resulting in a loss on sale before income tax of $637,000. Whilst Pinnacle Retailing International Limited was sufficiently profitable up to the date of sale, future losses were projected due to new retail regulations being introduced into New Zealand. Also, its geographical isolation meant that it was difficult to incorporate into the consolidated entity's long term strategy and the directors decided to dispose of it.
+Financial performance information
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Sale of goods
+24,621
+23,487
+Interest
+30
+12
+Total revenue
+24,651
+23,499
+Changes in inventories
+(144)
+(76)
+Raw materials and consumables used
+(11,365)
+(11,133)
+Employee benefits expense
+(7,916)
+(8,035)
+Depreciation and amortisation expense
+(313)
+(351)
+Other expenses
+(2,377)
+(2,027)
+Total expenses
+(22,115)
+(21,622)
+Profit before income tax expense
+2,536
+1,877
+Income tax expense
+(761)
+(563)
+Profit after income tax expense
+1,775
+1,314
+Loss on disposal before income tax
+(637)
+-
+Income tax expense
+-
+-
+Loss on disposal after income tax expense
+(637)
+-
+Profit after income tax expense from discontinued operations
+1,138
+1,314
+Cash flow information
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Net cash from operating activities
+840
+746
+Net cash used in investing activities
+(835)
+(729)
+Net increase in cash and cash equivalents from discontinued operations
+5
+17
+Carrying amounts of assets and liabilities disposed
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Cash and cash equivalents
+189
+-
+Trade and other receivables
+387
+-
+Inventories
+833
+-
+Other current assets
+28
+-
+Property, plant and equipment
+441
+-
+Other non-current assets
+46
+-
+Total assets
+1,924
+-
+Trade and other payables
+1,150
+-
+Provisions
+676
+-
+Total liabilities
+1,826
+-
+Net assets
+98
+-
+Details of the disposal
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Total sale consideration
+270
+-
+Carrying amount of net assets disposed
+(98)
+-
+Derecognition of foreign currency reserve
+(769)
+-
+Disposal costs
+(40)
+-
+Loss on disposal before income tax
+(637)
+-
+Loss on disposal after income tax
+(637)
+-
+TC "Note 8. Current assets - cash and cash equivalents"\f n \l 1Note 8. Current assets - cash and cash equivalents
+Consolidated
+30 Jun 2026
+31 Dec 2025
+$'000
+$'000
+Cash on hand
+123
+96
+Cash at bank
+14,113
+13,162
+Cash on deposit
+11,900
+9,000
+26,136
+22,258
+TC "Note 9. Current assets - non-current assets classified as held for sale"\f n \l 1Note 9. Current assets - non-current assets classified as held for sale
+Consolidated
+30 Jun 2026
+31 Dec 2025
+$'000
+$'000
+Land
+6,000
+-
+The vacant land situated at 22 Smith Street, Parramatta NSW is currently for sale and is expected to be sold within five months from the reporting date through an auction process. The proposed development of a head office building on the site has been abandoned and the land is now surplus to requirements. The land is not allocated to an operating segment.
+TC "Note 10. Non-current assets - property, plant and equipment"\f n \l 1Note 10. Non-current assets - property, plant and equipment
+Consolidated
+30 Jun 2026
+31 Dec 2025
+$'000
+$'000
+Land and buildings - at independent valuation
+52,500
+58,500
+Leasehold improvements - at cost
+32,260
+32,260
+Less: Accumulated depreciation
+(17,473)
+(14,833)
+14,787
+17,427
+Plant and equipment - at cost
+105,512
+101,966
+Less: Accumulated depreciation
+(56,101)
+(52,826)
+49,411
+49,140
+116,698
+125,067
+Reconciliations
+Reconciliations of the written down values at the beginning and end of the current financial half-year are set out below:
+Land and
+Leasehold
+Plant and
+buildings
+improvements
+equipment
+Total
+Consolidated
+$'000
+$'000
+$'000
+$'000
+Balance at 1 January 2026
+58,500
+17,427
+49,140
+125,067
+Additions through business combinations (note 20)
+-
+-
+6,060
+6,060
+Classified as held for sale (note 9)
+(6,000)
+-
+-
+(6,000)
+Disposals
+-
+-
+(1,233)
+(1,233)
+Depreciation expense
+-
+(2,640)
+(4,556)
+(7,196)
+Balance at 30 June 2026
+52,500
+14,787
+49,411
+116,698
+Refer to note 16 for further information on fair value measurement.
+TC "Note 11. Non-current assets - intangibles"\f n \l 1Note 11. Non-current assets - intangibles
+Consolidated
+30 Jun 2026
+31 Dec 2025
+$'000
+$'000
+Goodwill
+9,908
+9,500
+Less: Impairment
+(500)
+(500)
+9,408
+9,000
+Development - at cost
+3,208
+3,208
+Less: Accumulated amortisation
+(1,605)
+(16)
+1,603
+3,192
+Patents and trademarks - at cost
+320
+320
+Less: Accumulated amortisation
+(224)
+(208)
+96
+112
+Customer contracts - at cost
+1,250
+-
+Less: Accumulated amortisation
+(229)
+-
+1,021
+-
+Software - at cost
+108
+108
+Less: Accumulated amortisation
+(66)
+(55)
+42
+53
+12,170
+12,357
+Reconciliations
+Reconciliations of the written down values at the beginning and end of the current financial half-year are set out below:
+Patents and
+Customer
+Goodwill
+Development
+trademarks
+contracts
+Software
+Total
+Consolidated
+$'000
+$'000
+$'000
+$'000
+$'000
+$'000
+Balance at 1 January 2026
+9,000
+3,192
+112
+-
+53
+12,357
+Additions through business combinations (note 20)
+408
+-
+-
+1,250
+-
+1,658
+Amortisation expense
+-
+(1,589)
+(16)
+(229)
+(11)
+(1,845)
+Balance at 30 June 2026
+9,408
+1,603
+96
+1,021
+42
+12,170
+TC "Note 12. Current liabilities - borrowings"\f n \l 1Note 12. Current liabilities - borrowings
+Consolidated
+30 Jun 2026
+31 Dec 2025
+$'000
+$'000
+Bank loans
+4,500
+3,000
+Refer to note 13 for further information on assets pledged as security and financing arrangements.
+TC "Note 13. Non-current liabilities - borrowings"\f n \l 1Note 13. Non-current liabilities - borrowings
+Consolidated
+30 Jun 2026
+31 Dec 2025
+$'000
+$'000
+Bank loans
+19,000
+19,000
+Total secured liabilities
+The total secured liabilities (current and non-current) are as follows:
+Consolidated
+30 Jun 2026
+31 Dec 2025
+$'000
+$'000
+Bank loans
+27,500
+22,000
+Assets pledged as security
+The bank overdraft and loans are secured by first mortgages over the consolidated entity's land and buildings.
+Financing arrangements
+Unrestricted access was available at the reporting date to the following lines of credit:
+Consolidated
+30 Jun 2026
+31 Dec 2025
+$'000
+$'000
+Total facilities
+Bank overdraft
+5,000
+5,000
+Bank loans
+40,000
+25,000
+45,000
+30,000
+Used at the reporting date
+Bank overdraft
+-
+-
+Bank loans
+27,500
+22,000
+27,500
+22,000
+Unused at the reporting date
+Bank overdraft
+5,000
+5,000
+Bank loans
+12,500
+3,000
+17,500
+8,000
+TC "Note 14. Equity - issued capital"\f n \l 1Note 14. Equity - issued capital
+Consolidated
+30 Jun 2026
+31 Dec 2025
+30 Jun 2026
+31 Dec 2025
+Shares
+Shares
+$'000
+$'000
+Ordinary shares - fully paid
+146,910,000
+146,810,000
+182,953
+182,703
+Movements in ordinary share capital
+Details
+Date
+Shares
+Issue price
+$'000
+Balance
+1 January 2026
+146,810,000
+182,703
+Issue of shares to key management personnel
+[date]
+100,000
+$2.50
+250
+Balance
+30 June 2026
+146,910,000
+182,953
+TC "Note 15. Equity - dividends"\f n \l 1Note 15. Equity - dividends
+Dividends paid during the financial half-year were as follows:
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Final dividend for the year ended 31 December 2025 (30 Jun 2025: 31 December 2024) of 15 cents (30 Jun 2025: 8 cents) per ordinary share
+22,037
+11,744
+On [date] the directors declared an interim dividend for the year ending 31 December 2026 of 5 cents per ordinary share to be paid on [date], a total estimated distribution of $7,346,000 based on the number of ordinary shares on issue as at [date]. The financial effect of dividends declared after the reporting date are not reflected in the 30 June 2026 financial statements and will be recognised in subsequent financial reports.
+TC "Note 16. Fair value measurement"\f n \l 1Note 16. Fair value measurement
+Fair value hierarchy
+The following tables detail the consolidated entity's assets and liabilities, measured or disclosed at fair value, using a three level hierarchy, based on the lowest level of input that is significant to the entire fair value measurement, being:
+Level 1: Quoted prices (unadjusted) in active markets for identical assets or liabilities that the entity can access at the measurement date
+Level 2: Inputs other than quoted prices included within Level 1 that are observable for the asset or liability, either directly or indirectly
+Level 3: Unobservable inputs for the asset or liability
+Level 1
+Level 2
+Level 3
+Total
+Consolidated - 30 Jun 2026
+$'000
+$'000
+$'000
+$'000
+Assets
+Ordinary shares at fair value through profit or loss
+360
+-
+-
+360
+Ordinary shares at fair value through other comprehensive income
+-
+-
+170
+170
+Investment properties
+-
+-
+46,900
+46,900
+Land and buildings
+-
+-
+58,500
+58,500
+Total assets
+360
+-
+105,570
+105,930
+Liabilities
+Forward foreign exchange contracts
+-
+122
+-
+122
+Total liabilities
+-
+122
+-
+122
+Level 1
+Level 2
+Level 3
+Total
+Consolidated - 31 Dec 2025
+$'000
+$'000
+$'000
+$'000
+Assets
+Investment properties
+-
+-
+46,900
+46,900
+Land and buildings
+-
+-
+58,500
+58,500
+Total assets
+-
+-
+105,400
+105,400
+Liabilities
+Forward foreign exchange contracts
+-
+116
+-
+116
+Total liabilities
+-
+116
+-
+116
+Assets and liabilities held for sale are measured at fair value on a non-recurring basis.
+There were no transfers between levels during the financial half-year.
+The carrying amounts of trade and other receivables and trade and other payables are assumed to approximate their fair values due to their short-term nature.
+The fair value of financial liabilities is estimated by discounting the remaining contractual maturities at the current market interest rate that is available for similar financial liabilities.
+Valuation techniques for fair value measurements categorised within level 2 and level 3
+Unquoted investments have been valued using a discounted cash flow model.
+The basis of the valuation of investment properties is fair value. The investment properties are revalued annually based on independent assessments by a member of the Australian Property Institute having recent experience in the location and category of investment property being valued. Valuations are based on current prices in an active market for similar properties of the same location and condition, subject to similar leases and takes into consideration occupancy rates and returns on investment.
+The basis of the valuation of land and buildings is fair value. The land and buildings were last revalued on 31 December 2025 based on independent assessments by a member of the Australian Property Institute having recent experience in the location and category of land and buildings being valued. The directors do not believe that there has been a material movement in fair value since the revaluation date. Valuations are based on current prices for similar properties in the same location and condition.
+Derivative financial instruments have been valued using quoted market rates. This valuation technique maximises the use of observable market data where it is available and relies as little as possible on entity specific estimates.
+Level 3 assets and liabilities
+Movements in level 3 assets and liabilities during the current financial half-year are set out below:
+Ordinary shares at fair value
+Investment
+Land and
+through OCI
+properties
+buildings
+Total
+Consolidated
+$'000
+$'000
+$'000
+$'000
+Balance at 1 January 2026
+-
+46,900
+58,500
+105,400
+Gains recognised in other comprehensive income
+50
+-
+-
+50
+Additions
+200
+-
+-
+200
+Disposals
+(80)
+-
+-
+(80)
+Balance at 30 June 2026
+170
+46,900
+58,500
+105,570
+The level 3 assets and liabilities unobservable inputs and sensitivity are as follows:
+Range
+Description
+Unobservable inputs
+(weighted average)
+Sensitivity
+Ordinary shares at fair value through other comprehensive income
+Growth rate
+2.5% to 3.5% (3.0%)
+0.25% change would increase/decrease fair value by $5,000
+Discount rate
+8.0% to 11.0% (9.5%)
+1.00% change would increase/decrease fair value by $14,000
+Investment properties
+Rental yield
+7.5% to 9.0% (8.5%)
+0.75% change would increase/decrease fair value by $352,000
+Rental growth
+1.25% to 2.0% (1.75%)
+0.25% change would increase/decrease fair value by $117,000
+Long-term vacancy rate
+5.0% to 9.0% (7.5%)
+0.75% change would increase/decrease fair value by $276,000
+Discount rate
+4.0% to 6.0% (5.25%)
+0.5% change would increase/decrease fair value by $57,000
+Land and buildings
+Rental yield
+6.0% to 8.0% (7.5%)
+0.75% change would increase/decrease fair value by $440,000
+Discount rate
+5.0% to 7.0% (6.25%)
+0.5% change would increase/decrease fair value by $61,000
+TC "Note 17. Contingent assets"\f n \l 1Note 17. Contingent assets
+Pinnacle Manufacturing Pty Limited, a subsidiary, will be paid a success premium of up to $3,000,000 by Compdesign Partnership, in which it holds a 35% interest, if the rights to a computer manufacturing process are sold to a Korean based company. The likelihood of this proceeding is highly probable. No asset has been recognised within these financial statements.
+Pinnacle Manufacturing Pty Limited, a subsidiary, has an outstanding insurance claim with respect to inventory that was damaged in the Queensland floods that occurred during the financial half-year. An assessment is currently being undertaken by the insurer as to whether it was the cause of a flood or rising waters, which will affect the payout. Because the insurance proceeds are not virtually certain, no asset has been recognised within these financial statements. The inventory of approximately $400,000 has been written off during the current financial half-year.
+TC "Note 18. Contingent liabilities"\f n \l 1Note 18. Contingent liabilities
+During the financial half-year there was a work related accident involving a member of staff. Although the investigation is still in progress, the directors are of the opinion, based on independent legal advice, that the consolidated entity will not be found to be at fault and any potential compensation will be adequately covered by the consolidated entity's insurance policy. Accordingly, no provision has been provided within these financial statements.
+The consolidated entity has given bank guarantees as at 30 June 2026 of $3,105,000 (31 Dec 2025: $2,844,000) to various landlords.
+TC "Note 19. Related party transactions"\f n \l 1Note 19. Related party transactions
+On [date] the consolidated entity commenced a new marketing contract with BE Promotions Pty Limited (director-related of Brad Example). During the financial half-year ended 30 June 2026, payments of $256,118 for marketing services were made. The transactions were made on normal commercial terms and conditions and at market rates.
+TC "Note 20. Business combinations"\f n \l 1Note 20. Business combinations
+On [date] Pinnacle Logistics Pty Limited, a subsidiary of Pinnacle Listed Comprehensive Interim Limited, acquired 100% of the ordinary shares of Pinnacle CompCarrier Pty Limited (formerly known as CompCarrier Pty Limited) for the total consideration transferred of $8,230,000. This is a freight business and operates in the computer distribution division of the consolidated entity. It was acquired to better utilise the existing computer distribution division administrative function. The goodwill of $408,000 represents the expected synergies from merging this business with the computer distribution division and eliminating third party freight costs. The acquired business contributed revenues of $2,467,000 and profit after tax of $305,000 to the consolidated entity for the period from [date] to 30 June 2026. If the acquisition occurred on 1 January 2026, the full half-year contributions would have been revenues of $2,951,000 and profit after tax of $364,000. The values identified in relation to the acquisition of CompCarrier are final as at 30 June 2026.
+Details of the acquisition are as follows:
+Fair value
+$'000
+Cash and cash equivalents
+3
+Trade receivables
+822
+Prepayments
+106
+Plant and equipment
+6,060
+Customer contracts
+1,250
+Deferred tax asset
+449
+Trade payables
+(364)
+Deferred tax liability
+(375)
+Employee benefits
+(129)
+Net assets acquired
+7,822
+Goodwill
+408
+Acquisition-date fair value of the total consideration transferred
+8,230
+Representing:
+Cash paid or payable to vendor
+8,230
+Acquisition costs expensed to profit or loss
+182
+Cash used to acquire business, net of cash acquired:
+Acquisition-date fair value of the total consideration transferred
+8,230
+Less: cash and cash equivalents
+(3)
+Less: payments made in prior periods
+(155)
+Net cash used
+8,072
+TC "Note 21. Events after the reporting period"\f n \l 1Note 21. Events after the reporting period
+Apart from the dividend declared as disclosed in note 15, no other matter or circumstance has arisen since 30 June 2026 that has significantly affected, or may significantly affect the consolidated entity's operations, the results of those operations, or the consolidated entity's state of affairs in future financial years.
+TC "Note 22. Reconciliation of profit after income tax to net cash from operating activities"\f n \l 1Note 22. Reconciliation of profit after income tax to net cash from operating activities
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Profit after income tax expense for the half-year
+14,597
+8,086
+Adjustments for:
+Depreciation and amortisation
+26,138
+25,672
+Net gain on disposal of non-current assets
+(422)
+(192)
+Net gain on derecognition of financial assets at amortised cost
+(50)
+-
+Share of profit - associates
+(1,616)
+(1,437)
+Share-based payments
+250
+-
+Foreign exchange differences
+(93)
+(71)
+Loss on sale of subsidiary
+637
+-
+Change in operating assets and liabilities:
+Decrease/(increase) in trade and other receivables
+124
+(1,068)
+Increase in contract assets
+(50)
+(367)
+Decrease in inventories
+660
+782
+Increase in deferred tax assets
+(1,516)
+(1,498)
+Decrease/(increase) in prepayments
+(267)
+96
+Increase in other operating assets
+(1,232)
+(1,894)
+Increase/(decrease) in trade and other payables
+536
+(281)
+Increase in contract liabilities
+134
+161
+Increase/(decrease) in provision for income tax
+2,175
+(187)
+Increase in deferred tax liabilities
+171
+371
+Increase in employee benefits
+256
+87
+Increase in other provisions
+282
+103
+Increase/(decrease) in other operating liabilities
+(666)
+42
+Net cash from operating activities
+40,048
+28,405
+TC "Note 23. Earnings per share"\f n \l 1Note 23. Earnings per share
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Earnings per share for profit from continuing operations
+Profit after income tax
+13,459
+6,772
+Non-controlling interest
+(71)
+(114)
+Profit after income tax attributable to the owners of Pinnacle Listed Comprehensive Interim Limited
+13,388
+6,658
+Cents
+Cents
+Basic earnings per share
+9.12
+4.72
+Diluted earnings per share
+9.12
+4.72
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Earnings per share for profit from discontinued operations
+Profit after income tax attributable to the owners of Pinnacle Listed Comprehensive Interim Limited
+1,138
+1,314
+Cents
+Cents
+Basic earnings per share
+0.77
+0.93
+Diluted earnings per share
+0.77
+0.93
+Consolidated
+30 Jun 2026
+30 Jun 2025
+$'000
+$'000
+Earnings per share for profit
+Profit after income tax
+14,597
+8,086
+Non-controlling interest
+(71)
+(114)
+Profit after income tax attributable to the owners of Pinnacle Listed Comprehensive Interim Limited
+14,526
+7,972
+Cents
+Cents
+Basic earnings per share
+9.89
+5.66
+Diluted earnings per share
+9.89
+5.66
+Number
+Number
+Weighted average number of ordinary shares
+Weighted average number of ordinary shares used in calculating basic earnings per share
+146,860,829
+140,950,685
+Adjustments for calculation of diluted earnings per share:
+Options over ordinary shares
+565
+385
+Weighted average number of ordinary shares used in calculating diluted earnings per share
+146,861,394
+140,951,070
+TC "Directors' declaration"\f x \l 1In the directors' opinion:
+●
+the attached financial statements and notes comply with the Corporations Act 2001, Australian Accounting Standard AASB 134 'Interim Financial Reporting', the Corporations Regulations 2001 and other mandatory professional reporting requirements;
+●
+the attached financial statements and notes give a true and fair view of the consolidated entity's financial position as at 30 June 2026 and of its performance for the financial half-year ended on that date; and
+●
+there are reasonable grounds to believe that the company will be able to pay its debts as and when they become due and payable.
+Signed in accordance with a resolution of directors made pursuant to section 303(5)(a) of the Corporations Act 2001.
+On behalf of the directors
+___________________________
+Daniel Example
+Director
+24 August 2026
+Sydney
+TC "Independent auditor's review report to the members of Pinnacle Listed Comprehensive Interim Limited"\f x \l 1[This page has intentionally been left blank for the insertion of page one of the independent auditor's review report]
+[This page has intentionally been left blank for the insertion of page two of the independent auditor's review report]

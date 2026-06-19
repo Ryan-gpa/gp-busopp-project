@@ -1,0 +1,276 @@
+"""Disclosure review engine.
+
+Takes a half-year or annual report PDF, screens it against the AASB/IFRS
+disclosure checklist, optionally pulls ASX announcements, and writes a
+findings.json that build_report.js turns into a Word report.
+
+Usage:
+    python review.py --report "path/to/report.pdf" [--ticker NVU] [--type auto|interim|annual]
+                     [--out ../output] [--announcements ../announcements] [--no-asx]
+
+Detection is keyword-based screening, not assurance. Every PRESENT/NOT FOUND
+result should be confirmed by a human reviewer.
+"""
+import argparse, json, os, re, sys, subprocess
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+KIT = os.path.dirname(HERE)
+CHECKLIST = os.path.join(KIT, "config", "standards_checklist.json")
+
+
+def extract_text(pdf_path):
+    import pdfplumber
+    pages = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            pages.append(page.extract_text() or "")
+    return "\n".join(pages)
+
+
+def detect_type(text):
+    t = text.lower()
+    interim = sum(t.count(k) for k in ["half-year", "half year", "appendix 4d", "interim financial", "30 june"])
+    annual = sum(t.count(k) for k in ["appendix 4e", "annual financial report", "annual report", "remuneration report", "directors' report"])
+    # 4D/4E are the strongest signals
+    if "appendix 4d" in t and "appendix 4e" not in t:
+        return "interim"
+    if "appendix 4e" in t:
+        return "annual"
+    return "annual" if annual >= interim else "interim"
+
+
+def detect_ticker(text):
+    # Gather candidate codes from high-precision patterns, then pick the one that
+    # occurs most often as a standalone token (the entity's own code dominates;
+    # other companies named in the remuneration report appear only once).
+    candidates = {}
+    for pat in [
+        r"\b([A-Z]{2,4}),\s*(?:the\s+)?Company\b",      # "(Nanoveu, NVU, the Company)"
+        r"ASX\s*Code\s*[:\-]?\s*([A-Z0-9]{2,5})\b",
+        r"ASX[:\s]+([A-Z0-9]{2,5})\b",
+        r"\(ASX\s*[:\-]?\s*([A-Z0-9]{2,5})\)",
+    ]:
+        for m in re.finditer(pat, text):
+            code = m.group(1)
+            if code in ("CODE", "LTD"):
+                continue
+            candidates.setdefault(code, 0)
+    if not candidates:
+        return None
+    # score each candidate by standalone frequency across the whole document
+    for code in list(candidates):
+        candidates[code] = len(re.findall(rf"\b{re.escape(code)}\b", text))
+    return max(candidates, key=candidates.get)
+
+
+MONTHS = {m.lower(): i for i, m in enumerate(
+    ["January", "February", "March", "April", "May", "June", "July",
+     "August", "September", "October", "November", "December"], start=1)}
+
+
+def detect_period_end(text):
+    """Report period-end date (the 12-month announcement window ends here)."""
+    head = text[:6000]
+    m = re.search(r"(?:year|half-year|period)\s+ended\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})", head, re.I)
+    if not m:
+        m = re.search(r"as at\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})", head, re.I)
+    if m and m.group(2).lower() in MONTHS:
+        return f"{m.group(3)}-{MONTHS[m.group(2).lower()]:02d}-{int(m.group(1)):02d}"
+    return None
+
+
+def detect_entity(text):
+    # Most frequent "<Name> Limited/Ltd/Group/Holdings" phrase (the entity recurs
+    # throughout; other named companies do not).
+    head = text[:200000]
+    counts = {}
+    for m in re.finditer(r"([A-Z][A-Za-z&.'\- ]{2,40}?(?:Limited|Ltd|Group|Holdings|PLC|plc))", head):
+        name = re.sub(r"\s+", " ", m.group(1)).strip()
+        # drop obvious non-entity leading words
+        name = re.sub(r"^(The|And|Of|For|To|In|A) ", "", name)
+        if len(name) > 5:
+            counts[name] = counts.get(name, 0) + 1
+    if not counts:
+        return None
+    return max(counts, key=counts.get)
+
+
+def has_any(text_lower, phrases):
+    return any(p.lower() in text_lower for p in phrases)
+
+
+def extract_amount(text, caption):
+    """Return the current-period figure reported against a caption, or None.
+    On the caption's line, prefer the first number with a comma/decimal (a real
+    balance) over bare 1–2 digit integers (which are usually note references)."""
+    for m in re.finditer(re.escape(caption), text, re.I):
+        seg = text[m.end():m.end() + 90]
+        nums = re.findall(r"\(?\$?(\d[\d,]*(?:\.\d+)?)\)?", seg)
+        cand = [(("," in n or "." in n), float(n.replace(",", "")), n) for n in nums]
+        if not cand:
+            continue
+        withcomma = [c for c in cand if c[0]]
+        return withcomma[0][1] if withcomma else max(cand, key=lambda c: c[1])[1]
+    return None
+
+
+def extract_total_assets(text):
+    for cap in ["TOTAL ASSETS", "Total assets", "Total Assets"]:
+        v = extract_amount(text, cap)
+        if v:
+            return v
+    return None
+
+
+def balance_for(text, captions):
+    """Sum the current-period figures for an item's governing captions (deduped by value)."""
+    vals, seen = [], set()
+    for cap in captions:
+        v = extract_amount(text, cap)
+        if v is not None and round(v) not in seen:
+            seen.add(round(v)); vals.append(v)
+    return sum(vals) if vals else None
+
+
+def run_checklist(text, rtype, materiality=None):
+    with open(CHECKLIST, encoding="utf-8") as f:
+        cfg = json.load(f)
+    tl = text.lower()
+    results = []
+    for item in cfg["items"]:
+        if rtype not in item.get("appliesTo", []):
+            continue
+        assessment = item.get("assessment", "qualitative")
+        balance = None
+        expected_when = item.get("expectedWhen", [])
+        expected = True if not expected_when else has_any(tl, expected_when)
+        if not expected:
+            status = "N/A"  # business-model: trigger absent
+        else:
+            # Quantitative items: gate on materiality of the underlying balance.
+            if assessment == "quantitative" and item.get("balanceCaptions") and materiality:
+                balance = balance_for(text, item["balanceCaptions"])
+                if balance is not None and balance < materiality:
+                    status = "BELOW MATERIALITY"
+                    results.append(_row(item, status, assessment, balance, materiality))
+                    continue
+            detect_all = item.get("detectAll")
+            if detect_all:
+                present = all(any(p.lower() in tl for p in group) for group in detect_all)
+            else:
+                present = has_any(tl, item.get("detect", []))
+            status = "PRESENT" if present else "NOT FOUND"
+        results.append(_row(item, status, assessment, balance, materiality))
+    return cfg["meta"], results
+
+
+def _row(item, status, assessment, balance, materiality):
+    return {
+        "id": item["id"], "standard": item["standard"], "clause": item.get("clause", ""),
+        "title": item["title"], "category": item.get("category"),
+        "materiality": item.get("materiality", "medium"),
+        "assessment": assessment, "balance": balance, "materialityThreshold": materiality,
+        "status": status, "recommendation": item["recommendation"],
+        "representationNote": item.get("representationNote", ""),
+        "divergent": item.get("divergent", False),
+    }
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--report", required=True)
+    ap.add_argument("--ticker", default=None)
+    ap.add_argument("--type", default="auto", choices=["auto", "interim", "annual"])
+    ap.add_argument("--out", default=os.path.join(KIT, "output"))
+    ap.add_argument("--announcements", default=os.path.join(KIT, "announcements"))
+    ap.add_argument("--no-asx", action="store_true")
+    ap.add_argument("--download-asx", action="store_true")
+    ap.add_argument("--as-of-period", action="store_true",
+                    help="anchor the 12-month ASX window to the report's period-end (default: today)")
+    ap.add_argument("--materiality", default=None, help="planning materiality in AUD (overrides the %-of-total-assets default)")
+    ap.add_argument("--materiality-pct", type=float, default=5.0, help="materiality as %% of total assets when --materiality not given (default 5)")
+    args = ap.parse_args()
+
+    if not os.path.exists(args.report):
+        print(f"ERROR: report not found: {args.report}"); return 2
+    os.makedirs(args.out, exist_ok=True)
+
+    print(f"[review] extracting {args.report} ...")
+    text = extract_text(args.report)
+    rtype = detect_type(text) if args.type == "auto" else args.type
+    ticker = args.ticker or detect_ticker(text)
+    entity = detect_entity(text) or "Reporting Entity"
+
+    # Materiality: explicit --materiality, else default % of total assets.
+    total_assets = extract_total_assets(text)
+    if args.materiality:
+        materiality, mat_basis = float(args.materiality), f"input ${float(args.materiality):,.0f}"
+    elif total_assets:
+        materiality = round(args.materiality_pct / 100.0 * total_assets)
+        mat_basis = f"{args.materiality_pct:g}% of total assets ${total_assets:,.0f}"
+    else:
+        materiality, mat_basis = None, "not applied (total assets not detected; pass --materiality)"
+    print(f"[review] entity='{entity}' ticker={ticker} type={rtype} | materiality={materiality} ({mat_basis})")
+
+    meta, results = run_checklist(text, rtype, materiality)
+
+    # ASX announcements — trailing 12 months. Anchor to "today" by default (captures the
+    # latest announcements + recent subsequent events). Use --as-of-period to instead anchor
+    # the window to the report's own period-end (historical review of the reporting year).
+    period_end = detect_period_end(text)
+    asx = {"ticker": ticker, "online": False, "items": []}
+    if ticker and not args.no_asx:
+        try:
+            cmd = [sys.executable, os.path.join(HERE, "asx_history.py"), ticker,
+                   "--out", args.announcements, "--months", "12"]
+            if args.as_of_period and period_end:
+                cmd += ["--as-of", period_end]
+            if args.download_asx:
+                cmd.append("--download")
+            subprocess.run(cmd, check=False)
+            idx = os.path.join(args.announcements, ticker.upper(), "index.json")
+            if os.path.exists(idx):
+                with open(idx, encoding="utf-8") as f:
+                    asx = json.load(f)
+        except Exception as e:
+            print(f"[review] ASX step skipped: {e}", file=sys.stderr)
+
+    # Business-development opportunity RAG on each announcement (Growth Partners lens)
+    try:
+        from opportunity import classify_opportunity, RAG_MEANING
+        counts = {"GREEN": 0, "AMBER": 0, "RED": 0}
+        for it in asx.get("items", []):
+            o = classify_opportunity(it)
+            it["rag"], it["oppService"], it["oppRationale"] = o["rag"], o["service"], o["rationale"]
+            it["priority"], it["importance"], it["theme"] = o["priority"], o["importance"], o["theme"]
+            it["oppServices"] = o.get("services", [])
+            counts[o["rag"]] = counts.get(o["rag"], 0) + 1
+        asx["oppCounts"] = counts
+        asx["ragMeaning"] = RAG_MEANING
+    except Exception as e:
+        print(f"[review] opportunity classification skipped: {e}", file=sys.stderr)
+
+    summary = {
+        "present": sum(1 for r in results if r["status"] == "PRESENT"),
+        "not_found": sum(1 for r in results if r["status"] == "NOT FOUND"),
+        "below_materiality": sum(1 for r in results if r["status"] == "BELOW MATERIALITY"),
+        "na": sum(1 for r in results if r["status"] == "N/A"),
+    }
+    findings = {
+        "entity": entity, "ticker": ticker, "reportType": rtype,
+        "reportFile": os.path.basename(args.report),
+        "basis": meta["basis"], "detectionNote": meta["detection_note"],
+        "checklistVersion": meta["version"], "summary": summary,
+        "materiality": materiality, "materialityBasis": mat_basis, "totalAssets": total_assets,
+        "results": results, "asx": asx,
+    }
+    out_json = os.path.join(args.out, "findings.json")
+    with open(out_json, "w", encoding="utf-8") as f:
+        json.dump(findings, f, indent=1)
+    print(f"[review] PRESENT={summary['present']} NOT FOUND={summary['not_found']} "
+          f"N/A={summary['na']} -> {out_json}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

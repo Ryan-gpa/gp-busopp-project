@@ -1,0 +1,734 @@
+{
+  "meta": {
+    "name": "AASB / IFRS disclosure checklist",
+    "version": "1.0",
+    "updated": "2026-06-17",
+    "basis": "Australian Accounting Standards (AASB, IFRS-equivalent) and Corporations Act 2001 / ASX Listing Rules. Mirrors the structure of Accurri 'Example Financial Statements' (Pinnacle) model accounts.",
+    "detection_note": "Presence is screened by case-insensitive keyword match on the extracted report text. This is a FIRST-PASS SCREEN, not assurance. 'expectedWhen' makes an item conditional: if none of its trigger phrases appear, the item is treated as Not Applicable (a business-model difference, not a gap)."
+  },
+  "items": [
+    {
+      "id": "aasb101_rounding",
+      "standard": "AASB 101 / IAS 1",
+      "title": "Presentation basis & rounding ($'000 vs full dollars)",
+      "category": "presentation",
+      "appliesTo": [
+        "interim",
+        "annual"
+      ],
+      "detect": [
+        "rounded",
+        "nearest thousand",
+        "$'000",
+        "full dollars",
+        "presentation currency"
+      ],
+      "expectedWhen": [],
+      "materiality": "low",
+      "recommendation": "State the presentation currency and rounding basis (Corporations Instrument) clearly.",
+      "clause": "AASB 101 ¶51(e)",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "aasb108_restatement",
+      "standard": "AASB 108 / IAS 8",
+      "title": "Restatement of comparatives note (where prior periods restated)",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "restatement of comparatives",
+        "prior period error",
+        "reclassified comparative",
+        "restated to"
+      ],
+      "expectedWhen": [
+        "restatement of comparatives",
+        "prior period error",
+        "restated to"
+      ],
+      "materiality": "medium",
+      "recommendation": "If comparatives were restated/reclassified, disclose nature, amount and reason per AASB 108.",
+      "clause": "AASB 108 ¶28, ¶49",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "aasb108_judgements",
+      "standard": "AASB 108 / IAS 1.122",
+      "title": "Critical judgements, estimates and assumptions note",
+      "category": "B",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "critical accounting judgement",
+        "critical judgement",
+        "estimates and assumption",
+        "significant judgement",
+        "key estimate"
+      ],
+      "expectedWhen": [],
+      "materiality": "high",
+      "recommendation": "Provide a dedicated critical-judgements-and-estimates note consolidating significant judgements (e.g. control assessments, asset-acquisition vs business-combination, recoverability of receivables).",
+      "clause": "AASB 101 ¶122, ¶125",
+      "assessment": "qualitative",
+      "divergent": false,
+      "representationNote": "Usually a dedicated 'Critical accounting judgements and key sources of estimation' note — when present, treat as addressed."
+    },
+    {
+      "id": "aasb134_interim_basis",
+      "standard": "AASB 134 / IAS 34",
+      "title": "Interim financial reporting basis statement",
+      "category": "presentation",
+      "appliesTo": [
+        "interim"
+      ],
+      "detect": [
+        "AASB 134",
+        "IAS 34",
+        "interim financial",
+        "condensed",
+        "half-year financial report"
+      ],
+      "expectedWhen": [],
+      "materiality": "high",
+      "recommendation": "State that the interim report is prepared in accordance with AASB 134 Interim Financial Reporting.",
+      "clause": "AASB 134 ¶8, ¶19",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "aasb15_disaggregation",
+      "standard": "AASB 15 / IFRS 15",
+      "title": "Revenue disaggregation (category, geography, timing of transfer)",
+      "category": "B",
+      "appliesTo": [
+        "interim",
+        "annual"
+      ],
+      "expectedWhen": [
+        "revenue"
+      ],
+      "materiality": "high",
+      "recommendation": "Confirm revenue disaggregation meets AASB 15 ¶114-115. It need not be a single \"disaggregation of revenue\" table — it may be satisfied across the operating-segment note (revenue by product/segment), the geographic revenue split, and the timing of transfer in the revenue policy (point-in-time vs over-time). Verify the ¶115 link between disaggregated revenue and segment disclosures is explained.",
+      "clause": "AASB 15 ¶114–115",
+      "assessment": "qualitative",
+      "detect": [
+        "disaggregat",
+        "revenue by geograph",
+        "revenue by product",
+        "revenue by category",
+        "external customers",
+        "operating segment",
+        "reportable segment",
+        "segment revenue",
+        "point in time",
+        "over time",
+        "timing of transfer"
+      ],
+      "representationNote": "Commonly represented differently from the standard’s illustrative table: look in the operating-segment note, the geographic revenue note, and the revenue-recognition policy. Presence of these together generally satisfies ¶114-115 for a single-stream entity.",
+      "divergent": true
+    },
+    {
+      "id": "aasb15_contract_balances",
+      "standard": "AASB 15 / IFRS 15",
+      "title": "Contract assets / contract liabilities movement",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "contract asset",
+        "contract liabilit"
+      ],
+      "expectedWhen": [
+        "contract liabilit",
+        "contract asset",
+        "deferred revenue"
+      ],
+      "materiality": "medium",
+      "recommendation": "Disclose opening/closing contract balances and revenue recognised from prior-period contract liabilities.",
+      "clause": "AASB 15 ¶116–118",
+      "assessment": "quantitative",
+      "balanceCaptions": [
+        "contract liabilit",
+        "contract asset"
+      ]
+    },
+    {
+      "id": "aasb112_tax_recon",
+      "standard": "AASB 112 / IAS 12",
+      "title": "Numerical income-tax reconciliation (even where tax is nil)",
+      "category": "B",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "numerical reconciliation",
+        "prima facie",
+        "reconciliation between income tax",
+        "income tax expense calculated at"
+      ],
+      "expectedWhen": [],
+      "materiality": "high",
+      "recommendation": "Provide the prima-facie-to-actual income-tax reconciliation; required even for loss-makers with nil expense (AASB 112.81(c)).",
+      "clause": "AASB 112 ¶81(c)",
+      "assessment": "qualitative",
+      "divergent": false,
+      "representationNote": "Usually a numerical reconciliation within the income-tax note (prima facie tax to actual) — when present, treat as addressed."
+    },
+    {
+      "id": "aasb112_unrecognised_dta",
+      "standard": "AASB 112 / IAS 12",
+      "title": "Unrecognised deferred tax assets (tax losses)",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "unrecognised deferred tax",
+        "deferred tax asset",
+        "tax losses",
+        "no deferred tax asset"
+      ],
+      "expectedWhen": [
+        "loss",
+        "tax losses"
+      ],
+      "materiality": "medium",
+      "recommendation": "Disclose unrecognised deferred tax assets and unused tax losses (AASB 112.81(e)).",
+      "clause": "AASB 112 ¶81(e)",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "aasb107_operating_recon",
+      "standard": "AASB 107 / IAS 7",
+      "title": "Reconciliation of profit/(loss) to net operating cash flows",
+      "category": "B",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "reconciliation of loss after",
+        "reconciliation of profit after",
+        "reconciliation of (loss) to net cash",
+        "cash flows from operating activities:",
+        "loss for the year",
+        "non cash flow items"
+      ],
+      "expectedWhen": [],
+      "materiality": "high",
+      "recommendation": "Include a reconciliation of profit/(loss) after tax to net cash from operating activities. Common in annuals; often omitted in interims.",
+      "clause": "AASB 107 ¶18–20",
+      "assessment": "qualitative",
+      "divergent": false,
+      "representationNote": "Usually a 'reconciliation of profit/(loss) after tax to net cash from operating activities' in the cash-flow notes — when present, treat as addressed."
+    },
+    {
+      "id": "aasb107_noncash",
+      "standard": "AASB 107 / IAS 7",
+      "title": "Non-cash investing & financing activities note",
+      "category": "B",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "non-cash investing",
+        "non-cash financing",
+        "non cash transaction",
+        "shares issued as consideration",
+        "non-cash"
+      ],
+      "expectedWhen": [
+        "acquisition",
+        "shares issued",
+        "performance rights",
+        "conversion"
+      ],
+      "materiality": "medium",
+      "recommendation": "Disclose material non-cash investing/financing items (e.g. consideration shares, performance rights, loan conversions) per AASB 107.43.",
+      "clause": "AASB 107 ¶43",
+      "assessment": "qualitative",
+      "divergent": true,
+      "representationNote": "Material non-cash items (consideration shares, performance rights, loan/option conversions) are commonly disclosed in the statement of changes in equity and the issued-capital note rather than a dedicated AASB 107 ¶43 note — confirm they are captured there."
+    },
+    {
+      "id": "aasb133_eps_split",
+      "standard": "AASB 133 / IAS 33",
+      "title": "Basic AND diluted EPS presented (separate lines)",
+      "category": "B",
+      "appliesTo": [
+        "interim",
+        "annual"
+      ],
+      "detect": [
+        "diluted earnings per share",
+        "diluted loss per share",
+        "diluted (loss) per share",
+        "diluted eps"
+      ],
+      "expectedWhen": [
+        "per share"
+      ],
+      "materiality": "low",
+      "recommendation": "Present basic and diluted EPS/LPS as separate lines even where equal (anti-dilutive); state why potential shares are anti-dilutive (AASB 133).",
+      "clause": "AASB 133 ¶66",
+      "assessment": "qualitative",
+      "divergent": true,
+      "representationNote": "Often a single 'basic and diluted' line plus an explicit statement that potential shares are anti-dilutive and excluded (AASB 133 ¶43), rather than two separate lines — confirm the anti-dilutive explanation is present."
+    },
+    {
+      "id": "aasb2_sbp",
+      "standard": "AASB 2 / IFRS 2",
+      "title": "Share-based payments note (valuation inputs, vesting)",
+      "category": "conditional",
+      "appliesTo": [
+        "interim",
+        "annual"
+      ],
+      "detect": [
+        "share-based payment",
+        "share based payment",
+        "performance rights",
+        "option",
+        "Black-Scholes",
+        "Monte Carlo",
+        "vesting"
+      ],
+      "expectedWhen": [
+        "share-based",
+        "share based",
+        "performance rights",
+        "option"
+      ],
+      "materiality": "high",
+      "recommendation": "Disclose SBP arrangements, valuation model and inputs, and amounts recognised (AASB 2).",
+      "clause": "AASB 2 ¶44–52",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "aasb3_vs_aasb2_acquisition",
+      "standard": "AASB 3 vs AASB 2 / IFRS 3 vs IFRS 2",
+      "title": "Acquisition accounting basis (business combination vs asset acquisition)",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "business combination",
+        "asset acquisition",
+        "acquisition method",
+        "goodwill",
+        "bargain purchase"
+      ],
+      "expectedWhen": [
+        "acquisition",
+        "acquired"
+      ],
+      "materiality": "high",
+      "recommendation": "State whether each acquisition is a business combination (AASB 3) or an asset acquisition (allocate cost, no goodwill). Templates often assume AASB 3 only.",
+      "clause": "AASB 3 ¶3 & App A; AASB 2",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "aasb138_intangibles",
+      "standard": "AASB 138 / IAS 38",
+      "title": "Intangible assets note (recognition, amortisation, impairment)",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "intangible asset",
+        "amortisation",
+        "research and development",
+        "useful life",
+        "impairment of intangible"
+      ],
+      "expectedWhen": [
+        "intangible"
+      ],
+      "materiality": "high",
+      "recommendation": "Disclose intangible carrying values, amortisation method/useful life, and impairment testing (AASB 138 / AASB 136).",
+      "clause": "AASB 138 ¶118–128",
+      "assessment": "quantitative",
+      "balanceCaptions": [
+        "intangible"
+      ]
+    },
+    {
+      "id": "aasb9_classification",
+      "standard": "AASB 9 / IFRS 9",
+      "title": "Financial instruments classification & measurement",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "financial instrument",
+        "amortised cost",
+        "fair value through",
+        "fvtpl",
+        "fvoci",
+        "effective interest"
+      ],
+      "expectedWhen": [
+        "loan",
+        "receivable",
+        "financial asset",
+        "borrowing"
+      ],
+      "materiality": "medium",
+      "recommendation": "Disclose classification and measurement basis for financial assets/liabilities (AASB 9).",
+      "clause": "AASB 7 ¶8; AASB 9 ¶4.1",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "aasb9_ecl",
+      "standard": "AASB 9 / AASB 7",
+      "title": "Expected credit loss / receivables ageing",
+      "category": "B",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "expected credit loss",
+        "ecl",
+        "credit risk",
+        "ageing",
+        "allowance for",
+        "loss allowance",
+        "past due"
+      ],
+      "expectedWhen": [
+        "receivable",
+        "loan"
+      ],
+      "materiality": "medium",
+      "recommendation": "Provide ECL model, credit-risk and ageing analysis for receivables/loans (AASB 7.35). Often thin for small balances.",
+      "clause": "AASB 7 ¶35A–35N",
+      "assessment": "quantitative",
+      "balanceCaptions": [
+        "trade and other receivables",
+        "loan receivable",
+        "trade receivables"
+      ]
+    },
+    {
+      "id": "aasb13_fair_value",
+      "standard": "AASB 13 / IFRS 13",
+      "title": "Fair value measurement hierarchy (Level 1/2/3)",
+      "category": "B",
+      "appliesTo": [
+        "annual"
+      ],
+      "detectAll": [
+        [
+          "fair value"
+        ],
+        [
+          "level 1",
+          "level 2",
+          "level 3",
+          "fair value hierarchy"
+        ]
+      ],
+      "expectedWhen": [
+        "fair value"
+      ],
+      "materiality": "medium",
+      "recommendation": "Where items are measured/disclosed at fair value (e.g. a loan discounted to fair value), give the AASB 13 Level 1/2/3 hierarchy and valuation inputs, not just a fair-value reference.",
+      "clause": "AASB 13 ¶91–99 (¶93)",
+      "assessment": "quantitative",
+      "balanceCaptions": [
+        "loan receivable"
+      ]
+    },
+    {
+      "id": "aasb16_leases",
+      "standard": "AASB 16 / IFRS 16",
+      "title": "Leases — right-of-use assets and lease liabilities",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "right-of-use",
+        "right of use",
+        "lease liabilit",
+        "lease liability"
+      ],
+      "expectedWhen": [
+        "lease",
+        "right-of-use",
+        "right of use"
+      ],
+      "materiality": "medium",
+      "recommendation": "Disclose ROU assets, lease liabilities, maturity analysis and lease expense (AASB 16).",
+      "clause": "AASB 16 ¶51–60",
+      "assessment": "quantitative",
+      "balanceCaptions": [
+        "right-of-use",
+        "right of use",
+        "lease liabilit"
+      ]
+    },
+    {
+      "id": "aasb10_nci",
+      "standard": "AASB 10 / IFRS 10",
+      "title": "Non-controlling interests (incl. deficit NCI)",
+      "category": "conditional",
+      "appliesTo": [
+        "interim",
+        "annual"
+      ],
+      "detect": [
+        "non-controlling interest",
+        "nci",
+        "minority interest",
+        "attributed to the non-controlling"
+      ],
+      "expectedWhen": [
+        "non-controlling",
+        "subsidiar",
+        "minority"
+      ],
+      "materiality": "high",
+      "recommendation": "Where NCI exists, attribute losses in full even into deficit, and disclose subsidiaries and ownership (AASB 10 / AASB 12).",
+      "clause": "AASB 10 ¶B94; AASB 12 ¶10–19",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "aasb8_segments",
+      "standard": "AASB 8 / IFRS 8",
+      "title": "Operating segments note",
+      "category": "conditional",
+      "appliesTo": [
+        "interim",
+        "annual"
+      ],
+      "detect": [
+        "operating segment",
+        "reportable segment",
+        "segment reporting",
+        "segment (loss)",
+        "segment profit"
+      ],
+      "expectedWhen": [],
+      "materiality": "high",
+      "recommendation": "Disclose reportable segments, the basis of identification, and segment revenue/result/assets (AASB 8).",
+      "clause": "AASB 8 ¶21–24",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "aasb124_related",
+      "standard": "AASB 124 / IAS 24",
+      "title": "Related party transactions",
+      "category": "conditional",
+      "appliesTo": [
+        "interim",
+        "annual"
+      ],
+      "detect": [
+        "related party",
+        "related parties",
+        "key management personnel",
+        "kmp"
+      ],
+      "expectedWhen": [],
+      "materiality": "high",
+      "recommendation": "Disclose related-party transactions and KMP compensation (AASB 124).",
+      "clause": "AASB 124 ¶17–24",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "aasb137_contingencies",
+      "standard": "AASB 137 / IAS 37",
+      "title": "Commitments and contingencies",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "commitment",
+        "contingent liabilit",
+        "contingent asset",
+        "contingenc"
+      ],
+      "expectedWhen": [],
+      "materiality": "medium",
+      "recommendation": "Disclose capital/lease commitments and contingent assets/liabilities (AASB 137).",
+      "clause": "AASB 137 ¶84–92",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "events_after",
+      "standard": "AASB 110 / IAS 10",
+      "title": "Events after the reporting period",
+      "category": "conditional",
+      "appliesTo": [
+        "interim",
+        "annual"
+      ],
+      "detect": [
+        "events after",
+        "subsequent event",
+        "after the reporting period",
+        "after balance sheet date",
+        "after the year end"
+      ],
+      "expectedWhen": [],
+      "materiality": "high",
+      "recommendation": "Disclose material post-balance-date events (AASB 110).",
+      "clause": "AASB 110 ¶21",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "parent_entity",
+      "standard": "Corporations Act / AASB 127",
+      "title": "Parent entity information",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "parent entity",
+        "parent entity information"
+      ],
+      "expectedWhen": [],
+      "materiality": "medium",
+      "recommendation": "Provide supplementary parent-entity financial information (Corporations Regulations 2M.3.01).",
+      "clause": "Corporations Regs reg 2M.3.01",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "ceds",
+      "standard": "Corporations Act 2001 s295(3A)",
+      "title": "Consolidated entity disclosure statement (CEDS)",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "consolidated entity disclosure statement",
+        "ceds",
+        "tax residency"
+      ],
+      "expectedWhen": [],
+      "materiality": "high",
+      "recommendation": "Include the Consolidated Entity Disclosure Statement (entities, type, place of incorporation, tax residency) for years ending on/after 30 June 2024.",
+      "clause": "Corporations Act s295(3A)",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "rem_report",
+      "standard": "Corporations Act s300A",
+      "title": "Remuneration report (audited)",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "remuneration report",
+        "remuneration report (audited)",
+        "key management personnel remuneration"
+      ],
+      "expectedWhen": [],
+      "materiality": "high",
+      "recommendation": "Include an audited remuneration report covering principles, details, service agreements, share-based comp and the AGM vote (s300A).",
+      "clause": "Corporations Act s300A",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "auditor_independence",
+      "standard": "Corporations Act s307C",
+      "title": "Auditor's independence declaration & non-audit services",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "auditor's independence declaration",
+        "independence declaration",
+        "non-audit services",
+        "auditor independence"
+      ],
+      "expectedWhen": [],
+      "materiality": "medium",
+      "recommendation": "Include the s307C independence declaration and non-audit-services disclosure.",
+      "clause": "Corporations Act s307C, s300(11B)",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "shareholder_info",
+      "standard": "ASX Listing Rule 4.10",
+      "title": "Shareholder information (distribution, top 20, substantial holders)",
+      "category": "conditional",
+      "appliesTo": [
+        "annual"
+      ],
+      "detect": [
+        "twenty largest",
+        "distribution of equit",
+        "substantial holder",
+        "substantial shareholder",
+        "voting rights",
+        "unmarketable parcel"
+      ],
+      "expectedWhen": [],
+      "materiality": "medium",
+      "recommendation": "Include ASX shareholder information: distribution schedule, twenty largest holders, substantial holders, voting rights, unmarketable parcels (LR 4.10).",
+      "clause": "ASX Listing Rule 4.10",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "appendix_cover",
+      "standard": "ASX LR 4.2A / 4.3A",
+      "title": "Appendix 4D (interim) / 4E (annual) cover",
+      "category": "conditional",
+      "appliesTo": [
+        "interim",
+        "annual"
+      ],
+      "detect": [
+        "appendix 4d",
+        "appendix 4e",
+        "results for announcement",
+        "net tangible asset"
+      ],
+      "expectedWhen": [],
+      "materiality": "high",
+      "recommendation": "Include the Appendix 4D/4E cover: results for announcement, NTA backing, dividends, control gained/lost, associates, audit/review status.",
+      "clause": "ASX LR 4.2A (4D) / 4.3A (4E)",
+      "assessment": "qualitative"
+    },
+    {
+      "id": "going_concern",
+      "standard": "AASB 101 / IAS 1.25",
+      "title": "Going concern assessment (esp. for loss-makers)",
+      "category": "B",
+      "appliesTo": [
+        "interim",
+        "annual"
+      ],
+      "detect": [
+        "going concern",
+        "material uncertainty",
+        "continue as a going concern",
+        "ability to continue"
+      ],
+      "expectedWhen": [
+        "loss",
+        "deficit",
+        "net current liabilit",
+        "cash burn"
+      ],
+      "materiality": "high",
+      "recommendation": "For loss-making / cash-burning entities, disclose the going-concern assessment, runway and any material uncertainties (AASB 101.25).",
+      "clause": "AASB 101 ¶25–26",
+      "assessment": "qualitative",
+      "divergent": false,
+      "representationNote": "Usually a 'Going concern' note within the basis of preparation — when present, treat as addressed."
+    }
+  ]
+}
