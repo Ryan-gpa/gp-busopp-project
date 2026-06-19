@@ -41,6 +41,9 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
   const [saveStatus, setSaveStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null)
   const [customAction, setCustomAction] = useState<"include" | "exclude">("exclude")
   const [announcementTypeInput, setAnnouncementTypeInput] = useState("")
+  const [votingState, setVotingState] = useState<"idle" | "saving" | "done">("idle")
+  const [voteResult, setVoteResult] = useState<"up" | "down" | null>(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const textContainerRef = useRef<HTMLDivElement>(null)
 
@@ -98,6 +101,34 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
       setSelectedTargetId(OPPORTUNITY_RULES[0].id)
     }
   }, [saveType, checklistItems])
+
+  const handleVote = async (vote: "up" | "down") => {
+    if (!selectedText) return
+    setVotingState("saving")
+    try {
+      await fetch(`${API_BASE}/api/votes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: selectedText,
+          vote,
+          documentKey: announcement.documentKey ?? "",
+          headline: announcement.headline,
+          announcementType: announcement.type,
+        }),
+      })
+      setVoteResult(vote)
+      setVotingState("done")
+      setTimeout(() => {
+        setSelectedText("")
+        setVotingState("idle")
+        setVoteResult(null)
+        setShowAdvanced(false)
+      }, 1800)
+    } catch {
+      setVotingState("idle")
+    }
+  }
 
   const handleSaveKeyword = async () => {
     if (!selectedText) return
@@ -240,149 +271,126 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
               )}
             </div>
 
-            {/* Selection Keyword Form */}
+            {/* Selection panel */}
             {selectedText && (
               <div className="border-t border-border bg-muted/40 px-4 py-3 shrink-0 space-y-3">
-                <div className="flex items-start gap-1.5 text-xs">
-                  <Sparkles className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                  <div className="min-w-0 flex-1">
-                    <span className="text-muted-foreground font-medium">Selected text to add:</span>
-                    <p className="font-mono bg-background border border-border rounded-sm p-1.5 mt-1 font-semibold truncate">
-                      "{selectedText}"
-                    </p>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <label className="flex items-center gap-1 text-[11px] cursor-pointer font-medium">
-                    <input
-                      type="radio"
-                      name="saveType"
-                      checked={saveType === "customRule"}
-                      onChange={() => setSaveType("customRule")}
-                    />
-                    Search Override
-                  </label>
-                  <label className="flex items-center gap-1 text-[11px] cursor-pointer font-medium">
-                    <input
-                      type="radio"
-                      name="saveType"
-                      checked={saveType === "checklist"}
-                      onChange={() => setSaveType("checklist")}
-                    />
-                    Checklist Keyword
-                  </label>
-                  <label className="flex items-center gap-1 text-[11px] cursor-pointer font-medium">
-                    <input
-                      type="radio"
-                      name="saveType"
-                      checked={saveType === "opportunity"}
-                      onChange={() => setSaveType("opportunity")}
-                    />
-                    Opportunity Match
-                  </label>
-                </div>
+                {/* Selected text preview */}
+                <p className="font-mono text-xs bg-background border border-border rounded-sm px-2 py-1.5 truncate text-foreground">
+                  "{selectedText}"
+                </p>
 
-                {saveType === "customRule" ? (
-                  <div className="space-y-2">
-                    <div className="space-y-1">
-                      <label className="block text-[10px] text-muted-foreground uppercase font-semibold">
-                        Announcement Type
-                      </label>
-                      <input
-                        type="text"
-                        value={announcementTypeInput}
-                        onChange={(e) => setAnnouncementTypeInput(e.target.value)}
-                        className="w-full h-8 px-2 text-xs border border-input rounded-sm bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                        placeholder="e.g. Proposed issue of securities"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-[10px] text-muted-foreground uppercase font-semibold">
-                        Action Override
-                      </label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center gap-1.5 text-xs cursor-pointer font-medium text-[#375623]">
-                          <input
-                            type="radio"
-                            name="customAction"
-                            checked={customAction === "include"}
-                            onChange={() => setCustomAction("include")}
-                          />
-                          Include (RAG GREEN)
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs cursor-pointer font-medium text-[#9C0006]">
-                          <input
-                            type="radio"
-                            name="customAction"
-                            checked={customAction === "exclude"}
-                            onChange={() => setCustomAction("exclude")}
-                          />
-                          Exclude (RAG RED)
-                        </label>
-                      </div>
-                    </div>
+                {/* Vote buttons / confirmation */}
+                {votingState === "done" ? (
+                  <div className={`text-xs px-3 py-2 rounded-sm font-medium text-center ${
+                    voteResult === "up" ? "bg-[#C6E0B4] text-[#375623]" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {voteResult === "up" ? "👍 Flagged for closer review" : "👎 Marked as less relevant"}
                   </div>
                 ) : (
-                  <div className="space-y-1">
-                    <label className="block text-[10px] text-muted-foreground uppercase font-semibold">
-                      Target {saveType === "checklist" ? "Checklist Item" : "Opportunity Rule"}
-                    </label>
-                    <select
-                      value={selectedTargetId}
-                      onChange={(e) => setSelectedTargetId(e.target.value)}
-                      className="w-full h-8 px-2 text-xs border border-input rounded-sm bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleVote("up")}
+                      disabled={votingState === "saving"}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-sm border border-[#375623]/30 bg-[#C6E0B4]/20 hover:bg-[#C6E0B4]/50 text-[#375623] text-xs font-medium transition-colors disabled:opacity-50"
                     >
-                      {saveType === "checklist"
-                        ? checklistItems.map((item) => (
-                            <option key={item.id} value={item.id}>
-                              {item.standard} &middot; {item.title}
-                            </option>
-                          ))
-                        : OPPORTUNITY_RULES.map((rule) => (
-                            <option key={rule.id} value={rule.id}>
-                              {rule.label}
-                            </option>
+                      {votingState === "saving" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "👍"}
+                      Needs closer review
+                    </button>
+                    <button
+                      onClick={() => handleVote("down")}
+                      disabled={votingState === "saving"}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-sm border border-border bg-muted/30 hover:bg-muted/60 text-muted-foreground text-xs font-medium transition-colors disabled:opacity-50"
+                    >
+                      {votingState === "saving" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "👎"}
+                      Less relevant
+                    </button>
+                    <button
+                      onClick={() => { setSelectedText(""); setShowAdvanced(false) }}
+                      className="px-2 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                {/* Advanced: save to memory (collapsed by default) */}
+                {votingState !== "done" && (
+                  <div>
+                    <button
+                      onClick={() => setShowAdvanced(v => !v)}
+                      className="text-[11px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      {showAdvanced ? "Hide" : "Advanced"}: save phrase to memory
+                    </button>
+
+                    {showAdvanced && (
+                      <div className="mt-2 space-y-2 pt-2 border-t border-border">
+                        <div className="grid grid-cols-3 gap-2">
+                          {(["customRule", "checklist", "opportunity"] as const).map((t) => (
+                            <label key={t} className="flex items-center gap-1 text-[11px] cursor-pointer font-medium">
+                              <input type="radio" name="saveType" checked={saveType === t} onChange={() => setSaveType(t)} />
+                              {t === "customRule" ? "Search Override" : t === "checklist" ? "Checklist Keyword" : "Opportunity Match"}
+                            </label>
                           ))}
-                    </select>
-                  </div>
-                )}
+                        </div>
 
-                {saveStatus && (
-                  <div
-                    className={`text-xs p-2 rounded-sm ${
-                      saveStatus.type === "success"
-                        ? "bg-[#C6E0B4] text-[#375623]"
-                        : "bg-[#FFC7CE] text-[#9C0006]"
-                    }`}
-                  >
-                    {saveStatus.msg}
-                  </div>
-                )}
+                        {saveType === "customRule" ? (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={announcementTypeInput}
+                              onChange={(e) => setAnnouncementTypeInput(e.target.value)}
+                              className="w-full h-8 px-2 text-xs border border-input rounded-sm bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                              placeholder="Announcement type (e.g. Proposed issue of securities)"
+                            />
+                            <div className="flex gap-4">
+                              {(["include", "exclude"] as const).map((a) => (
+                                <label key={a} className={`flex items-center gap-1.5 text-xs cursor-pointer font-medium ${a === "include" ? "text-[#375623]" : "text-[#9C0006]"}`}>
+                                  <input type="radio" name="customAction" checked={customAction === a} onChange={() => setCustomAction(a)} />
+                                  {a === "include" ? "Include (RAG GREEN)" : "Exclude (RAG RED)"}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <select
+                            value={selectedTargetId}
+                            onChange={(e) => setSelectedTargetId(e.target.value)}
+                            className="w-full h-8 px-2 text-xs border border-input rounded-sm bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                          >
+                            {saveType === "checklist"
+                              ? checklistItems.map((item) => (
+                                  <option key={item.id} value={item.id}>{item.standard} · {item.title}</option>
+                                ))
+                              : OPPORTUNITY_RULES.map((rule) => (
+                                  <option key={rule.id} value={rule.id}>{rule.label}</option>
+                                ))}
+                          </select>
+                        )}
 
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedText("")}
-                    className="text-xs h-8"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSaveKeyword}
-                    disabled={savingKeyword || (saveType !== "customRule" && !selectedTargetId)}
-                    size="sm"
-                    className="text-xs h-8 bg-accent hover:bg-accent/90 flex items-center gap-1.5"
-                  >
-                    {savingKeyword ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Save className="w-3.5 h-3.5" />
+                        {saveStatus && (
+                          <div className={`text-xs p-2 rounded-sm ${saveStatus.type === "success" ? "bg-[#C6E0B4] text-[#375623]" : "bg-[#FFC7CE] text-[#9C0006]"}`}>
+                            {saveStatus.msg}
+                          </div>
+                        )}
+
+                        <div className="flex justify-end">
+                          <Button
+                            onClick={handleSaveKeyword}
+                            disabled={savingKeyword || (saveType !== "customRule" && !selectedTargetId)}
+                            size="sm"
+                            className="text-xs h-8 bg-accent hover:bg-accent/90 flex items-center gap-1.5"
+                          >
+                            {savingKeyword ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                            Save to memory
+                          </Button>
+                        </div>
+                      </div>
                     )}
-                    Save to memory
-                  </Button>
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

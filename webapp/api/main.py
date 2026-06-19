@@ -480,6 +480,57 @@ async def record_session(body: dict):
     return prefs
 
 
+VOTES_PATH = KIT_DIR / "config" / "text_votes.json"
+
+
+def _load_votes() -> list:
+    if VOTES_PATH.exists():
+        with open(VOTES_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+@app.get("/api/votes")
+def get_votes():
+    return {"votes": _load_votes()}
+
+
+@app.post("/api/votes")
+async def cast_vote(body: dict):
+    """Record a thumbs-up or thumbs-down vote on a highlighted text snippet."""
+    text = body.get("text", "").strip()
+    vote = body.get("vote", "")
+    if not text or vote not in ("up", "down"):
+        raise HTTPException(400, "text and vote ('up' or 'down') are required.")
+
+    votes = _load_votes()
+    # Update existing entry for this exact text, or append a new one
+    for entry in votes:
+        if entry.get("text") == text:
+            entry["vote"] = vote
+            entry["updatedAt"] = datetime.now(timezone.utc).isoformat()
+            entry["documentKey"] = body.get("documentKey", entry.get("documentKey", ""))
+            entry["headline"] = body.get("headline", entry.get("headline", ""))
+            entry["announcementType"] = body.get("announcementType", entry.get("announcementType", ""))
+            VOTES_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with open(VOTES_PATH, "w", encoding="utf-8") as f:
+                json.dump(votes, f, indent=2)
+            return {"ok": True, "action": "updated"}
+
+    votes.append({
+        "text": text,
+        "vote": vote,
+        "documentKey": body.get("documentKey", ""),
+        "headline": body.get("headline", ""),
+        "announcementType": body.get("announcementType", ""),
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    })
+    VOTES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(VOTES_PATH, "w", encoding="utf-8") as f:
+        json.dump(votes, f, indent=2)
+    return {"ok": True, "action": "created"}
+
+
 @app.get("/api/download/{filename}")
 def download(filename: str):
     """Download a generated .docx from the output folder."""
