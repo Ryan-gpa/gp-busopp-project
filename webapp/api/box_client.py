@@ -15,6 +15,8 @@ One-time setup (requires Box admin):
 8. Restart the API server
 """
 from pathlib import Path
+import json
+import os
 import sys
 
 _HERE = Path(__file__).parent
@@ -22,8 +24,26 @@ _CONFIG_PATH = (_HERE / "../../disclosure-review-kit/config/box_config.json").re
 _client = None
 
 
+def _ensure_config() -> bool:
+    """Write box_config.json from BOX_CONFIG_JSON env var if the file is absent."""
+    if _CONFIG_PATH.exists():
+        return True
+    env_json = os.environ.get("BOX_CONFIG_JSON", "").strip()
+    if not env_json:
+        return False
+    try:
+        parsed = json.loads(env_json)
+        _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(_CONFIG_PATH, "w") as f:
+            json.dump(parsed, f)
+        return True
+    except Exception as e:
+        print(f"[box] Failed to write config from BOX_CONFIG_JSON env var: {e}", file=sys.stderr)
+        return False
+
+
 def is_configured() -> bool:
-    return _CONFIG_PATH.exists()
+    return _ensure_config()
 
 
 def get_client():

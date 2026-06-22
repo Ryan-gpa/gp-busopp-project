@@ -17,6 +17,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 try:
     import box_client as _box
@@ -891,3 +892,21 @@ def download(filename: str):
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         filename=filename,
     )
+
+
+# ── Serve built Vite frontend (production only) ──────────────────────────────
+# In development, Vite's dev server handles the frontend.
+# In production (Docker / Railway), the built files live at webapp/dist.
+
+_FRONTEND_DIR = (HERE / "../dist").resolve()
+
+if _FRONTEND_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=str(_FRONTEND_DIR / "assets")), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_spa(_full_path: str):
+        """Catch-all: serve index.html for any non-API path (SPA client-side routing)."""
+        index = _FRONTEND_DIR / "index.html"
+        if index.exists():
+            return FileResponse(str(index))
+        raise HTTPException(404, "Frontend not built.")
