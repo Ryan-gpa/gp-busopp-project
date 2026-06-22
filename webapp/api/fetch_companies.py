@@ -14,9 +14,10 @@ try:
         content = r.read().decode("utf-8", errors="replace")
 
     rows = list(csv.reader(content.splitlines()))
+    # Row 0: metadata, Row 1: blank, Row 2: column headers, Row 3+: data
     companies = [
         {"code": row[1].strip().upper(), "name": row[0].strip()}
-        for row in rows[2:]
+        for row in rows[3:]
         if len(row) >= 2 and row[1].strip() and row[0].strip()
     ]
 

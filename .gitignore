@@ -43,7 +43,7 @@ disclosure-review-kit/config/box_config.json
 
 # Runtime data — never commit
 disclosure-review-kit/config/audit_log.json
-webapp/api/asx_companies_cache.json
+# webapp/api/asx_companies_cache.json  ← intentionally committed as static bundle
 
 # IDE Files
 .vscode/

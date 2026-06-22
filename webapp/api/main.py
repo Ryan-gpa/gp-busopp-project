@@ -116,8 +116,8 @@ def get_asx_companies():
 
     companies = []
     rows = list(csv.reader(content.splitlines()))
-    # Row 0: metadata ("ASX listed companies as at ..."), Row 1: column headers, Row 2+: data
-    for row in rows[2:]:
+    # Row 0: metadata, Row 1: blank, Row 2: column headers, Row 3+: data
+    for row in rows[3:]:
         if len(row) >= 2:
             name = row[0].strip()
             code = row[1].strip().upper()
@@ -783,7 +783,10 @@ async def cast_vote(body: dict):
 
 # ─── Audit log ──────────────────────────────────────────────────────────────
 
-AUDIT_PATH = KIT_DIR / "config" / "audit_log.json"
+# AUDIT_LOG_PATH env var lets Railway Volume users point this at a mounted disk.
+# Default: disclosure-review-kit/config/audit_log.json (ephemeral on Railway).
+_audit_env = os.environ.get("AUDIT_LOG_PATH", "").strip()
+AUDIT_PATH = Path(_audit_env) if _audit_env else KIT_DIR / "config" / "audit_log.json"
 
 
 def _load_audit() -> list:
