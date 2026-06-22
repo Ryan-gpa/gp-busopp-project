@@ -67,6 +67,32 @@ def health():
 _companies_cache: list = []
 _companies_cache_time: float = 0.0
 _COMPANIES_TTL: float = 86400  # 24 hours
+_COMPANIES_DISK_CACHE = HERE / "asx_companies_cache.json"
+
+
+def _load_companies_from_disk():
+    """Populate in-memory cache from the bundled disk cache (written at Docker build time)."""
+    global _companies_cache, _companies_cache_time
+    if not _COMPANIES_DISK_CACHE.exists():
+        return
+    try:
+        data = json.loads(_COMPANIES_DISK_CACHE.read_text())
+        companies = data.get("companies") if isinstance(data, dict) else data
+        if isinstance(companies, list) and companies:
+            _companies_cache = companies
+            disk_ts = data.get("ts", 0) if isinstance(data, dict) else 0
+            # When ts=0 (Docker-build snapshot), treat as fetched ~23h ago so the
+            # first request returns immediately instead of blocking on a network call.
+            # This causes the TTL to expire ~1h later, triggering a live refresh then.
+            if disk_ts == 0:
+                disk_ts = time.time() - (_COMPANIES_TTL - 3600)
+            _companies_cache_time = disk_ts
+            print(f"[asx] Loaded {len(companies)} companies from disk cache", file=sys.stderr)
+    except Exception as e:
+        print(f"[asx] Could not load disk cache: {e}", file=sys.stderr)
+
+
+_load_companies_from_disk()
 
 
 @app.get("/api/asx/companies")
@@ -79,10 +105,12 @@ def get_asx_companies():
     url = "https://www.asx.com.au/asx/research/ASXListedCompanies.csv"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "*/*"})
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with urllib.request.urlopen(req, timeout=10) as r:
             content = r.read().decode("utf-8", errors="replace")
     except Exception as e:
+        print(f"[asx] Company list fetch failed: {e}", file=sys.stderr)
         if _companies_cache:
+            # Return disk/stale cache so the combobox still works
             return {"companies": _companies_cache}
         raise HTTPException(502, f"Could not fetch ASX company list: {str(e)}")
 
@@ -99,6 +127,11 @@ def get_asx_companies():
     if companies:
         _companies_cache = companies
         _companies_cache_time = now
+        # Persist to disk so the next cold start doesn't need a network request
+        try:
+            _COMPANIES_DISK_CACHE.write_text(json.dumps({"companies": companies, "ts": now}))
+        except Exception as e:
+            print(f"[asx] Could not write disk cache: {e}", file=sys.stderr)
 
     return {"companies": companies}
 
