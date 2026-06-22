@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import type { FindingsJSON, CurrentUser } from "@/types"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import bundledCompanies from "@/data/asx_companies.json"
 
 type Stage = "idle" | "uploading" | "reviewing" | "done" | "error"
 type Mode = "file" | "asx"
@@ -137,7 +138,7 @@ export default function UploadPage({ currentUser }: Props) {
   const [includeAsx, setIncludeAsx] = useState(true)
   const [downloadAsx, setDownloadAsx] = useState(false)
   const [asOfPeriod, setAsOfPeriod] = useState(false)
-  const [allCompanies, setAllCompanies] = useState<Company[]>([])
+  const [allCompanies, setAllCompanies] = useState<Company[]>(bundledCompanies as Company[])
 
   // Recent reviews state
   const [recentEntries, setRecentEntries] = useState<AuditEntry[]>([])
