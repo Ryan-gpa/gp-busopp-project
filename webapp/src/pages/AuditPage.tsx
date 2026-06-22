@@ -82,14 +82,18 @@ export default function AuditPage() {
 
   const loadFolderPicker = (id: string, path: { id: string; name: string }[]) => {
     setFolderLoading(true)
-    fetch(`${API_BASE}/api/box/folder/${id}`)
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 12000)
+    fetch(`${API_BASE}/api/box/folder/${id}`, { signal: ctrl.signal })
       .then(r => r.json())
       .then(d => {
         setFolderItems((d.items || []).filter((i: { type: string }) => i.type === "folder"))
         setFolderPath(path)
       })
-      .catch(() => {})
-      .finally(() => setFolderLoading(false))
+      .catch(() => {
+        setFolderItems([])
+      })
+      .finally(() => { clearTimeout(timer); setFolderLoading(false) })
   }
 
   const openFolderPicker = () => {
@@ -409,7 +413,7 @@ export default function AuditPage() {
                     <Loader2 className="w-4 h-4 animate-spin" /> Loading…
                   </div>
                 ) : folderItems.length === 0 ? (
-                  <p className="px-2 py-4 text-sm text-muted-foreground">No subfolders here.</p>
+                  <p className="px-2 py-4 text-sm text-muted-foreground">No subfolders found (or Box could not be reached).</p>
                 ) : folderItems.map(item => (
                   <button
                     key={item.id}
