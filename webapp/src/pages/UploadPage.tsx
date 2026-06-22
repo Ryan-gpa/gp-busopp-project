@@ -103,12 +103,12 @@ function TickerCombobox({
         className={inputClassName}
       />
       {show && suggestions.length > 0 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-background border border-border rounded-sm shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 mt-1 bg-background border border-border rounded-sm shadow-lg overflow-hidden max-h-60 overflow-y-auto min-w-full w-max">
           {suggestions.map((c, i) => (
             <button key={c.code} type="button" onMouseDown={e => { e.preventDefault(); select(c) }}
-              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors ${i === activeIdx ? "bg-muted" : "hover:bg-muted/60"}`}>
+              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${i === activeIdx ? "bg-muted" : "hover:bg-muted/60"}`}>
               <span className="font-mono font-semibold text-foreground w-12 shrink-0">{c.code}</span>
-              <span className="text-muted-foreground truncate">— {c.name}</span>
+              <span className="text-muted-foreground">— {c.name}</span>
             </button>
           ))}
         </div>
