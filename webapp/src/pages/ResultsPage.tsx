@@ -9,13 +9,17 @@ import { CorporateActivityTab } from "@/components/app/CorporateActivityTab"
 import { OpportunitiesTab } from "@/components/app/OpportunitiesTab"
 import { TypeConfigPanel } from "@/components/app/TypeConfigPanel"
 import AnnouncementViewer from "@/components/app/AnnouncementViewer"
-import type { FindingsJSON, UserPrefs, AsxItem } from "@/types"
+import type { FindingsJSON, UserPrefs, AsxItem, CurrentUser } from "@/types"
 
 interface LocationState {
   findings: FindingsJSON
 }
 
-export default function ResultsPage() {
+interface Props {
+  currentUser: CurrentUser | null
+}
+
+export default function ResultsPage({ currentUser }: Props) {
   const location = useLocation()
   const navigate = useNavigate()
   const state = location.state as LocationState | null
@@ -191,6 +195,12 @@ export default function ResultsPage() {
           </button>
           <span className="text-primary-foreground/20">|</span>
           <span className="font-heading text-xl font-light">Growth Partners — Disclosure Review</span>
+          <button
+            onClick={() => navigate("/votes")}
+            className="ml-auto flex items-center gap-1.5 text-sm text-primary-foreground/60 hover:text-primary-foreground transition-colors"
+          >
+            Vote history
+          </button>
         </div>
       </header>
 
@@ -252,6 +262,7 @@ export default function ResultsPage() {
                 announcement={activeAnn}
                 checklistItems={findings.results}
                 onClose={() => setActiveAnn(null)}
+                currentUser={currentUser}
               />
             </div>
           )}

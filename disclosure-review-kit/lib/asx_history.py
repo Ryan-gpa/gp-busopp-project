@@ -28,6 +28,15 @@ FILE_URL = BASE + "/file/{key}"
 ANN_URL = BASE + "/markets/announcements?entityXids={xid}&page={page}&itemsPerPage={ipp}"
 CAPPED_URL = BASE + "/companies/{ticker}/announcements?pageSize=5"   # fallback (latest 5)
 RESOLVE_URL = BASE + "/search/predictive?searchText={ticker}"        # ticker -> entity xid
+COMPANY_URL = "https://www.asx.com.au/asx/1/company/{ticker}"       # company profile (domicile etc.)
+
+# Announcement-level foreign-listing signals
+_FOREIGN_TYPE = re.compile(
+    r"(NZX|overseas regulatory|foreign exempt|SEC filing|Form 20|Form 6-K"
+    r"|LSE|NYSE|NASDAQ|SGX|TSX)", re.I)
+_FOREIGN_HEADLINE = re.compile(
+    r"\b(NZX:|NYSE:|NASDAQ:|LSE:|SGX:|TSX:|Form 20-F|Form 6-K"
+    r"|overseas regulator|dual.?list)", re.I)
 
 # ticker -> entity xid fast-path cache (resolver fills this automatically too).
 XID_CACHE = {"NVU": 493241600, "BHP": 199003248, "CBA": 204245597}
@@ -61,6 +70,82 @@ def resolve_xid(ticker, override=None):
     except Exception as e:
         print(f"[asx_history] xid resolve failed for {t}: {str(e)[:60]}", file=sys.stderr)
     return None
+
+
+def fetch_company_profile(ticker):
+    """Fetch ASX company profile to determine domicile / foreign-listing status.
+
+    Returns a dict with keys: domicile ('AU'|'NZ'|'FOREIGN'|'UNKNOWN'),
+    registeredCountry, isForeignExempt, isin, listingDate.
+    Fails silently — caller always gets a dict, never an exception.
+    """
+    url = COMPANY_URL.format(ticker=ticker.upper())
+    try:
+        req = urllib.request.Request(url, headers={**HEADERS, "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.load(r)
+    except Exception as e:
+        print(f"[asx_history] company profile unavailable for {ticker}: {str(e)[:70]}", file=sys.stderr)
+        return {"domicile": "UNKNOWN"}
+
+    country = (
+        data.get("registered_address_country") or
+        data.get("registeredCountry") or ""
+    ).strip().upper()
+
+    is_foreign_exempt = bool(
+        data.get("is_foreign_exempt") or data.get("isForeignExempt")
+    )
+
+    primary = data.get("primary_share") or {}
+    isin = (primary.get("isin_code") or "").upper()
+
+    # Determine domicile classification
+    if country in ("AU", "AUS", "AUSTRALIA"):
+        domicile = "AU"
+    elif country in ("NZ", "NZL", "NEW ZEALAND") or isin.startswith("NZ"):
+        domicile = "NZ"
+    elif country:
+        domicile = "FOREIGN"
+    else:
+        domicile = "UNKNOWN"
+
+    return {
+        "domicile": domicile,
+        "registeredCountry": country,
+        "isForeignExempt": is_foreign_exempt,
+        "isin": isin,
+        "listingDate": data.get("listing_date") or "",
+        "companyName": data.get("company_name") or "",
+    }
+
+
+def detect_foreign_signals(items):
+    """Scan announcement stream for evidence of non-ASX reporting obligations.
+
+    Returns a list of signal dicts: {type, headline, exchange, date}.
+    """
+    signals = []
+    for it in items:
+        ann_type = it.get("type") or ""
+        headline = it.get("headline") or ""
+        combined = ann_type + " " + headline
+        m_type = _FOREIGN_TYPE.search(combined)
+        m_head = _FOREIGN_HEADLINE.search(combined)
+        if m_type or m_head:
+            exchange = (m_type or m_head).group(1).upper().rstrip(":")
+            signals.append({
+                "exchange": exchange,
+                "type": ann_type,
+                "headline": headline,
+                "date": (it.get("date") or "")[:10],
+            })
+    # Dedupe by exchange, keep first occurrence per exchange
+    seen, out = set(), []
+    for s in signals:
+        if s["exchange"] not in seen:
+            seen.add(s["exchange"]); out.append(s)
+    return out
 
 
 def to_dt(s):
@@ -175,6 +260,11 @@ def build_history(ticker, months=12, announce_dir="announcements", as_of=None, d
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, Exception) as e:
         online = False
         print(f"[asx_history] API error ({type(e).__name__}: {str(e)[:70]}); using local folder only.", file=sys.stderr)
+
+    # Clamp to window before downloading — fetch_paginated overshoots by up to one
+    # full page (100 items) past the cutoff; without this filter those out-of-window
+    # PDFs would be written to disk even though they're excluded from the report.
+    items = [it for it in items if (to_dt(it.get("date")) is None) or (start <= to_dt(it["date"]) <= end)]
 
     if download and online:
         download_docs(items, ticker, announce_dir)

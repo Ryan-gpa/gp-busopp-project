@@ -150,6 +150,12 @@ export function TypeConfigPanel({ findings, prefs, onClose, onSave }: Props) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-4 pb-4">
+          <p className="text-xs text-muted-foreground py-3 border-b border-border mb-1">
+            Uncheck a type to exclude it from the Corporate Activity section of the report.
+            The number (e.g. <span className="font-mono font-medium">4×</span>) shows how many times
+            that type appeared in this company's 12-month announcement history. History badges reflect
+            your team's past include/exclude decisions across previous reviews.
+          </p>
           {(["GREEN", "AMBER", "RED"] as RAG[]).map(rag => renderSection(rag))}
         </div>
 

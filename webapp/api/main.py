@@ -1,11 +1,14 @@
 """FastAPI backend — wraps the Disclosure Review Kit engine."""
 from datetime import datetime, timezone, timedelta
+import csv
+import hashlib
 import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
+import time
 import traceback
 import urllib.request
 import urllib.error
@@ -52,6 +55,45 @@ ASX_HEADERS = {
 @app.get("/api/health")
 def health():
     return {"ok": True, "test": "reload-working", "kitDir": str(KIT_DIR)}
+
+
+_companies_cache: list = []
+_companies_cache_time: float = 0.0
+_COMPANIES_TTL: float = 86400  # 24 hours
+
+
+@app.get("/api/asx/companies")
+def get_asx_companies():
+    global _companies_cache, _companies_cache_time
+    now = time.time()
+    if _companies_cache and (now - _companies_cache_time) < _COMPANIES_TTL:
+        return {"companies": _companies_cache}
+
+    url = "https://www.asx.com.au/asx/research/ASXListedCompanies.csv"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "*/*"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            content = r.read().decode("utf-8", errors="replace")
+    except Exception as e:
+        if _companies_cache:
+            return {"companies": _companies_cache}
+        raise HTTPException(502, f"Could not fetch ASX company list: {str(e)}")
+
+    companies = []
+    rows = list(csv.reader(content.splitlines()))
+    # Row 0: metadata ("ASX listed companies as at ..."), Row 1: column headers, Row 2+: data
+    for row in rows[2:]:
+        if len(row) >= 2:
+            name = row[0].strip()
+            code = row[1].strip().upper()
+            if code and name:
+                companies.append({"code": code, "name": name})
+
+    if companies:
+        _companies_cache = companies
+        _companies_cache_time = now
+
+    return {"companies": companies}
 
 
 def _fetch_asx_report(ticker: str, report_type: str) -> bytes:
@@ -163,10 +205,13 @@ async def review(
         if as_of_period.lower() == "true":
             cmd += ["--as-of-period"]
 
+        # Downloading PDFs locally for a large company can take several minutes.
+        review_timeout = 600 if download_asx.lower() == "true" else 300
         try:
-            result = subprocess.run(cmd, cwd=str(KIT_DIR), capture_output=True, text=True, timeout=180)
+            result = subprocess.run(cmd, cwd=str(KIT_DIR), capture_output=True, text=True, timeout=review_timeout)
         except subprocess.TimeoutExpired:
-            raise HTTPException(500, "Review timed out after 3 minutes. Try again with ASX disabled.")
+            mins = review_timeout // 60
+            raise HTTPException(500, f"Review timed out after {mins} minutes. Try again with 'Download announcement PDFs locally' unchecked, or with ASX disabled.")
 
         if result.returncode != 0:
             raise HTTPException(500, f"Review failed:\n{result.stderr[-2000:]}")
@@ -481,54 +526,146 @@ async def record_session(body: dict):
 
 
 VOTES_PATH = KIT_DIR / "config" / "text_votes.json"
+USERS_PATH = KIT_DIR / "config" / "users.json"
+
+
+def _phrase_id(text: str, document_key: str) -> str:
+    return hashlib.sha256(f"{text}|{document_key}".encode()).hexdigest()[:16]
+
+
+def _score(votes: list) -> int:
+    return sum(1 if v.get("vote") == "up" else -1 for v in votes)
 
 
 def _load_votes() -> list:
-    if VOTES_PATH.exists():
-        with open(VOTES_PATH, encoding="utf-8") as f:
-            return json.load(f)
-    return []
+    if not VOTES_PATH.exists():
+        return []
+    with open(VOTES_PATH, encoding="utf-8") as f:
+        raw = json.load(f)
+    # Migrate old single-vote format (no "votes" array) to multi-user format
+    migrated = []
+    for entry in raw:
+        if "votes" in entry:
+            migrated.append(entry)
+        else:
+            # Old format — drop the anonymous vote, keep the phrase
+            migrated.append({
+                "id": _phrase_id(entry.get("text", ""), entry.get("documentKey", "")),
+                "text": entry.get("text", ""),
+                "documentKey": entry.get("documentKey", ""),
+                "headline": entry.get("headline", ""),
+                "announcementType": entry.get("announcementType", ""),
+                "createdAt": entry.get("createdAt", ""),
+                "votes": [],
+                "score": 0,
+                "upvotes": 0,
+                "downvotes": 0,
+            })
+    return migrated
+
+
+def _save_votes(phrases: list):
+    VOTES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(VOTES_PATH, "w", encoding="utf-8") as f:
+        json.dump(phrases, f, indent=2)
+
+
+def _load_users() -> list:
+    if not USERS_PATH.exists():
+        return []
+    with open(USERS_PATH, encoding="utf-8") as f:
+        return json.load(f)
+
+
+@app.post("/api/users/register")
+async def register_user(body: dict):
+    email = body.get("email", "").strip().lower()
+    display_name = body.get("displayName", "").strip()
+    if not email or not display_name:
+        raise HTTPException(400, "email and displayName are required.")
+    users = _load_users()
+    for user in users:
+        if user.get("userId") == email:
+            user["displayName"] = display_name
+            USERS_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with open(USERS_PATH, "w", encoding="utf-8") as f:
+                json.dump(users, f, indent=2)
+            return {"userId": email, "displayName": display_name}
+    users.append({
+        "userId": email,
+        "displayName": display_name,
+        "registeredAt": datetime.now(timezone.utc).isoformat(),
+    })
+    USERS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(USERS_PATH, "w", encoding="utf-8") as f:
+        json.dump(users, f, indent=2)
+    return {"userId": email, "displayName": display_name}
 
 
 @app.get("/api/votes")
 def get_votes():
-    return {"votes": _load_votes()}
+    return {"phrases": _load_votes()}
+
+
+@app.get("/api/votes/announcement/{document_key:path}")
+def get_votes_for_announcement(document_key: str):
+    phrases = [p for p in _load_votes() if p.get("documentKey") == document_key]
+    return {"phrases": phrases}
 
 
 @app.post("/api/votes")
 async def cast_vote(body: dict):
-    """Record a thumbs-up or thumbs-down vote on a highlighted text snippet."""
     text = body.get("text", "").strip()
     vote = body.get("vote", "")
+    user_id = body.get("userId", "anonymous").strip()
+    display_name = body.get("displayName", "Anonymous").strip()
     if not text or vote not in ("up", "down"):
         raise HTTPException(400, "text and vote ('up' or 'down') are required.")
 
-    votes = _load_votes()
-    # Update existing entry for this exact text, or append a new one
-    for entry in votes:
-        if entry.get("text") == text:
-            entry["vote"] = vote
-            entry["updatedAt"] = datetime.now(timezone.utc).isoformat()
-            entry["documentKey"] = body.get("documentKey", entry.get("documentKey", ""))
-            entry["headline"] = body.get("headline", entry.get("headline", ""))
-            entry["announcementType"] = body.get("announcementType", entry.get("announcementType", ""))
-            VOTES_PATH.parent.mkdir(parents=True, exist_ok=True)
-            with open(VOTES_PATH, "w", encoding="utf-8") as f:
-                json.dump(votes, f, indent=2)
-            return {"ok": True, "action": "updated"}
+    doc_key = body.get("documentKey", "")
+    phrases = _load_votes()
+    now = datetime.now(timezone.utc).isoformat()
 
-    votes.append({
-        "text": text,
-        "vote": vote,
-        "documentKey": body.get("documentKey", ""),
-        "headline": body.get("headline", ""),
-        "announcementType": body.get("announcementType", ""),
-        "createdAt": datetime.now(timezone.utc).isoformat(),
-    })
-    VOTES_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(VOTES_PATH, "w", encoding="utf-8") as f:
-        json.dump(votes, f, indent=2)
-    return {"ok": True, "action": "created"}
+    # Find existing phrase entry
+    phrase = next((p for p in phrases if p.get("text") == text and p.get("documentKey") == doc_key), None)
+
+    if phrase is None:
+        phrase = {
+            "id": _phrase_id(text, doc_key),
+            "text": text,
+            "documentKey": doc_key,
+            "headline": body.get("headline", ""),
+            "announcementType": body.get("announcementType", ""),
+            "createdAt": now,
+            "votes": [],
+            "score": 0,
+            "upvotes": 0,
+            "downvotes": 0,
+        }
+        phrases.append(phrase)
+        action = "created"
+    else:
+        action = "updated"
+
+    # Add or update this user's vote
+    user_vote = next((v for v in phrase["votes"] if v.get("userId") == user_id), None)
+    if user_vote:
+        user_vote["vote"] = vote
+        user_vote["votedAt"] = now
+    else:
+        phrase["votes"].append({
+            "userId": user_id,
+            "displayName": display_name,
+            "vote": vote,
+            "votedAt": now,
+        })
+
+    phrase["score"] = _score(phrase["votes"])
+    phrase["upvotes"] = sum(1 for v in phrase["votes"] if v.get("vote") == "up")
+    phrase["downvotes"] = sum(1 for v in phrase["votes"] if v.get("vote") == "down")
+
+    _save_votes(phrases)
+    return {"ok": True, "action": action, "phrase": phrase}
 
 
 @app.get("/api/download/{filename}")

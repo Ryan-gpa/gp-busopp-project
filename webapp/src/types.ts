@@ -56,6 +56,40 @@ export interface AsxBlock {
   ragMeaning?: { GREEN: string; AMBER: string; RED: string }
 }
 
+export interface MaterialityBenchmark {
+  basis: string
+  figure: number
+  pct: number
+  amount: number
+  note: string
+}
+
+export interface Financials {
+  totalAssets: number | null
+  totalLiab: number | null
+  netAssets: number | null
+  revenue: number | null
+  profitBeforeTax: number | null
+  totalExpenditure: number | null
+}
+
+export interface ForeignSignal {
+  exchange: string
+  type: string
+  headline: string
+  date: string
+}
+
+export interface DomicileInfo {
+  domicile: "AU" | "NZ" | "FOREIGN" | "UNKNOWN"
+  registeredCountry?: string
+  isForeignExempt?: boolean
+  isin?: string
+  listingDate?: string
+  companyName?: string
+  domicileSource?: string
+}
+
 export interface FindingsJSON {
   entity: string
   ticker: string
@@ -68,6 +102,11 @@ export interface FindingsJSON {
   materiality: number
   materialityBasis: string
   totalAssets: number
+  domicile?: "AU" | "NZ" | "FOREIGN" | "UNKNOWN"
+  domicileInfo?: DomicileInfo
+  foreignSignals?: ForeignSignal[]
+  financials?: Financials
+  materialityBenchmarks?: MaterialityBenchmark[]
   results: ResultItem[]
   asx: AsxBlock
 }
@@ -118,6 +157,31 @@ export function formatDate(iso: string): string {
     month: "short",
     year: "numeric",
   })
+}
+
+export interface CurrentUser {
+  userId: string
+  displayName: string
+}
+
+export interface VoteEntry {
+  userId: string
+  displayName: string
+  vote: "up" | "down"
+  votedAt: string
+}
+
+export interface VotePhrase {
+  id: string
+  text: string
+  documentKey: string
+  headline: string
+  announcementType: string
+  createdAt: string
+  votes: VoteEntry[]
+  score: number
+  upvotes: number
+  downvotes: number
 }
 
 export interface TypeHistory {

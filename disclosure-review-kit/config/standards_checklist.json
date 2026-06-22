@@ -586,6 +586,7 @@
     {
       "id": "parent_entity",
       "standard": "Corporations Act / AASB 127",
+      "auOnly": true,
       "title": "Parent entity information",
       "category": "conditional",
       "appliesTo": [
@@ -604,6 +605,7 @@
     {
       "id": "ceds",
       "standard": "Corporations Act 2001 s295(3A)",
+      "auOnly": true,
       "title": "Consolidated entity disclosure statement (CEDS)",
       "category": "conditional",
       "appliesTo": [
@@ -623,6 +625,7 @@
     {
       "id": "rem_report",
       "standard": "Corporations Act s300A",
+      "auOnly": true,
       "title": "Remuneration report (audited)",
       "category": "conditional",
       "appliesTo": [
@@ -642,6 +645,7 @@
     {
       "id": "auditor_independence",
       "standard": "Corporations Act s307C",
+      "auOnly": true,
       "title": "Auditor's independence declaration & non-audit services",
       "category": "conditional",
       "appliesTo": [

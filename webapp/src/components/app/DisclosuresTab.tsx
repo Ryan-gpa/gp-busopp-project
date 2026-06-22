@@ -94,7 +94,7 @@ export function DisclosuresTab({ findings }: Props) {
                   onClick={() => setExpandedId(isExpanded ? null : item.id)}
                 >
                   <td className="px-4 py-3 text-xs text-muted-foreground align-top">{item.standard}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground align-top font-mono">{item.clause}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground align-top font-mono">{item.clause?.replace(/¶/g, "")}</td>
                   <td className="px-4 py-3 align-top">
                     <p className="font-medium text-xs">{item.title}</p>
                     {isExpanded && (

@@ -2,12 +2,27 @@ import { Card, CardContent } from "@/components/ui/card"
 import type { FindingsJSON } from "@/types"
 import { formatCurrency } from "@/types"
 
+function fmt(n: number) {
+  return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(n)
+}
+
 interface Props {
   findings: FindingsJSON
 }
 
+const DOMICILE_LABEL: Record<string, { label: string; cls: string }> = {
+  AU:      { label: "Australian entity",        cls: "bg-[#C6E0B4] text-[#375623]" },
+  NZ:      { label: "NZ-domiciled (ASX listed)", cls: "bg-[#FFE699] text-[#806000]" },
+  FOREIGN: { label: "Foreign-domiciled",         cls: "bg-[#FFC7CE] text-[#9C0006]" },
+  UNKNOWN: { label: "Domicile unconfirmed",       cls: "bg-muted text-muted-foreground" },
+}
+
 export function SummaryCards({ findings }: Props) {
   const { entity, ticker, reportType, summary, materiality, materialityBasis, detectionNote, asx } = findings
+  const domicile = findings.domicile ?? "UNKNOWN"
+  const domicileMeta = DOMICILE_LABEL[domicile] ?? DOMICILE_LABEL.UNKNOWN
+  const foreignSignals = findings.foreignSignals ?? []
+  const auOnlyNa = findings.results.filter(r => (r as any).naReason === "foreign-domiciled")
 
   const cards = [
     { label: "Addressed / Present", value: summary.present, className: "status-addressed" },
@@ -27,6 +42,7 @@ export function SummaryCards({ findings }: Props) {
         <h2 className="font-heading text-3xl font-light text-foreground">{entity}</h2>
         <span className="text-sm font-medium px-2 py-0.5 rounded-sm bg-secondary text-secondary-foreground">{ticker}</span>
         <span className="text-sm px-2 py-0.5 rounded-sm bg-muted text-muted-foreground capitalize">{reportType}</span>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-sm ${domicileMeta.cls}`}>{domicileMeta.label}</span>
         {periodLabel && <span className="text-sm text-muted-foreground">period to {periodLabel}</span>}
       </div>
 
@@ -42,11 +58,85 @@ export function SummaryCards({ findings }: Props) {
         ))}
       </div>
 
-      {/* Materiality notice */}
-      <div className="rounded-sm border border-border bg-card p-4 text-sm space-y-1">
-        <p><span className="font-medium">Materiality threshold:</span> {formatCurrency(materiality)} — {materialityBasis}</p>
-        <p className="text-muted-foreground text-xs">{findings.basis}</p>
+      {/* Materiality analysis */}
+      <div className="rounded-sm border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-muted/20">
+          <p className="text-sm font-medium text-foreground">Materiality analysis</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Working materiality applied to this review: <span className="font-medium text-foreground">{formatCurrency(materiality)}</span>
+            {" "}— {materialityBasis}
+          </p>
+        </div>
+        {findings.materialityBenchmarks && findings.materialityBenchmarks.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-muted/30 border-b border-border">
+                  <th className="text-left px-4 py-2 font-medium text-muted-foreground">Benchmark</th>
+                  <th className="text-right px-4 py-2 font-medium text-muted-foreground">Base figure</th>
+                  <th className="text-right px-4 py-2 font-medium text-muted-foreground">%</th>
+                  <th className="text-right px-4 py-2 font-medium text-muted-foreground">Materiality</th>
+                  <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden lg:table-cell">Typical use</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {findings.materialityBenchmarks.map((b, i) => {
+                  const isWorking = b.amount === materiality
+                  return (
+                    <tr key={i} className={isWorking ? "bg-[#C6E0B4]/20" : "hover:bg-muted/20"}>
+                      <td className="px-4 py-2 text-foreground">
+                        {b.basis}
+                        {isWorking && <span className="ml-2 text-[10px] font-semibold text-[#375623] uppercase tracking-wide">applied</span>}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono text-muted-foreground">{fmt(b.figure)}</td>
+                      <td className="px-4 py-2 text-right text-muted-foreground">{b.pct}%</td>
+                      <td className="px-4 py-2 text-right font-mono font-medium text-foreground">{fmt(b.amount)}</td>
+                      <td className="px-4 py-2 text-muted-foreground hidden lg:table-cell">{b.note}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="px-4 py-3 text-xs text-muted-foreground">{materialityBasis}</p>
+        )}
+        <div className="px-4 py-2.5 border-t border-border bg-muted/10">
+          <p className="text-[11px] text-muted-foreground">{findings.basis}</p>
+        </div>
       </div>
+
+      {/* Foreign domicile notice */}
+      {domicile !== "AU" && (
+        <div className={`rounded-sm border p-4 text-sm space-y-2 ${
+          domicile === "FOREIGN" || domicile === "NZ"
+            ? "border-[#806000]/30 bg-[#FFE699]/20"
+            : "border-border bg-muted/30"
+        }`}>
+          <p className="font-medium text-foreground">
+            {domicile === "NZ" && "New Zealand domiciled entity — Corporations Act items not applicable"}
+            {domicile === "FOREIGN" && "Foreign-domiciled entity — Corporations Act items not applicable"}
+            {domicile === "UNKNOWN" && "Entity domicile could not be confirmed — Corporations Act applicability unverified"}
+          </p>
+          {auOnlyNa.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {auOnlyNa.length} standard{auOnlyNa.length !== 1 ? "s" : ""} auto-marked N/A:{" "}
+              {auOnlyNa.map(r => r.standard).join(" · ")}
+            </p>
+          )}
+          {foreignSignals.length > 0 && (
+            <div className="text-xs text-muted-foreground space-y-0.5 pt-1 border-t border-[#806000]/20">
+              <p className="font-medium text-foreground">Foreign listing signals detected:</p>
+              {foreignSignals.map((s, i) => (
+                <p key={i}>
+                  <span className="font-mono font-bold">{s.exchange}</span>
+                  {" — "}{s.headline} ({s.date})
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Detection note (collapsible) */}
       <details className="text-xs text-muted-foreground border border-border rounded-sm">

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Upload, FileText, ChevronDown, ChevronUp, Loader2, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,98 @@ const STAGE_PROGRESS: Record<Stage, number> = {
   error: 0,
 }
 
+interface Company { code: string; name: string }
+
+function TickerCombobox({
+  value,
+  onChange,
+  companies,
+  required,
+  inputClassName,
+}: {
+  value: string
+  onChange: (v: string) => void
+  companies: Company[]
+  required?: boolean
+  inputClassName?: string
+}) {
+  const [show, setShow] = useState(false)
+  const [activeIdx, setActiveIdx] = useState(-1)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const suggestions = useMemo(() => {
+    const q = value.trim().toLowerCase()
+    if (!q) return []
+    const codeHits = companies.filter(c => c.code.toLowerCase().startsWith(q))
+    const nameHits = companies.filter(
+      c => !c.code.toLowerCase().startsWith(q) && c.name.toLowerCase().includes(q)
+    )
+    return [...codeHits, ...nameHits].slice(0, 8)
+  }, [value, companies])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node))
+        setShow(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  const select = (c: Company) => {
+    onChange(c.code)
+    setShow(false)
+    setActiveIdx(-1)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault(); setShow(true)
+      setActiveIdx(i => Math.min(i + 1, suggestions.length - 1))
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setActiveIdx(i => Math.max(i - 1, -1))
+    } else if (e.key === "Enter" && activeIdx >= 0 && suggestions.length > 0) {
+      e.preventDefault(); select(suggestions[activeIdx])
+    } else if (e.key === "Escape") {
+      setShow(false)
+    }
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={e => { onChange(e.target.value.toUpperCase()); setShow(true); setActiveIdx(-1) }}
+        onFocus={() => { if (value) setShow(true) }}
+        onKeyDown={handleKeyDown}
+        placeholder="e.g. NVU"
+        required={required}
+        autoComplete="off"
+        className={inputClassName}
+      />
+      {show && suggestions.length > 0 && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-background border border-border rounded-sm shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+          {suggestions.map((c, i) => (
+            <button
+              key={c.code}
+              type="button"
+              onMouseDown={e => { e.preventDefault(); select(c) }}
+              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
+                i === activeIdx ? "bg-muted" : "hover:bg-muted/60"
+              }`}
+            >
+              <span className="font-mono font-semibold text-foreground w-12 shrink-0">{c.code}</span>
+              <span className="text-muted-foreground truncate">— {c.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function UploadPage() {
   const navigate = useNavigate()
   const API_BASE = import.meta.env.VITE_API_URL || ""
@@ -38,10 +130,17 @@ export default function UploadPage() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [ticker, setTicker] = useState("")
   const [reportType, setReportType] = useState("auto")
-  const [materiality, setMateriality] = useState("")
   const [includeAsx, setIncludeAsx] = useState(true)
   const [downloadAsx, setDownloadAsx] = useState(false)
   const [asOfPeriod, setAsOfPeriod] = useState(false)
+  const [allCompanies, setAllCompanies] = useState<Company[]>([])
+
+  useEffect(() => {
+    fetch("/api/asx/companies")
+      .then(r => r.json())
+      .then(d => setAllCompanies(d.companies || []))
+      .catch(() => {})
+  }, [])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -55,7 +154,7 @@ export default function UploadPage() {
     if (f) setFile(f)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (mode === "file" && !file) return
     if (mode === "asx" && !ticker.trim()) return
@@ -69,7 +168,6 @@ export default function UploadPage() {
     }
     form.append("ticker", ticker)
     form.append("report_type", mode === "asx" && reportType === "auto" ? "annual" : reportType)
-    form.append("materiality", materiality)
     form.append("no_asx", String(!includeAsx))
     form.append("download_asx", String(downloadAsx))
     form.append("as_of_period", String(asOfPeriod))
@@ -159,13 +257,12 @@ export default function UploadPage() {
                     <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       ASX Ticker Code
                     </label>
-                    <input
-                      type="text"
+                    <TickerCombobox
                       value={ticker}
-                      onChange={(e) => setTicker(e.target.value)}
-                      placeholder="e.g. NVU"
+                      onChange={setTicker}
+                      companies={allCompanies}
                       required={mode === "asx"}
-                      className="w-full h-10 px-3 text-sm border border-input rounded-sm bg-background focus:outline-none focus:ring-1 focus:ring-accent font-semibold placeholder:font-normal uppercase"
+                      inputClassName="w-full h-10 px-3 text-sm border border-input rounded-sm bg-background focus:outline-none focus:ring-1 focus:ring-accent font-semibold uppercase"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -205,12 +302,11 @@ export default function UploadPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1.5">Ticker (override)</label>
-                    <input
-                      type="text"
+                    <TickerCombobox
                       value={ticker}
-                      onChange={(e) => setTicker(e.target.value)}
-                      placeholder="e.g. NVU"
-                      className="w-full h-9 px-3 text-sm border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                      onChange={setTicker}
+                      companies={allCompanies}
+                      inputClassName="w-full h-9 px-3 text-sm border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                   <div>
@@ -227,17 +323,7 @@ export default function UploadPage() {
                   </div>
                 </div>
               )}
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Planning materiality (AUD, optional)</label>
-                <input
-                  type="number"
-                  value={materiality}
-                  onChange={(e) => setMateriality(e.target.value)}
-                  placeholder="e.g. 250000 — default: 5% of total assets"
-                  className="w-full h-9 px-3 text-sm border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
+<div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input type="checkbox" checked={includeAsx} onChange={(e) => setIncludeAsx(e.target.checked)} className="rounded" />
                   Include ASX announcements (12-month history)
@@ -245,6 +331,7 @@ export default function UploadPage() {
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input type="checkbox" checked={downloadAsx} onChange={(e) => setDownloadAsx(e.target.checked)} className="rounded" />
                   Download announcement PDFs locally
+                  <span className="text-xs text-muted-foreground">(slow for active companies — 10 min timeout)</span>
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input type="checkbox" checked={asOfPeriod} onChange={(e) => setAsOfPeriod(e.target.checked)} className="rounded" />

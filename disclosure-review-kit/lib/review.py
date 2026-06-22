@@ -122,6 +122,79 @@ def extract_total_assets(text):
     return None
 
 
+def extract_financials(text):
+    """Extract key financial figures used for materiality benchmarks."""
+    def first(*captions):
+        for cap in captions:
+            v = extract_amount(text, cap)
+            if v and v > 0:
+                return v
+        return None
+
+    total_assets   = first("TOTAL ASSETS", "Total assets", "Total Assets")
+    total_liab     = first("TOTAL LIABILITIES", "Total liabilities", "Total Liabilities")
+    net_assets     = first("NET ASSETS", "Net assets", "Total equity", "TOTAL EQUITY",
+                           "Equity attributable", "Total Equity")
+    # Fall back to assets minus liabilities
+    if not net_assets and total_assets and total_liab:
+        net_assets = total_assets - total_liab
+
+    revenue        = first("Total revenue", "TOTAL REVENUE", "Revenue", "REVENUE",
+                           "Total income", "TOTAL INCOME", "Net revenue")
+    pbt            = first("Profit before income tax", "Loss before income tax",
+                           "Profit/(loss) before income tax",
+                           "(Loss)/profit before income tax",
+                           "Profit before tax", "Loss before tax",
+                           "PROFIT BEFORE TAX", "LOSS BEFORE TAX")
+    total_exp      = first("Total expenses", "TOTAL EXPENSES",
+                           "Total expenditure", "TOTAL EXPENDITURE",
+                           "Total operating expenses", "Total costs")
+
+    return {
+        "totalAssets":   total_assets,
+        "totalLiab":     total_liab,
+        "netAssets":     net_assets,
+        "revenue":       revenue,
+        "profitBeforeTax": pbt,
+        "totalExpenditure": total_exp,
+    }
+
+
+def build_materiality_benchmarks(fins):
+    """Return a list of benchmark rows for the materiality analysis table."""
+    rows = []
+
+    def add(basis, figure, pct, note=""):
+        if figure and figure > 0:
+            amount = round(pct / 100.0 * figure)
+            rows.append({
+                "basis": basis,
+                "figure": round(figure),
+                "pct": pct,
+                "amount": amount,
+                "note": note,
+            })
+
+    add("5% of total assets",  fins["totalAssets"],      5.0,
+        "Common default for asset-heavy or pre-revenue entities")
+    add("1% of total assets",  fins["totalAssets"],      1.0,
+        "Conservative asset-based — financial institutions, property")
+    add("2% of net assets",    fins["netAssets"],        2.0,
+        "Net asset base — appropriate where equity is the key measure")
+    add("1% of net assets",    fins["netAssets"],        1.0,
+        "Conservative net asset — financial services")
+    add("1% of revenue",       fins["revenue"],          1.0,
+        "Revenue-driven businesses: retail, services, distribution")
+    add("0.5% of revenue",     fins["revenue"],          0.5,
+        "Conservative revenue-based — high-turnover, low-margin")
+    add("5% of profit before tax", fins["profitBeforeTax"], 5.0,
+        "Standard for consistently profitable entities")
+    add("2% of total expenditure", fins["totalExpenditure"], 2.0,
+        "Pre-revenue / exploration / biotech entities with minimal income")
+
+    return rows
+
+
 def balance_for(text, captions):
     """Sum the current-period figures for an item's governing captions (deduped by value)."""
     vals, seen = [], set()
@@ -132,7 +205,7 @@ def balance_for(text, captions):
     return sum(vals) if vals else None
 
 
-def run_checklist(text, rtype, materiality=None):
+def run_checklist(text, rtype, materiality=None, domicile="UNKNOWN"):
     with open(CHECKLIST, encoding="utf-8") as f:
         cfg = json.load(f)
     tl = text.lower()
@@ -142,6 +215,12 @@ def run_checklist(text, rtype, materiality=None):
             continue
         assessment = item.get("assessment", "qualitative")
         balance = None
+        # Australian-only items are N/A for confirmed foreign-domiciled entities
+        if item.get("auOnly") and domicile not in ("AU", "UNKNOWN"):
+            r = _row(item, "N/A", assessment, None, materiality)
+            r["naReason"] = "foreign-domiciled"
+            results.append(r)
+            continue
         expected_when = item.get("expectedWhen", [])
         expected = True if not expected_when else has_any(tl, expected_when)
         if not expected:
@@ -201,22 +280,44 @@ def main():
     ticker = args.ticker or detect_ticker(text)
     entity = detect_entity(text) or "Reporting Entity"
 
-    # Materiality: explicit --materiality, else default % of total assets.
-    total_assets = extract_total_assets(text)
+    # Extract financials and build all materiality benchmarks
+    fins = extract_financials(text)
+    total_assets = fins["totalAssets"]
+    mat_benchmarks = build_materiality_benchmarks(fins)
+
+    # Working materiality for quantitative checklist gates: prefer manual override,
+    # then 5% of total assets, then first benchmark available.
     if args.materiality:
-        materiality, mat_basis = float(args.materiality), f"input ${float(args.materiality):,.0f}"
+        materiality = float(args.materiality)
+        mat_basis = f"manual override ${materiality:,.0f}"
     elif total_assets:
         materiality = round(args.materiality_pct / 100.0 * total_assets)
         mat_basis = f"{args.materiality_pct:g}% of total assets ${total_assets:,.0f}"
+    elif mat_benchmarks:
+        materiality = mat_benchmarks[0]["amount"]
+        mat_basis = f"{mat_benchmarks[0]['pct']}% of {mat_benchmarks[0]['basis'].split('%')[1].strip()} (auto-selected)"
     else:
-        materiality, mat_basis = None, "not applied (total assets not detected; pass --materiality)"
+        materiality, mat_basis = None, "not applied (financial figures not detected)"
     print(f"[review] entity='{entity}' ticker={ticker} type={rtype} | materiality={materiality} ({mat_basis})")
 
-    meta, results = run_checklist(text, rtype, materiality)
+    # Domicile detection — company profile + announcement signals
+    domicile_info = {"domicile": "UNKNOWN"}
+    foreign_signals = []
+    if ticker and not args.no_asx:
+        try:
+            sys.path.insert(0, HERE)
+            from asx_history import fetch_company_profile
+            domicile_info = fetch_company_profile(ticker)
+            print(f"[review] domicile={domicile_info.get('domicile')} "
+                  f"country={domicile_info.get('registeredCountry')} "
+                  f"isin={domicile_info.get('isin')}")
+        except Exception as e:
+            print(f"[review] domicile detection skipped: {e}", file=sys.stderr)
 
-    # ASX announcements — trailing 12 months. Anchor to "today" by default (captures the
-    # latest announcements + recent subsequent events). Use --as-of-period to instead anchor
-    # the window to the report's own period-end (historical review of the reporting year).
+    domicile = domicile_info.get("domicile", "UNKNOWN")
+    meta, results = run_checklist(text, rtype, materiality, domicile)
+
+    # ASX announcements — trailing 12 months.
     period_end = detect_period_end(text)
     asx = {"ticker": ticker, "online": False, "items": []}
     if ticker and not args.no_asx:
@@ -234,6 +335,29 @@ def main():
                     asx = json.load(f)
         except Exception as e:
             print(f"[review] ASX step skipped: {e}", file=sys.stderr)
+
+    # Foreign-listing signals from announcement stream
+    try:
+        from asx_history import detect_foreign_signals
+        foreign_signals = detect_foreign_signals(asx.get("items", []))
+        if foreign_signals:
+            # Upgrade domicile if profile said UNKNOWN but announcements say NZX
+            if domicile == "UNKNOWN":
+                exchanges = {s["exchange"] for s in foreign_signals}
+                if "NZX" in exchanges:
+                    domicile = "NZ"
+                    domicile_info["domicile"] = "NZ"
+                    domicile_info["domicileSource"] = "announcement-signals"
+                else:
+                    domicile = "FOREIGN"
+                    domicile_info["domicile"] = "FOREIGN"
+                    domicile_info["domicileSource"] = "announcement-signals"
+                # Re-run checklist with upgraded domicile
+                _, results = run_checklist(text, rtype, materiality, domicile)
+            print(f"[review] foreign signals: {[s['exchange'] for s in foreign_signals]}")
+    except Exception as e:
+        foreign_signals = []
+        print(f"[review] foreign signal detection skipped: {e}", file=sys.stderr)
 
     # Business-development opportunity RAG on each announcement (Growth Partners lens)
     try:
@@ -262,6 +386,11 @@ def main():
         "basis": meta["basis"], "detectionNote": meta["detection_note"],
         "checklistVersion": meta["version"], "summary": summary,
         "materiality": materiality, "materialityBasis": mat_basis, "totalAssets": total_assets,
+        "domicile": domicile,
+        "domicileInfo": domicile_info,
+        "foreignSignals": foreign_signals,
+        "financials": fins,
+        "materialityBenchmarks": mat_benchmarks,
         "results": results, "asx": asx,
     }
     out_json = os.path.join(args.out, "findings.json")

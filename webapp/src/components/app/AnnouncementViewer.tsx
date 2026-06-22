@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react"
 import { X, Loader2, Save, FileText, FileSearch, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { AsxItem, ResultItem } from "@/types"
+import type { AsxItem, ResultItem, CurrentUser, VotePhrase } from "@/types"
 
 interface Props {
   announcement: AsxItem
   checklistItems: ResultItem[]
   onClose: () => void
+  currentUser: CurrentUser | null
 }
 
 const OPPORTUNITY_RULES = [
@@ -27,14 +28,85 @@ const OPPORTUNITY_RULES = [
   { id: "routine_admin", label: "Routine / Administrative (Cleansing, proxy)" },
 ]
 
-export default function AnnouncementViewer({ announcement, checklistItems, onClose }: Props) {
+// ── Text-highlight helpers ────────────────────────────────────────────────
+interface Segment {
+  type: "plain" | "voted"
+  content: string
+  phrase?: VotePhrase
+}
+
+function buildSegments(text: string, phrases: VotePhrase[]): Segment[] {
+  if (!phrases.length) return [{ type: "plain", content: text }]
+  const matches: { start: number; end: number; phrase: VotePhrase }[] = []
+  for (const phrase of phrases) {
+    let idx = 0
+    while (true) {
+      const pos = text.indexOf(phrase.text, idx)
+      if (pos === -1) break
+      matches.push({ start: pos, end: pos + phrase.text.length, phrase })
+      idx = pos + phrase.text.length
+    }
+  }
+  matches.sort((a, b) => a.start - b.start)
+  const nonOverlap: typeof matches = []
+  let lastEnd = 0
+  for (const m of matches) {
+    if (m.start >= lastEnd) { nonOverlap.push(m); lastEnd = m.end }
+  }
+  const segments: Segment[] = []
+  let pos = 0
+  for (const m of nonOverlap) {
+    if (m.start > pos) segments.push({ type: "plain", content: text.slice(pos, m.start) })
+    segments.push({ type: "voted", content: text.slice(m.start, m.end), phrase: m.phrase })
+    pos = m.end
+  }
+  if (pos < text.length) segments.push({ type: "plain", content: text.slice(pos) })
+  return segments
+}
+
+function VotedHighlight({ phrase, currentUserId, onClick }: {
+  phrase: VotePhrase
+  currentUserId?: string
+  onClick: (phrase: VotePhrase) => void
+}) {
+  const bg = phrase.score > 0
+    ? "bg-[#C6E0B4]/50 border-b border-[#375623]/50"
+    : phrase.score < 0
+    ? "bg-muted/50 border-b border-border"
+    : "bg-[#FFE699]/40 border-b border-[#806000]/30"
+  const myVote = phrase.votes.find(v => v.userId === currentUserId)
+  const tooltip = [
+    `Score: ${phrase.score > 0 ? "+" : ""}${phrase.score}`,
+    ...phrase.votes.map(v => `${v.displayName} ${v.vote === "up" ? "👍" : "👎"}`),
+    myVote ? "" : "Click to vote",
+  ].filter(Boolean).join(" · ")
+
+  return (
+    <span
+      className={`relative group cursor-pointer ${bg}`}
+      onClick={() => onClick(phrase)}
+      title={tooltip}
+    >
+      {phrase.text}
+      <span className="absolute -top-0.5 -right-1 text-[9px] font-bold leading-none text-muted-foreground">
+        {phrase.score > 0 ? `+${phrase.score}` : phrase.score}
+      </span>
+    </span>
+  )
+}
+
+// ── Component ─────────────────────────────────────────────────────────────
+export default function AnnouncementViewer({ announcement, checklistItems, onClose, currentUser }: Props) {
   const API_BASE = import.meta.env.VITE_API_URL || ""
   const [activeTab, setActiveTab] = useState<"pdf" | "text">("pdf")
   const [text, setText] = useState<string>("")
   const [loadingText, setLoadingText] = useState(false)
   const [textError, setTextError] = useState("")
 
+  const [announcementVotes, setAnnouncementVotes] = useState<VotePhrase[]>([])
+
   const [selectedText, setSelectedText] = useState("")
+  const [activePhrase, setActivePhrase] = useState<VotePhrase | null>(null)
   const [saveType, setSaveType] = useState<"customRule" | "checklist" | "opportunity">("customRule")
   const [selectedTargetId, setSelectedTargetId] = useState("")
   const [savingKeyword, setSavingKeyword] = useState(false)
@@ -47,13 +119,23 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
 
   const textContainerRef = useRef<HTMLDivElement>(null)
 
-  // Fetch text when announcement changes and text tab is active
+  // Fetch votes for this announcement
+  useEffect(() => {
+    if (!announcement.documentKey) return
+    fetch(`${API_BASE}/api/votes/announcement/${announcement.documentKey}`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setAnnouncementVotes(data.phrases || []))
+      .catch(() => setAnnouncementVotes([]))
+  }, [announcement.documentKey])
+
+  // Fetch text when announcement changes
   useEffect(() => {
     if (!announcement.documentKey) return
     setLoadingText(true)
     setText("")
     setTextError("")
     setSelectedText("")
+    setActivePhrase(null)
     setSaveStatus(null)
     setAnnouncementTypeInput(announcement.type || "")
 
@@ -73,25 +155,32 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
       })
   }, [announcement.documentKey])
 
-  // Handle text selection
-  const handleTextSelection = () => {
-    const selection = window.getSelection()
-    if (selection) {
+  // Global mouseup — fires regardless of where mouse is released
+  useEffect(() => {
+    if (activeTab !== "text") return
+    const onMouseUp = () => {
+      const selection = window.getSelection()
+      if (!selection || selection.rangeCount === 0) return
       const selected = selection.toString().trim()
-      if (selected && selected.length < 150) {
-        setSelectedText(selected)
-        setSaveStatus(null)
-        // Auto-select first target if not already set
-        if (!selectedTargetId) {
-          if (saveType === "checklist" && checklistItems.length > 0) {
-            setSelectedTargetId(checklistItems[0].id)
-          } else if (saveType === "opportunity" && OPPORTUNITY_RULES.length > 0) {
-            setSelectedTargetId(OPPORTUNITY_RULES[0].id)
-          }
+      if (!selected || selected.length >= 500) return
+      // Only act if the selection is within our text container
+      const range = selection.getRangeAt(0)
+      if (!textContainerRef.current?.contains(range.commonAncestorContainer)) return
+      const existing = announcementVotes.find(p => p.text === selected) ?? null
+      setActivePhrase(existing)
+      setSelectedText(selected)
+      setSaveStatus(null)
+      if (!selectedTargetId) {
+        if (saveType === "checklist" && checklistItems.length > 0) {
+          setSelectedTargetId(checklistItems[0].id)
+        } else if (saveType === "opportunity" && OPPORTUNITY_RULES.length > 0) {
+          setSelectedTargetId(OPPORTUNITY_RULES[0].id)
         }
       }
     }
-  }
+    document.addEventListener("mouseup", onMouseUp)
+    return () => document.removeEventListener("mouseup", onMouseUp)
+  }, [activeTab, announcementVotes, saveType, checklistItems, selectedTargetId])
 
   // Update dropdown target when switching save type
   useEffect(() => {
@@ -106,7 +195,7 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
     if (!selectedText) return
     setVotingState("saving")
     try {
-      await fetch(`${API_BASE}/api/votes`, {
+      const res = await fetch(`${API_BASE}/api/votes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -115,12 +204,26 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
           documentKey: announcement.documentKey ?? "",
           headline: announcement.headline,
           announcementType: announcement.type,
+          userId: currentUser?.userId ?? "anonymous",
+          displayName: currentUser?.displayName ?? "Anonymous",
         }),
       })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.phrase) {
+          setAnnouncementVotes(prev => {
+            const exists = prev.some(p => p.text === selectedText)
+            return exists
+              ? prev.map(p => p.text === selectedText ? data.phrase : p)
+              : [...prev, data.phrase]
+          })
+        }
+      }
       setVoteResult(vote)
       setVotingState("done")
       setTimeout(() => {
         setSelectedText("")
+        setActivePhrase(null)
         setVotingState("idle")
         setVoteResult(null)
         setShowAdvanced(false)
@@ -263,10 +366,24 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
               ) : (
                 <div
                   ref={textContainerRef}
-                  onMouseUp={handleTextSelection}
                   className="text-xs font-sans whitespace-pre-wrap leading-relaxed select-text cursor-text text-foreground"
                 >
-                  {text}
+                  {announcementVotes.length > 0
+                    ? buildSegments(text, announcementVotes).map((seg, i) =>
+                        seg.type === "plain"
+                          ? seg.content
+                          : <VotedHighlight
+                              key={i}
+                              phrase={seg.phrase!}
+                              currentUserId={currentUser?.userId}
+                              onClick={(p) => {
+                                setActivePhrase(p)
+                                setSelectedText(p.text)
+                                setSaveStatus(null)
+                              }}
+                            />
+                      )
+                    : text}
                 </div>
               )}
             </div>
@@ -279,6 +396,26 @@ export default function AnnouncementViewer({ announcement, checklistItems, onClo
                 <p className="font-mono text-xs bg-background border border-border rounded-sm px-2 py-1.5 truncate text-foreground">
                   "{selectedText}"
                 </p>
+
+                {/* Existing votes from other team members */}
+                {activePhrase && activePhrase.votes.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide">Team:</span>
+                    {activePhrase.votes.map(v => (
+                      <span
+                        key={v.userId}
+                        className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${
+                          v.vote === "up"
+                            ? "bg-[#C6E0B4]/50 border-[#375623]/30 text-[#375623]"
+                            : "bg-muted border-border text-muted-foreground"
+                        } ${v.userId === currentUser?.userId ? "ring-1 ring-accent" : ""}`}
+                      >
+                        {v.vote === "up" ? "👍" : "👎"} {v.displayName}
+                        {v.userId === currentUser?.userId && <span className="text-[9px] opacity-60">(you)</span>}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Vote buttons / confirmation */}
                 {votingState === "done" ? (
