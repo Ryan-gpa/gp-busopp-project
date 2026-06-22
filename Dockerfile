@@ -29,19 +29,7 @@ COPY . .
 RUN cd /app/webapp && npm run build
 
 # Pre-fetch ASX company list so the combobox works immediately on cold start
-RUN python -c "\
-import urllib.request, csv, json, sys; \
-url='https://www.asx.com.au/asx/research/ASXListedCompanies.csv'; \
-req=urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0','Accept':'*/*'}); \
-try: \
-    r=urllib.request.urlopen(req, timeout=30); \
-    content=r.read().decode('utf-8', errors='replace'); \
-    rows=list(csv.reader(content.splitlines())); \
-    companies=[{'code':row[1].strip().upper(),'name':row[0].strip()} for row in rows[2:] if len(row)>=2 and row[1].strip() and row[0].strip()]; \
-    open('/app/webapp/api/asx_companies_cache.json','w').write(json.dumps({'companies':companies,'ts':0})); \
-    print(f'[build] Pre-fetched {len(companies)} ASX companies', file=sys.stderr) \
-except Exception as e: print(f'[build] Warning: ASX prefetch failed (combobox will lazy-load): {e}', file=sys.stderr) \
-"
+RUN python /app/webapp/api/fetch_companies.py
 
 # Runtime dirs
 RUN mkdir -p disclosure-review-kit/output disclosure-review-kit/announcements disclosure-review-kit/config
