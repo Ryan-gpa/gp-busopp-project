@@ -51,6 +51,11 @@ def get_client():
     global _client
     if _client is not None:
         return _client
+    # Write config from BOX_CONFIG_JSON env var if the file isn't on disk yet.
+    # This must run before the exists() check — on Railway the file is never
+    # pre-placed; it only appears after _ensure_config() materialises it.
+    if not _ensure_config():
+        return None
     if not _CONFIG_PATH.exists():
         return None
     try:
