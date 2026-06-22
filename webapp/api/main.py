@@ -18,6 +18,12 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 
+try:
+    import box_client as _box
+    _BOX_AVAILABLE = True
+except Exception:
+    _BOX_AVAILABLE = False
+
 app = FastAPI(title="Disclosure Review Kit API")
 
 
@@ -171,20 +177,60 @@ async def review(
     no_asx: str = Form(default="false"),
     download_asx: str = Form(default="false"),
     as_of_period: str = Form(default="false"),
+    box_file_id: str = Form(default=""),
+    user_id: str = Form(default=""),
+    display_name: str = Form(default=""),
 ):
     """Run review.py on a PDF and return findings.json. Does NOT build the Word report yet."""
-    if not file and not ticker.strip():
-        raise HTTPException(400, "Please upload a PDF file or specify an ASX ticker.")
+    if not file and not ticker.strip() and not box_file_id.strip():
+        raise HTTPException(400, "Please upload a PDF file, specify an ASX ticker, or pick a file from Box.")
 
+    # Determine source and fetch PDF bytes
     pdf_bytes = None
-    if file:
+    report_file_label = ""
+    box_folder_id = ""
+    if box_file_id.strip():
+        source = "box"
+        if not _BOX_AVAILABLE or not _box.is_configured():
+            raise HTTPException(503, "Box is not configured.")
+        try:
+            pdf_bytes, box_filename = _box.download_file(box_file_id.strip())
+            report_file_label = box_filename
+            box_folder_id = _box.get_file_parent_folder(box_file_id.strip()) or ""
+        except Exception as e:
+            raise HTTPException(502, f"Failed to download from Box: {str(e)}")
+
+    elif file:
+        source = "upload"
         if not file.filename or not file.filename.lower().endswith(".pdf"):
             raise HTTPException(400, "Please upload a PDF file.")
-        content = await file.read()
-        pdf_bytes = content
+        pdf_bytes = await file.read()
+        report_file_label = file.filename or "upload"
     else:
-        # Fetch report from ASX
+        source = "asx"
         pdf_bytes = _fetch_asx_report(ticker, report_type)
+        report_file_label = f"ASX:{ticker.strip().upper()}"
+
+    # Create pending audit entry before running subprocess (captures failed runs too)
+    audit_id = hashlib.sha256(f"{time.time()}{user_id}".encode()).hexdigest()[:12]
+    _append_audit({
+        "id": audit_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "userId": user_id.strip() or "anonymous",
+        "displayName": display_name.strip() or "Anonymous",
+        "ticker": ticker.strip().upper() or None,
+        "entity": None,
+        "reportType": report_type,
+        "source": source,
+        "reportFile": report_file_label,
+        "asxEnabled": no_asx.lower() != "true",
+        "downloadAsx": download_asx.lower() == "true",
+        "outcome": "pending",
+        "errorMessage": None,
+        "docxName": None,
+        "docxGeneratedAt": None,
+        "boxFolderId": box_folder_id or None,
+    })
 
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         tmp.write(pdf_bytes)
@@ -214,16 +260,19 @@ async def review(
             raise HTTPException(500, f"Review timed out after {mins} minutes. Try again with 'Download announcement PDFs locally' unchecked, or with ASX disabled.")
 
         if result.returncode != 0:
+            _update_audit(audit_id, {"outcome": "error", "errorMessage": result.stderr[-300:]})
             raise HTTPException(500, f"Review failed:\n{result.stderr[-2000:]}")
 
         findings_path = OUTPUT_DIR / "findings.json"
         if not findings_path.exists():
+            _update_audit(audit_id, {"outcome": "error", "errorMessage": "findings.json not produced"})
             raise HTTPException(500, "findings.json was not produced.")
 
         with open(findings_path, encoding="utf-8") as f:
             findings = json.load(f)
 
-        return {"findings": findings}
+        _update_audit(audit_id, {"outcome": "success", "entity": findings.get("entity", "")})
+        return {"findings": findings, "auditId": audit_id}
 
     finally:
         try:
@@ -236,6 +285,7 @@ async def review(
 async def generate(body: dict):
     """Build the Word report from the last findings.json, filtered to selected announcements."""
     selected_keys = set(body.get("selectedKeys", []))
+    audit_id = body.get("auditId", "")
 
     findings_path = OUTPUT_DIR / "findings.json"
     if not findings_path.exists():
@@ -281,7 +331,32 @@ async def generate(body: dict):
         if node_result.returncode != 0:
             raise HTTPException(500, f"Report generation failed:\n{node_result.stderr[-2000:]}")
 
-        return {"docxName": docx_name}
+        box_upload_id = None
+        if _BOX_AVAILABLE:
+            # Resolve target folder: prefer source folder (Box-sourced reviews), fall back to default
+            box_folder = None
+            if audit_id:
+                audit_entries = _load_audit()
+                audit_entry = next((e for e in audit_entries if e.get("id") == audit_id), None)
+                box_folder = (audit_entry.get("boxFolderId") if audit_entry else None)
+            if not box_folder:
+                box_folder = _load_prefs().get("boxOutputFolderId")
+            if box_folder:
+                docx_path = OUTPUT_DIR / docx_name
+                if docx_path.exists():
+                    try:
+                        result = _box.upload_file(box_folder, docx_name, docx_path.read_bytes())
+                        box_upload_id = result.get("id") if result else None
+                    except Exception as e:
+                        print(f"[box] upload after generate failed: {e}", file=sys.stderr)
+
+        if audit_id:
+            _update_audit(audit_id, {
+                "docxName": docx_name,
+                "docxGeneratedAt": datetime.now(timezone.utc).isoformat(),
+                **({"boxUploadId": box_upload_id} if box_upload_id else {}),
+            })
+        return {"docxName": docx_name, "boxUploaded": box_upload_id is not None}
 
     finally:
         try:
@@ -502,10 +577,14 @@ def get_prefs():
 
 @app.post("/api/prefs")
 async def save_prefs(body: dict):
-    """Save excluded types list."""
+    """Save excluded types list and/or default Box output folder."""
     prefs = _load_prefs()
     if "excludedTypes" in body:
         prefs["excludedTypes"] = list(body["excludedTypes"])
+    if "boxOutputFolderId" in body:
+        prefs["boxOutputFolderId"] = body["boxOutputFolderId"] or None
+    if "boxOutputFolderName" in body:
+        prefs["boxOutputFolderName"] = body["boxOutputFolderName"] or None
     _save_prefs(prefs)
     return prefs
 
@@ -666,6 +745,137 @@ async def cast_vote(body: dict):
 
     _save_votes(phrases)
     return {"ok": True, "action": action, "phrase": phrase}
+
+
+# ─── Audit log ──────────────────────────────────────────────────────────────
+
+AUDIT_PATH = KIT_DIR / "config" / "audit_log.json"
+
+
+def _load_audit() -> list:
+    if not AUDIT_PATH.exists():
+        return []
+    with open(AUDIT_PATH, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _append_audit(entry: dict):
+    entries = _load_audit()
+    entries.append(entry)
+    AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(AUDIT_PATH, "w", encoding="utf-8") as f:
+        json.dump(entries, f, indent=2)
+
+
+def _update_audit(entry_id: str, updates: dict):
+    entries = _load_audit()
+    for e in entries:
+        if e.get("id") == entry_id:
+            e.update(updates)
+            break
+    AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(AUDIT_PATH, "w", encoding="utf-8") as f:
+        json.dump(entries, f, indent=2)
+
+
+@app.get("/api/audit")
+def get_audit():
+    return {"entries": _load_audit()}
+
+
+# ─── Box integration ─────────────────────────────────────────────────────────
+
+@app.get("/api/box/status")
+def box_status():
+    if not _BOX_AVAILABLE:
+        return {"configured": False, "connected": False,
+                "error": "boxsdk not installed — run: pip install 'boxsdk[jwt]>=3.9.0'"}
+    configured = _box.is_configured()
+    if not configured:
+        return {"configured": False, "connected": False}
+    try:
+        client = _box.get_client()
+        return {"configured": True, "connected": client is not None}
+    except Exception as e:
+        return {"configured": True, "connected": False, "error": str(e)}
+
+
+@app.get("/api/box/folder/{folder_id:path}")
+def box_folder(folder_id: str = "0"):
+    if not _BOX_AVAILABLE or not _box.is_configured():
+        raise HTTPException(503, "Box is not configured.")
+    try:
+        items = _box.list_folder(folder_id)
+        if folder_id == "0":
+            info = {"id": "0", "name": "All Files", "parentId": None, "parentName": None}
+        else:
+            info = _box.get_folder_info(folder_id)
+        return {
+            "folderId": folder_id,
+            "folderName": info.get("name", folder_id),
+            "parentId": info.get("parentId"),
+            "parentName": info.get("parentName"),
+            "items": items,
+        }
+    except Exception as e:
+        raise HTTPException(502, f"Box folder error: {str(e)}")
+
+
+@app.get("/api/box/search")
+def box_search(q: str = ""):
+    if not _BOX_AVAILABLE or not _box.is_configured():
+        raise HTTPException(503, "Box is not configured.")
+    if len(q.strip()) < 2:
+        raise HTTPException(400, "Query must be at least 2 characters.")
+    try:
+        return {"results": _box.search_pdfs(q.strip())}
+    except Exception as e:
+        raise HTTPException(502, f"Box search error: {str(e)}")
+
+
+@app.get("/api/box/reports")
+def box_reports():
+    """Search Box for previously generated disclosure review reports (.docx files)."""
+    if not _BOX_AVAILABLE or not _box.is_configured():
+        raise HTTPException(503, "Box is not configured.")
+    try:
+        client = _box.get_client()
+        if not client:
+            raise HTTPException(503, "Box connection failed.")
+        items = []
+        for item in client.search().query(
+            "Disclosure_Review", file_extensions=["docx"], type="file", limit=50
+        ):
+            items.append({
+                "id": item.id,
+                "name": item.name,
+                "size": getattr(item, "size", None),
+                "modifiedAt": str(getattr(item, "modified_at", "") or ""),
+                "parentName": (item.parent.name if hasattr(item, "parent") and item.parent else None),
+            })
+        return {"reports": items}
+    except Exception as e:
+        raise HTTPException(502, f"Box reports error: {str(e)}")
+
+
+@app.get("/api/box/file/{file_id}")
+def box_file_download(file_id: str):
+    """Proxy a Box file download to the browser."""
+    if not _BOX_AVAILABLE or not _box.is_configured():
+        raise HTTPException(503, "Box is not configured.")
+    try:
+        content, filename = _box.download_file(file_id)
+        media_type = (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            if filename.lower().endswith(".docx") else "application/octet-stream"
+        )
+        return Response(
+            content=content,
+            media_type=media_type,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except Exception as e:
+        raise HTTPException(502, f"Box download error: {str(e)}")
 
 
 @app.get("/api/download/{filename}")

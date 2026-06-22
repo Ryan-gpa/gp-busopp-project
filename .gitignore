@@ -38,6 +38,12 @@ err.txt
 .DS_Store
 Thumbs.db
 
+# Secrets — never commit
+disclosure-review-kit/config/box_config.json
+
+# Runtime data — never commit
+disclosure-review-kit/config/audit_log.json
+
 # IDE Files
 .vscode/
 .idea/

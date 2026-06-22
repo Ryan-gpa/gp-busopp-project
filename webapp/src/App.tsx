@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom"
 import UploadPage from "@/pages/UploadPage"
 import ResultsPage from "@/pages/ResultsPage"
 import VotesPage from "@/pages/VotesPage"
+import AuditPage from "@/pages/AuditPage"
 import UserIdentityModal from "@/components/app/UserIdentityModal"
 import { getCurrentUser, saveCurrentUser } from "@/lib/identity"
 import type { CurrentUser } from "@/types"
@@ -29,9 +30,10 @@ export default function App() {
         <UserIdentityModal onSave={handleUserSave} apiBase={API_BASE} />
       )}
       <Routes>
-        <Route path="/" element={<UploadPage />} />
+        <Route path="/" element={<UploadPage currentUser={currentUser} />} />
         <Route path="/results" element={<ResultsPage currentUser={currentUser} />} />
         <Route path="/votes" element={<VotesPage />} />
+        <Route path="/audit" element={<AuditPage />} />
       </Routes>
     </BrowserRouter>
   )

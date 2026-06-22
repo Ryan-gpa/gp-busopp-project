@@ -3,274 +3,446 @@
   "excludedTypes": [],
   "typeHistory": {
     "Progress Report": {
-      "included": 2,
+      "included": 6,
       "excluded": 0,
       "mixed": 0
     },
     "Company Presentation": {
-      "included": 2,
+      "included": 6,
       "excluded": 0,
       "mixed": 0
     },
     "Web Cast": {
-      "included": 2,
+      "included": 6,
       "excluded": 0,
       "mixed": 0
     },
     "Results of Meeting": {
-      "included": 2,
+      "included": 7,
       "excluded": 0,
       "mixed": 0
     },
     "Appendix 3G": {
-      "included": 2,
+      "included": 6,
       "excluded": 0,
       "mixed": 0
     },
     "Reinstatement to Official Quotation": {
-      "included": 1,
+      "included": 4,
       "excluded": 0,
       "mixed": 0
     },
     "Appendix 3B (Proposed issue of securities)": {
-      "included": 1,
+      "included": 4,
       "excluded": 0,
       "mixed": 0
     },
     "Asset Acquisition, Progress Report": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Suspension from Official Quotation": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Trading Halt": {
-      "included": 2,
+      "included": 6,
       "excluded": 0,
       "mixed": 0
     },
     "Commitments Test Entity - First Quarter Activity Report, Commitments Test Entity - First Quarter Cashflow Report": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Notice of Annual General Meeting, Proxy Form, Letter to Shareholders": {
-      "included": 1,
+      "included": 4,
       "excluded": 0,
       "mixed": 0
     },
     "Notice of Meeting - Other": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Details of Auditor Appointment/Resignation": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Appendix 3H (Notification of cessation of securities)": {
-      "included": 2,
+      "included": 6,
       "excluded": 0,
       "mixed": 0
     },
     "Change of Director's Interest Notice": {
-      "included": 2,
+      "included": 7,
       "excluded": 0,
       "mixed": 0
     },
     "Corporate Governance, Appendix 4G": {
-      "included": 1,
+      "included": 4,
       "excluded": 0,
       "mixed": 0
     },
     "Annual Report, Top 20 shareholders, Full Year Accounts, Full Year Audit Review, Full Year Directors' Statement, Full Year Directors' Report": {
-      "included": 1,
+      "included": 4,
       "excluded": 0,
       "mixed": 0
     },
     "Commitments Test Entity - Fourth Quarter Activity Report, Commitments Test Entity - Fourth Quarter Cashflow Report": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Appendix 2A": {
-      "included": 2,
+      "included": 7,
       "excluded": 0,
       "mixed": 0
     },
     "Placement, Issued Capital - Other, Cleansing Notice": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Placement, Trading Halt Lifted": {
-      "included": 1,
+      "included": 4,
       "excluded": 0,
       "mixed": 0
     },
     "Cleansing Notice": {
-      "included": 1,
+      "included": 5,
       "excluded": 0,
       "mixed": 0
     },
     "Company Presentation, Web Cast": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Final Director's Interest Notice": {
-      "included": 1,
+      "included": 5,
       "excluded": 0,
       "mixed": 0
     },
     "Initial Director's Interest Notice": {
-      "included": 1,
+      "included": 4,
       "excluded": 0,
       "mixed": 0
     },
     "Director Appointment/Resignation": {
-      "included": 1,
+      "included": 5,
       "excluded": 0,
       "mixed": 0
     },
     "Commitments Test Entity - Third Quarter Activity Report, Commitments Test Entity - Third Quarter Cashflow Report": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Issued Capital - Other, Cleansing Notice": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Issued Capital - Other, Company Administration - Other, Cleansing Notice": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Trading Halt Lifted, Progress Report": {
-      "included": 2,
+      "included": 5,
       "excluded": 0,
       "mixed": 0
     },
     "Half Yearly Report, Half Year Audit Review, Half Year Directors' Statement, Half Year Accounts, Half Year Directors' Report": {
-      "included": 2,
+      "included": 5,
       "excluded": 0,
       "mixed": 0
     },
     "Progress Report, Company Administration - Other": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Change in substantial holding": {
-      "included": 1,
+      "included": 4,
       "excluded": 0,
       "mixed": 0
     },
     "Placement, Issued Capital - Other": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Overseas Listing": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Proxy Form, Notice of General Meeting": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Company Administration - Other": {
-      "included": 2,
+      "included": 6,
       "excluded": 0,
       "mixed": 0
     },
     "Placement": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Proxy Form, Notice of General Meeting, Letter to Shareholders": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Company Presentation, Chair's Address to Shareholders": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Daily Share Buy-Back Notice": {
-      "included": 1,
+      "included": 2,
       "excluded": 0,
       "mixed": 0
     },
     "Notice of Annual General Meeting": {
-      "included": 1,
+      "included": 2,
       "excluded": 0,
       "mixed": 0
     },
     "Notice of Annual General Meeting, Proxy Form": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Appendix 4G": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Annual Report, Top 20 shareholders, Full Year Accounts, Full Year Audit Review": {
-      "included": 1,
+      "included": 2,
       "excluded": 0,
       "mixed": 0
     },
     "Preliminary Final Report, Periodic Reports - Other": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Preliminary Final Report": {
-      "included": 1,
+      "included": 2,
       "excluded": 0,
       "mixed": 0
     },
     "Periodic Reports - Other, Progress Report, Company Administration - Other": {
-      "included": 1,
+      "included": 2,
       "excluded": 0,
       "mixed": 0
     },
     "Notice Pending": {
-      "included": 1,
+      "included": 4,
       "excluded": 0,
       "mixed": 0
     },
     "Market Buy-Back": {
-      "included": 1,
+      "included": 2,
       "excluded": 0,
       "mixed": 0
     },
     "Response to ASX Query": {
-      "included": 1,
+      "included": 3,
       "excluded": 0,
       "mixed": 0
     },
     "Details of Registered office address": {
-      "included": 1,
+      "included": 2,
       "excluded": 0,
       "mixed": 0
     },
     "Half Yearly Report": {
+      "included": 2,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Dividend Reinvestment Plan, Cleansing Notice": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Details of Company Address, Details of Registered office address": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Dividend Reinvestment Plan, Dividend Record Date, Dividend Pay Date, Dividend Rate": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Dividend Reinvestment Plan": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Half Yearly Report, Periodic Reports - Other": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Company Presentation, Half Yearly Report": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Dividend Reinvestment Plan, Half Yearly Report, Half Year Audit Review, Half Year Directors' Statement, Half Year Accounts, Half Year Directors' Report, Dividend Record Date, Dividend Pay Date, Dividend Rate": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "CEO/Managing Director - Appointment Resignation": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Trading Policy": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "CEO/Managing Director - Appointment Resignation, Company Administration - Other": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Debt Facility": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Sustainability/Climate Action Report": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Becoming a substantial holder": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Trading Update, Chair's Address to Shareholders": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Asset Disposal, Progress Report": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Asset Acquisition": {
+      "included": 2,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Asset Disposal": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Ceasing to be a substantial holder": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "CEO/Managing Director - Appointment Resignation, Director Appointment/Resignation": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Notice of Meeting - Other, Company Administration - Other": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Corporate Governance": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Company Presentation, Preliminary Final Report": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Annual Report, Top 20 shareholders, Preliminary Final Report, Full Year Accounts, Full Year Audit Review, Full Year Directors' Statement, Full Year Directors' Report, Dividend Record Date, Dividend Pay Date, Dividend Rate": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Chair Appointment/Resignation, CEO/Managing Director - Appointment Resignation, Company Administration - Other": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Other": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Placement, Disclosure Document": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "First Quarter Activities Report, First Quarter Cash Flow Report": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Periodic Reports - Other, Trading Halt Lifted, Company Administration - Other": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Fourth Quarter Activities Report, Fourth Quarter Cash Flow Report": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Trading Update, Progress Report": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Third Quarter Activities Report, Third Quarter Cash Flow Report": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Periodic Reports - Other": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Half Year Audit Review, Half Year Directors' Statement, Half Year Accounts, Half Year Directors' Report": {
+      "included": 1,
+      "excluded": 0,
+      "mixed": 0
+    },
+    "Second Quarter Activities Report, Second Quarter Cash Flow Report": {
       "included": 1,
       "excluded": 0,
       "mixed": 0
     }
-  }
+  },
+  "boxOutputFolderId": "392613841697",
+  "boxOutputFolderName": "ASX Review"
 }

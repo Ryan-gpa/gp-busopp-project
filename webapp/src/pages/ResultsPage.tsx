@@ -13,6 +13,7 @@ import type { FindingsJSON, UserPrefs, AsxItem, CurrentUser } from "@/types"
 
 interface LocationState {
   findings: FindingsJSON
+  auditId?: string
 }
 
 interface Props {
@@ -26,6 +27,7 @@ export default function ResultsPage({ currentUser }: Props) {
   const API_BASE = import.meta.env.VITE_API_URL || ""
 
   const findings = state?.findings
+  const auditId = state?.auditId ?? ""
   const allKeys = findings
     ? (findings.asx.items.map(i => i.documentKey).filter(Boolean) as string[])
     : []
@@ -34,6 +36,7 @@ export default function ResultsPage({ currentUser }: Props) {
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState("")
   const [docxName, setDocxName] = useState<string | null>(null)
+  const [boxUploaded, setBoxUploaded] = useState(false)
   const [prefs, setPrefs] = useState<UserPrefs | null>(null)
   const [configPanelOpen, setConfigPanelOpen] = useState(false)
   const [activeAnn, setActiveAnn] = useState<AsxItem | null>(null)
@@ -138,14 +141,15 @@ export default function ResultsPage({ currentUser }: Props) {
       const res = await fetch(`${API_BASE}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedKeys: Array.from(selectedKeys), excludedTypeInfo }),
+        body: JSON.stringify({ selectedKeys: Array.from(selectedKeys), excludedTypeInfo, auditId }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }))
         throw new Error(data.detail || `HTTP ${res.status}`)
       }
-      const data = await res.json() as { docxName: string }
+      const data = await res.json() as { docxName: string; boxUploaded?: boolean }
       setDocxName(data.docxName)
+      setBoxUploaded(data.boxUploaded ?? false)
       await recordSessionStats()
     } catch (err: unknown) {
       setGenerateError(err instanceof Error ? err.message : String(err))
@@ -282,6 +286,11 @@ export default function ResultsPage({ currentUser }: Props) {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
+            {boxUploaded && (
+              <span className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-sm">
+                Saved to Box
+              </span>
+            )}
             {docxName && (
               <a
                 href={`${API_BASE}/api/download/${encodeURIComponent(docxName)}`}
