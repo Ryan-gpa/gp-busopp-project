@@ -160,6 +160,199 @@ def extract_financials(text):
     }
 
 
+def extract_officers(text):
+    """Extract directors, CFO and company secretary from the Company Directory page.
+
+    Reads the Company Directory section (typically a single page before the
+    Directors' Report) where each person is listed on their own line.  Falls
+    back to the Directors' Report if no Company Directory is found.
+
+    Returns a list of {name, role, roleNorm} dicts ordered by seniority.
+    Silently returns [] on any extraction failure or when the section is absent.
+    """
+    try:
+        _NORM = {
+            "executive chairman": "Executive Chairman",
+            "non-executive chairman": "Non-Executive Chairman",
+            "independent non-executive chairman": "Non-Executive Chairman",
+            "independent chairman": "Non-Executive Chairman",
+            "chairman": "Chairman",
+            "managing director": "Managing Director",
+            "managing director / ceo": "Managing Director / CEO",
+            "managing director/ceo": "Managing Director / CEO",
+            "managing director and ceo": "Managing Director / CEO",
+            "managing director & ceo": "Managing Director / CEO",
+            "founder and director": "Executive Director",
+            "executive director": "Executive Director",
+            "non-executive director": "Non-Executive Director",
+            "independent non-executive director": "Non-Executive Director",
+            "independent director": "Non-Executive Director",
+            "chief executive officer": "CEO",
+            "chief financial officer": "CFO",
+            "company secretary": "Company Secretary",
+            "joint company secretary": "Company Secretary",
+        }
+        _ORDER = {
+            "Executive Chairman": 0, "Non-Executive Chairman": 0, "Chairman": 0,
+            "Managing Director": 1, "Managing Director / CEO": 1, "CEO": 2,
+            "Executive Director": 3, "Non-Executive Director": 4,
+            "CFO": 5, "Company Secretary": 6,
+        }
+        _INVALID_WORDS = {
+            "ltd", "pty", "inc", "corp", "limited", "holdings",
+            "terrace", "street", "road", "avenue", "drive", "lane",
+            "web", "address", "code", "registry", "auditors", "solicitors",
+        }
+        _R = (
+            r"Non-Executive\s+Chairman|Executive\s+Chairman|"
+            r"Independent\s+(?:Non-Executive\s+)?Chairman|Chairman|"
+            r"Managing\s+Director(?:\s*/\s*CEO|\s+and\s+CEO|\s+&\s+CEO)?|"
+            r"Founder\s+and\s+Director|"
+            r"Non-Executive\s+Director|Executive\s+Director|"
+            r"Independent\s+(?:Non-Executive\s+)?Director|"
+            r"Chief\s+Executive\s+Officer|Chief\s+Financial\s+Officer|"
+            r"Company\s+Secretary|Joint\s+Company\s+Secretary"
+        )
+        _ROLE_RE = re.compile(r"(" + _R + r")\b", re.I)
+        # Title prefix pattern — matches Mr/Ms/Mrs/Dr/Prof (optional dot, optional space)
+        _TITLE = re.compile(
+            r"^(?:Mr\.?\s*|Ms\.?\s*|Mrs\.?\s*|Dr\.?\s*|Prof\.?\s*)"
+            r"([A-Z][a-z]+(?:\s+[A-Z][a-z']+){1,2})",
+        )
+
+        seen, officers = set(), []
+
+        def _clean_name(raw: str) -> str:
+            """Strip title prefix, parentheticals, trailing invalid words."""
+            name = re.sub(r"^(?:Mr\.?|Ms\.?|Mrs\.?|Dr\.?|Prof\.?)\s*", "", raw.strip())
+            name = re.sub(r"\s*\([^)]+\)\s*", " ", name)   # remove (Raymond) etc.
+            name = re.sub(r"\s{2,}", " ", name).strip()
+            # Trim trailing words that are clearly not part of a person's name
+            words = name.split()
+            while len(words) > 1 and words[-1].lower() in _INVALID_WORDS:
+                words = words[:-1]
+            return " ".join(words)
+
+        def _add(name: str, role_raw: str) -> None:
+            name = _clean_name(name)
+            if len(name.split()) < 2 or len(name) > 50:
+                return
+            if any(w.lower() in _INVALID_WORDS for w in name.split()):
+                return
+            key = name.lower()
+            if key in seen:
+                return
+            seen.add(key)
+            norm = _NORM.get(role_raw.strip().lower(), role_raw.strip())
+            officers.append({"name": name, "role": role_raw.strip(), "roleNorm": norm})
+
+        # ── Find the section to parse ─────────────────────────────────────────
+        # Prefer the Company Directory page: one clean line per person, roles
+        # appear within 2 lines.  Fall back to the Directors' Report only if
+        # no Company Directory heading is present.
+        #
+        # NOTE: Australian PDF headings often use U+2019 right-single-quote
+        # ("Directors’ Report") — use ’ in the pattern explicitly so
+        # the editor cannot silently replace it with an ASCII apostrophe.
+        cd_m = re.search(r"Company\s+Directory", text, re.I)
+        dr_m = None
+        # Find the *body* Directors' Report (skip TOC entry which is followed by a digit)
+        for m in re.finditer(r"directors[’'‘]?\s*report", text, re.I):
+            following = text[m.end(): m.end() + 200].strip()
+            first = following.split()[0] if following.split() else ""
+            if not first.isdigit():
+                dr_m = m
+                break
+
+        if cd_m:
+            # Company Directory: clip at "Share Registry" (end of people list)
+            # to avoid running into the Directors’ Report on the next page.
+            window = text[cd_m.start(): cd_m.start() + 3500]
+            for end_pat in [r"Share\s+Registry", r"Annual\s+Financial\s+Report\s+for"]:
+                em = re.search(end_pat, window, re.I)
+                if em and em.start() > 300:
+                    window = window[:em.start()]
+                    break
+            section = window
+        elif dr_m:
+            section = text[dr_m.start(): dr_m.start() + 20000]
+            for marker in ["remuneration report", "financial statements",
+                           "statement of profit", "auditor’s independence",
+                           "auditor’s independence"]:
+                em = re.search(re.escape(marker), section, re.I)
+                if em and em.start() > 2500:
+                    section = section[:em.start()]
+                    break
+        else:
+            return []
+
+        # ── Line-by-line extraction ───────────────────────────────────────────
+        # Walk each line.  When a titled name is found:
+        #   • If a pending role heading preceded it (CFO / Company Secretary),
+        #     pair them immediately.
+        #   • Otherwise scan the next 3 lines for a role that starts that line.
+        #
+        # Only CFO and Company Secretary headings set pending_role — regular
+        # director roles (Executive Chairman, Managing Director …) appear AFTER
+        # the name in the directory and must not be treated as headings for the
+        # NEXT person.
+        _HEADING_ROLES = {"chief financial officer", "company secretary",
+                          "joint company secretary"}
+
+        lines = section.split("\n")
+        pending_role: str | None = None
+
+        for idx, raw_line in enumerate(lines):
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            # Strip parenthetical nicknames before matching so that
+            # "Mr Siyuan (Raymond) Chan" → "Mr Siyuan Chan" and matches _TITLE.
+            line_clean = re.sub(r"\([^)]+\)", " ", line)
+            line_clean = re.sub(r"\s{2,}", " ", line_clean).strip()
+
+            # Check for role-heading-before-name patterns (CFO, Company Secretary only)
+            role_heading = _ROLE_RE.match(line_clean)
+            if role_heading:
+                role_key = role_heading.group(1).strip().lower()
+                if role_key in _HEADING_ROLES:
+                    # Always set pending_role — trailing right-column text on the
+                    # same line (e.g. "Company Secretary Mia Yellagonga Tower 2")
+                    # must not block detection of the name on the next line.
+                    pending_role = role_heading.group(1)
+                continue
+
+            # Check whether this line starts with a titled name
+            name_m = _TITLE.match(line_clean)
+            if not name_m:
+                # Non-name, non-role line — do NOT clear pending_role so it
+                # survives junk lines between "Chief Financial Officer" and the name
+                continue
+                continue
+
+            raw_name = name_m.group(1)
+
+            if pending_role:
+                # CFO / Company Secretary: role heading came before name
+                _add(raw_name, pending_role)
+                pending_role = None
+            else:
+                # Regular director: role appears on one of the next 3 lines
+                for j in range(idx + 1, min(idx + 4, len(lines))):
+                    next_line = lines[j].strip()
+                    if not next_line:
+                        continue
+                    role_m = _ROLE_RE.match(next_line)
+                    if role_m:
+                        _add(raw_name, role_m.group(1))
+                        break
+
+        return sorted(officers, key=lambda o: _ORDER.get(o["roleNorm"], 99))
+    except Exception:
+        return []
+
+
 def build_materiality_benchmarks(fins):
     """Return a list of benchmark rows for the materiality analysis table."""
     rows = []
@@ -280,8 +473,11 @@ def main():
     ticker = args.ticker or detect_ticker(text)
     entity = detect_entity(text) or "Reporting Entity"
 
-    # Extract financials and build all materiality benchmarks
+    # Extract financials, board/management, and build all materiality benchmarks
     fins = extract_financials(text)
+    officers = extract_officers(text)
+    if officers:
+        print(f"[review] directors/officers found: {len(officers)}")
     total_assets = fins["totalAssets"]
     mat_benchmarks = build_materiality_benchmarks(fins)
 
@@ -389,6 +585,7 @@ def main():
         "domicile": domicile,
         "domicileInfo": domicile_info,
         "foreignSignals": foreign_signals,
+        "officers": officers,
         "financials": fins,
         "materialityBenchmarks": mat_benchmarks,
         "results": results, "asx": asx,

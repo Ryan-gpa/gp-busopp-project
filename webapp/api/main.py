@@ -25,6 +25,30 @@ try:
 except Exception:
     _BOX_AVAILABLE = False
 
+import glob as _glob
+import shutil as _shutil
+
+def _find_libreoffice() -> str | None:
+    """Return a usable LibreOffice executable path, or None if not found."""
+    # Common command names (Linux / Railway Docker)
+    for cmd in ("libreoffice", "soffice"):
+        if _shutil.which(cmd):
+            return cmd
+    # Windows installation paths
+    if sys.platform == "win32":
+        for pattern in (
+            r"C:\Program Files\LibreOffice*\program\soffice.exe",
+            r"C:\Program Files (x86)\LibreOffice*\program\soffice.exe",
+        ):
+            matches = _glob.glob(pattern)
+            if matches:
+                return matches[0]
+    # macOS
+    mac = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
+    if os.path.isfile(mac):
+        return mac
+    return None
+
 app = FastAPI(title="Disclosure Review Kit API")
 
 
@@ -365,6 +389,39 @@ async def generate(body: dict):
         if node_result.returncode != 0:
             raise HTTPException(500, f"Report generation failed:\n{node_result.stderr[-2000:]}")
 
+        # Convert DOCX → PDF (non-fatal — tries LibreOffice first, then docx2pdf)
+        pdf_name = None
+        docx_path = OUTPUT_DIR / docx_name
+        candidate = docx_name.replace(".docx", ".pdf")
+        if docx_path.exists():
+            lo_exe = _find_libreoffice()
+            if lo_exe:
+                try:
+                    lo_env = {**os.environ, "HOME": str(Path.home())}
+                    lo_result = subprocess.run(
+                        [lo_exe, "--headless", "--convert-to", "pdf",
+                         "--outdir", str(OUTPUT_DIR), str(docx_path)],
+                        capture_output=True, text=True, timeout=90, env=lo_env,
+                    )
+                    if lo_result.returncode == 0 and (OUTPUT_DIR / candidate).exists():
+                        pdf_name = candidate
+                    else:
+                        print(f"[pdf] LibreOffice failed: {lo_result.stderr[-500:]}", file=sys.stderr)
+                except subprocess.TimeoutExpired:
+                    print("[pdf] LibreOffice timed out", file=sys.stderr)
+                except Exception as e:
+                    print(f"[pdf] LibreOffice error: {e}", file=sys.stderr)
+            if not pdf_name:
+                try:
+                    from docx2pdf import convert as _docx2pdf  # type: ignore
+                    _docx2pdf(str(docx_path), str(OUTPUT_DIR / candidate))
+                    if (OUTPUT_DIR / candidate).exists():
+                        pdf_name = candidate
+                except ImportError:
+                    print("[pdf] docx2pdf not installed — PDF skipped", file=sys.stderr)
+                except Exception as e:
+                    print(f"[pdf] docx2pdf failed: {e}", file=sys.stderr)
+
         box_upload_id = None
         if _BOX_AVAILABLE:
             # Resolve target folder: prefer source folder (Box-sourced reviews), fall back to default
@@ -376,21 +433,24 @@ async def generate(body: dict):
             if not box_folder:
                 box_folder = _load_prefs().get("boxOutputFolderId")
             if box_folder:
-                docx_path = OUTPUT_DIR / docx_name
-                if docx_path.exists():
-                    try:
-                        result = _box.upload_file(box_folder, docx_name, docx_path.read_bytes())
-                        box_upload_id = result.get("id") if result else None
-                    except Exception as e:
-                        print(f"[box] upload after generate failed: {e}", file=sys.stderr)
+                for fname in ([docx_name] + ([pdf_name] if pdf_name else [])):
+                    fpath = OUTPUT_DIR / fname
+                    if fpath.exists():
+                        try:
+                            result = _box.upload_file(box_folder, fname, fpath.read_bytes())
+                            if fname == docx_name:
+                                box_upload_id = result.get("id") if result else None
+                        except Exception as e:
+                            print(f"[box] upload {fname} failed: {e}", file=sys.stderr)
 
         if audit_id:
             _update_audit(audit_id, {
                 "docxName": docx_name,
+                **({"pdfName": pdf_name} if pdf_name else {}),
                 "docxGeneratedAt": datetime.now(timezone.utc).isoformat(),
                 **({"boxUploadId": box_upload_id} if box_upload_id else {}),
             })
-        return {"docxName": docx_name, "boxUploaded": box_upload_id is not None}
+        return {"docxName": docx_name, "pdfName": pdf_name, "boxUploaded": box_upload_id is not None}
 
     finally:
         try:

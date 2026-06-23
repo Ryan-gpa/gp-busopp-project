@@ -86,6 +86,20 @@ children.push(P(`Checklist screen: ${F.summary.present} disclosures present (${a
 children.push(P(`Assessment basis: items are assessed qualitatively (is the disclosure present?) and, where the requirement is balance-driven, quantitatively against materiality of ${money(F.materiality)} (${F.materialityBasis}). Quantitative items below materiality are noted, not flagged as gaps; qualitative items (e.g. related parties, KMP, going concern) are assessed regardless of amount.`, {}));
 children.push(P(F.detectionNote, { italic: true, color: "808080" }));
 
+// Board and management
+const officers = F.officers || [];
+if (officers.length > 0) {
+  children.push(H2("Board and management"));
+  const drows = [hdrRow(["Name", "Role"], [50, 50])];
+  for (const o of officers) {
+    drows.push(new TableRow({ children: [
+      tc(o.name || "", 50, { bold: true, size: 17 }),
+      tc(o.roleNorm || o.role || "", 50, { size: 17 }),
+    ]}));
+  }
+  children.push(new Table({ rows: drows, width: { size: 100, type: WidthType.PERCENTAGE }, layout: TableLayoutType.FIXED, borders: ALLB }));
+}
+
 // Recommendations (NOT FOUND, sorted by materiality)
 const order = { high: 0, medium: 1, low: 2 };
 // Recommendations = every keyword MISS (NOT FOUND), PLUS every category-B disclosure-quality

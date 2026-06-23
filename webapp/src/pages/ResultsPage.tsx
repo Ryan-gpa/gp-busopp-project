@@ -36,6 +36,7 @@ export default function ResultsPage({ currentUser }: Props) {
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState("")
   const [docxName, setDocxName] = useState<string | null>(null)
+  const [pdfName, setPdfName] = useState<string | null>(null)
   const [boxUploaded, setBoxUploaded] = useState(false)
   const [prefs, setPrefs] = useState<UserPrefs | null>(null)
   const [configPanelOpen, setConfigPanelOpen] = useState(false)
@@ -122,6 +123,7 @@ export default function ResultsPage({ currentUser }: Props) {
     setGenerating(true)
     setGenerateError("")
     setDocxName(null)
+    setPdfName(null)
 
     // Build per-type exclusion summary for the document scope note
     const typeStats = new Map<string, { total: number; selected: number; rag: string }>()
@@ -147,8 +149,9 @@ export default function ResultsPage({ currentUser }: Props) {
         const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }))
         throw new Error(data.detail || `HTTP ${res.status}`)
       }
-      const data = await res.json() as { docxName: string; boxUploaded?: boolean }
+      const data = await res.json() as { docxName: string; pdfName?: string | null; boxUploaded?: boolean }
       setDocxName(data.docxName)
+      setPdfName(data.pdfName ?? null)
       setBoxUploaded(data.boxUploaded ?? false)
       await recordSessionStats()
     } catch (err: unknown) {
@@ -291,6 +294,16 @@ export default function ResultsPage({ currentUser }: Props) {
                 Saved to Box
               </span>
             )}
+            {pdfName && (
+              <a
+                href={`${API_BASE}/api/download/${encodeURIComponent(pdfName)}`}
+                download={pdfName}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-accent text-white rounded-sm hover:bg-accent/90 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Download PDF
+              </a>
+            )}
             {docxName && (
               <a
                 href={`${API_BASE}/api/download/${encodeURIComponent(docxName)}`}
@@ -298,7 +311,7 @@ export default function ResultsPage({ currentUser }: Props) {
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-accent text-accent rounded-sm hover:bg-accent/5 transition-colors"
               >
                 <Download className="w-4 h-4" />
-                Download report
+                Download Word
               </a>
             )}
             <Button onClick={handleGenerate} disabled={generating} size="default">

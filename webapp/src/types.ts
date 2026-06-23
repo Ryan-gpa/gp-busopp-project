@@ -90,6 +90,12 @@ export interface DomicileInfo {
   domicileSource?: string
 }
 
+export interface Officer {
+  name: string
+  role: string
+  roleNorm: string
+}
+
 export interface FindingsJSON {
   entity: string
   ticker: string
@@ -105,6 +111,7 @@ export interface FindingsJSON {
   domicile?: "AU" | "NZ" | "FOREIGN" | "UNKNOWN"
   domicileInfo?: DomicileInfo
   foreignSignals?: ForeignSignal[]
+  officers?: Officer[]
   financials?: Financials
   materialityBenchmarks?: MaterialityBenchmark[]
   results: ResultItem[]

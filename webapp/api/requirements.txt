@@ -3,4 +3,5 @@ uvicorn[standard]>=0.29.0
 python-multipart>=0.0.9
 pdfplumber>=0.11.0
 boxsdk[jwt]==3.9.0
+docx2pdf>=0.1.8
 

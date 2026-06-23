@@ -32,7 +32,7 @@
     {
       "id": "ma_transaction",
       "rag": "GREEN",
-      "service": "Transaction Readiness",
+      "service": "Financial Reporting + Commercial Opportunities",
       "match": [
         "asset acquisition",
         "asset disposal",
@@ -54,17 +54,18 @@
         "variation of takeover",
         "directors' statement re takeover"
       ],
-      "rationale": "M&A / transaction event (acquisition, disposal, takeover, scheme) - GP prepares the business and financials so the deal runs cleanly.",
+      "rationale": "M&A / transaction event (acquisition, disposal, takeover, scheme) - technical accounting for the transaction (AASB 3, purchase price allocation, impairment) and commercial analysis of the deal.",
       "priority": 1,
       "theme": "Strategic transaction",
       "services": [
-        "Transaction Readiness"
+        "Financial Reporting",
+        "Commercial Opportunities"
       ]
     },
     {
       "id": "capital_raise",
       "rag": "GREEN",
-      "service": "Transaction Readiness + Financial Reporting",
+      "service": "Financial Reporting",
       "match": [
         "placement",
         "entitlement offer",
@@ -86,11 +87,10 @@
         "alteration to issued capital",
         "shortfall"
       ],
-      "rationale": "Capital raise / new funding - transaction readiness, technical accounting for the raise, and investor reporting.",
+      "rationale": "Capital raise / new funding - share-based payment accounting (AASB 2), issued capital entries, transaction costs, and investor reporting.",
       "priority": 2,
       "theme": "Capital management",
       "services": [
-        "Transaction Readiness",
         "Financial Reporting"
       ]
     },
@@ -150,18 +150,18 @@
     {
       "id": "cfo_finance_lead",
       "rag": "GREEN",
-      "service": "Financial Reporting + Business Process Redesign",
+      "service": "Commercial Opportunities + Business Process Redesign",
       "match": [
         "cfo",
         "chief financial officer",
         "financial controller",
         "head of finance"
       ],
-      "rationale": "Finance-leadership change - an immediate gap GP can fill on reporting and process.",
+      "rationale": "Finance-leadership vacancy - GP steps in to fill the commercial and analytical gap while rebuilding the finance function and underlying processes.",
       "priority": 2,
       "theme": "Leadership change",
       "services": [
-        "Financial Reporting",
+        "Commercial Opportunities",
         "Business Process Redesign"
       ]
     },

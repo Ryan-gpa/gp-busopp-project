@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 
-# Install Node.js
-RUN apt-get update && apt-get install -y curl gnupg \
+# Install Node.js + LibreOffice (headless DOCX → PDF conversion)
+RUN apt-get update && apt-get install -y --no-install-recommends curl gnupg libreoffice-nogui \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*

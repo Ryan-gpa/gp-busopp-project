@@ -138,6 +138,24 @@ export function SummaryCards({ findings }: Props) {
         </div>
       )}
 
+      {/* Board and management */}
+      {findings.officers && findings.officers.length > 0 && (
+        <div className="rounded-sm border border-border bg-card overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-muted/20">
+            <p className="text-sm font-medium text-foreground">Board and management</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Extracted from Directors' Report</p>
+          </div>
+          <div className="divide-y divide-border">
+            {findings.officers.map((o, i) => (
+              <div key={i} className="px-4 py-2.5 flex items-center gap-4">
+                <span className="text-sm font-medium text-foreground w-52 shrink-0">{o.name}</span>
+                <span className="text-xs px-2 py-0.5 rounded-sm bg-muted text-muted-foreground">{o.roleNorm || o.role}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Detection note (collapsible) */}
       <details className="text-xs text-muted-foreground border border-border rounded-sm">
         <summary className="cursor-pointer px-3 py-2 font-medium text-foreground">Detection methodology</summary>

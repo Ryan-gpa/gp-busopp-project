@@ -35,10 +35,10 @@ export function OpportunitiesTab({ findings, onSelectAnnouncement }: Props) {
 
       {/* RAG summary */}
       <div className="flex gap-4 flex-wrap">
-        {(["GREEN", "AMBER", "RED"] as const).map((rag) => (
+        {(["GREEN", "AMBER"] as const).map((rag) => (
           <div key={rag} className="flex items-center gap-2 text-sm">
             <span className={cn("inline-flex items-center rounded-sm px-2.5 py-1 font-medium text-xs",
-              rag === "GREEN" ? "opp-green" : rag === "AMBER" ? "opp-amber" : "bg-muted text-muted-foreground"
+              rag === "GREEN" ? "opp-green" : "opp-amber"
             )}>
               {rag}
             </span>
@@ -48,6 +48,12 @@ export function OpportunitiesTab({ findings, onSelectAnnouncement }: Props) {
             </span>
           </div>
         ))}
+        <div className="flex items-center gap-2 text-sm">
+          <span className="font-semibold text-muted-foreground">{counts["RED"]}</span>
+          <span className="text-muted-foreground text-xs">
+            {asx.ragMeaning?.["RED"] ?? "Routine, administrative or investor-relations disclosure — no direct service trigger"}
+          </span>
+        </div>
       </div>
 
       {/* Service matrix table */}
