@@ -19,6 +19,14 @@ CHECKLIST = os.path.join(KIT, "config", "standards_checklist.json")
 
 
 def extract_text(pdf_path):
+    # pypdf uses ~10x less peak memory than pdfplumber/pdfminer for large PDFs.
+    # Fall back to pdfplumber if pypdf is unavailable or fails.
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(pdf_path)
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+    except Exception:
+        pass
     import pdfplumber
     pages = []
     with pdfplumber.open(pdf_path) as pdf:
