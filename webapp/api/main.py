@@ -318,8 +318,9 @@ async def review(
             raise HTTPException(500, f"Review timed out after {mins} minutes. Try again with 'Download announcement PDFs locally' unchecked, or with ASX disabled.")
 
         if result.returncode != 0:
-            _update_audit(audit_id, {"outcome": "error", "errorMessage": result.stderr[-300:]})
-            raise HTTPException(500, f"Review failed:\n{result.stderr[-2000:]}")
+            err_out = (result.stderr or result.stdout or "no output captured").strip()
+            _update_audit(audit_id, {"outcome": "error", "errorMessage": err_out[-300:]})
+            raise HTTPException(500, f"Review failed (exit {result.returncode}):\n{err_out[-2000:]}")
 
         findings_path = OUTPUT_DIR / "findings.json"
         if not findings_path.exists():
