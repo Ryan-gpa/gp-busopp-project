@@ -49,8 +49,8 @@ research/
 
 ```
 api/
-  main.py                  — FastAPI backend (7 endpoints, see below)
-  requirements.txt         — fastapi uvicorn python-multipart
+  main.py                  — FastAPI backend (7 endpoints + PDF generation via LibreOffice / docx2pdf)
+  requirements.txt         — fastapi uvicorn python-multipart pdfplumber boxsdk docx2pdf
 src/
   main.tsx                 — React entry point
   App.tsx                  — Router (/ = UploadPage, /results = ResultsPage)
@@ -64,10 +64,10 @@ src/
   components/
     ui/                     — shadcn/ui primitives (button, card, tabs, progress) — written manually
     app/
-      SummaryCards.tsx      — entity header + 4 status cards + materiality notice
+      SummaryCards.tsx      — entity header + 4 status cards + materiality notice + board/management table
       DisclosuresTab.tsx    — filterable/sortable checklist results table
       CorporateActivityTab.tsx — announcement table with checkboxes, hyperlinks, Configure button
-      OpportunitiesTab.tsx  — internal-only RAG service matrix
+      OpportunitiesTab.tsx  — internal-only RAG service matrix; RED shown as plain count (no badge)
       TypeConfigPanel.tsx   — slide-over panel: types grouped by RAG, history badges, Save & Apply
       StatusChip.tsx        — renderStatus → coloured chip
 index.html
@@ -96,7 +96,7 @@ Open http://localhost:5173
 
 ```powershell
 # Python (first time)
-pip install fastapi uvicorn python-multipart pdfplumber
+pip install fastapi uvicorn python-multipart pdfplumber docx2pdf
 
 # Node (first time — run in BOTH folders)
 cd "Co-work POC\disclosure-review-kit" && npm install docx
@@ -123,8 +123,9 @@ Browser → POST /api/review
          → [user reviews in browser, selects/deselects announcements]
          → POST /api/generate {selectedKeys, excludedTypeInfo}
             → FastAPI filters findings → node lib/build_report.js → output/*.docx
-            ← {docxName}
-         → GET /api/download/{docxName}
+            → LibreOffice / docx2pdf → output/*.pdf (if available)
+            ← {docxName, pdfName}
+         → GET /api/download/{docxName|pdfName}
 ```
 
 Claude / AI is only used to maintain `config/*.json`. No LLM calls in the per-report path.
@@ -137,7 +138,7 @@ Claude / AI is only used to maintain `config/*.json`. No LLM calls in the per-re
 |--------|------|-------------|
 | GET | `/api/health` | `{"ok": true, "kitDir": "..."}` |
 | POST | `/api/review` | multipart: file + options → runs review.py → returns `{findings}` |
-| POST | `/api/generate` | JSON: `{selectedKeys[], excludedTypeInfo[]}` → runs build_report.js → `{docxName}` |
+| POST | `/api/generate` | JSON: `{selectedKeys[], excludedTypeInfo[]}` → runs build_report.js → `{docxName, pdfName}` |
 | GET | `/api/announcement/{key}` | Proxies ASX PDF via markitdigital (server-side Bearer token) |
 | GET | `/api/download/{filename}` | Streams .docx from output/ |
 | GET | `/api/prefs` | Returns user_prefs.json |
@@ -168,6 +169,7 @@ ASX token: `83ff96335c2d45a094df02a206a39ff4` (public Bearer, same as asx.com.au
   "materialityBasis": "5% of total assets",
   "totalAssets": 13554920,
   "results": [ ResultItem... ],
+  "officers": [ { "name": "...", "role": "...", "roleNorm": "..." } ],
   "asx": {
     "ticker": "NVU",
     "periodStart": "2024-06-XX",
@@ -217,7 +219,7 @@ History badge logic (shown in TypeConfigPanel):
 
 | Section | Audience | Content |
 |---------|----------|---------|
-| 1. Executive summary | Client | Basis, checklist counts, materiality |
+| 1. Executive summary | Client | Basis, checklist counts, materiality + board/management table |
 | 2. Disclosures to confirm | Client | NOT FOUND + category-B items, ordered high→low |
 | 3. Full checklist results | Client | All items with status chips |
 | 4. Corporate activity | Client | Announcements: date, headline, theme, mkt-sens, significance |
@@ -245,7 +247,7 @@ The internal appendix warns in red if any excluded type had a GREEN or AMBER opp
    - Each row: checkbox, type name, count in current findings, history badge
    - "Save & Apply" → POST `/api/prefs` → re-applies to selectedKeys
 6. Sticky bottom bar: "X of Y announcements selected" + Generate Report button
-7. Generate → POST `/api/generate {selectedKeys, excludedTypeInfo}` → Download Report link appears
+7. Generate → POST `/api/generate {selectedKeys, excludedTypeInfo}` → Download PDF + Download Word links appear (PDF requires LibreOffice or Microsoft Word installed; falls back gracefully)
 8. After generate: POST `/api/prefs/record` with per-type included/excluded/mixed stats
 
 ---
@@ -286,6 +288,13 @@ Fonts: Fraunces (headings, `font-heading`) + Inter (body, `font-sans`), loaded v
 `id, rag (GREEN/AMBER/RED), service, services[], match[], rationale, priority, theme`
 Rules evaluated top-to-bottom; first match wins.
 
+Current service assignments (GP-confirmed):
+- `ma_transaction` → Financial Reporting + Commercial Opportunities
+- `capital_raise` → Financial Reporting (share-based payments / AASB 2)
+- `cfo_finance_lead` → Commercial Opportunities + Business Process Redesign
+- `periodic_reporting` → Financial Reporting + Audit Readiness
+- `earnings_guidance` → Commercial Opportunities + Financial Reporting
+
 **`config/user_prefs.json`** — auto-managed at runtime; edit only to reset.
 
 ---
@@ -307,8 +316,9 @@ Rules evaluated top-to-bottom; first match wins.
 |------|-------|
 | Admin screen | Edit `config/*.json` in-browser; set default materiality |
 | Auth / gating on Opportunities tab | Currently shows "Internal use only" banner with no real gate |
-| Deployment | Currently localhost only; needs a host (likely a simple VPS or cloud run) |
 | Mobile layout | Designed for desktop; tables need responsive treatment |
+
+Deployment is live on Railway (Docker, port 8000, LibreOffice included for server-side PDF).
 
 ---
 
@@ -318,7 +328,7 @@ Rules evaluated top-to-bottom; first match wins.
 |---|---|
 | Q-01 | Materiality default: 5% total assets, or GP planning materiality? |
 | Q-02 | Diluted EPS: "Represented differently" vs fully "Addressed"? |
-| Q-03 | Opportunity priority: acquisition > capital raise > reporting — confirm? |
+| Q-03 | ~~Opportunity priority: acquisition > capital raise > reporting — confirm?~~ Service assignments confirmed by GP Jun 2026 |
 | Q-04 | Progress Reports / Trading Halts — keep AMBER, promote to GREEN, or drop? |
 | Q-05 | Auditor to confirm exact AASB sub-paragraph refs in section 2 |
 | Q-06 | Internal appendix: same file last page vs separate `_Internal.docx`? |
