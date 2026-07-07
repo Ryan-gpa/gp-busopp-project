@@ -1422,6 +1422,12 @@ async def unlisted_search(body: dict):
             },
         }
     
+    # Snapshot raw org data before anything below mutates these dicts in
+    # place (adding dataSource/contacts/_exclusion_reason etc.) — the
+    # companies cache should hold clean data reusable by any future query,
+    # not this query's derived, query-specific fields.
+    _raw_organizations_snapshot = [dict(o) for o in organizations]
+
     # ASX Exclusion Filter — token-prefix match, not just exact string equality.
     # Apollo frequently returns a shortened trading name ("Commonwealth Bank")
     # while ASX's register holds the full legal name ("Commonwealth Bank of
@@ -1511,18 +1517,21 @@ async def unlisted_search(body: dict):
         emp_count = org.get("estimated_num_employees")
         try:
             r_min_val = float(revenue_min) if revenue_min is not None else None
-        except:
+        except (TypeError, ValueError):
             r_min_val = None
+
+        # Tier 2's own label promises "$20-50M" (t2_min) — enforce that floor
+        # even when the user's own Revenue Min is blank or set below it, so a
+        # sub-$20M company can never land in a table that says otherwise.
+        effective_min = max(t2_min, r_min_val) if r_min_val is not None else t2_min
 
         try:
             if rev is not None:
                 rev_val = float(rev)
             elif emp_count is not None:
                 rev_val = float(emp_count) * 150000
-            elif r_min_val is not None:
-                rev_val = r_min_val
             else:
-                rev_val = 0
+                rev_val = effective_min
         except ValueError:
             rev_val = 0
 
@@ -1536,11 +1545,7 @@ async def unlisted_search(body: dict):
         except (TypeError, ValueError):
             r_max_val = None
 
-        # Same gap as revenueMax had: t2_min/r_min_val were loaded but never
-        # actually checked against anything, so a company Apollo estimated at
-        # $1M could still land in a table labelled "Tier 2 — $20-50M". Enforce
-        # the floor for real, the same way the ceiling is enforced above.
-        if r_min_val is not None and rev_val < r_min_val:
+        if rev_val < effective_min:
             org["_exclusion_reason"] = "below_revenue_min"
             excluded_under_min.append(org)
             continue
@@ -1573,7 +1578,7 @@ async def unlisted_search(body: dict):
         oldest = min((o.get("_locallyCachedAt") for o in organizations if o.get("_locallyCachedAt")), default=now)
         return {**result, "fetchedAt": oldest, "fromCache": True}
 
-    _unlisted_companies_upsert(organizations, now)
+    _unlisted_companies_upsert(_raw_organizations_snapshot, now)
     _unlisted_cache_put(
         query_hash,
         {"revenueMin": revenue_min, "revenueMax": revenue_max, "locations": locations},
