@@ -4,6 +4,7 @@ import csv
 import hashlib
 import io
 import json
+import re
 import os
 import subprocess
 import sys
