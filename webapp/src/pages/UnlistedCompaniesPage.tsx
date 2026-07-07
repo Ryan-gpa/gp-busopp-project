@@ -70,7 +70,7 @@ function sortCompanies(list: UnlistedCompany[], sort: SortState): UnlistedCompan
 }
 
 type FoundContact = { name: string; title: string; email?: string; emailStatus?: string; linkedinUrl?: string }
-type ContactFetchState = { status: "idle" | "loading" | "done" | "error"; contacts?: FoundContact[] }
+type ContactFetchState = { status: "idle" | "loading" | "done" | "error"; contacts?: FoundContact[]; error?: string }
 
 export default function UnlistedCompaniesPage() {
   const [loading, setLoading] = useState(false)
@@ -246,11 +246,14 @@ export default function UnlistedCompaniesPage() {
     setContactFetches(prev => ({ ...prev, [companyId]: { status: "loading" } }))
     try {
       const res = await fetch(`${API_BASE}/api/unlisted/contacts/${companyId}`)
-      if (!res.ok) throw new Error("lookup failed")
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || "Lookup failed")
+      }
       const data = await res.json()
       setContactFetches(prev => ({ ...prev, [companyId]: { status: "done", contacts: data.contacts || [] } }))
-    } catch {
-      setContactFetches(prev => ({ ...prev, [companyId]: { status: "error" } }))
+    } catch (e: any) {
+      setContactFetches(prev => ({ ...prev, [companyId]: { status: "error", error: e.message } }))
     }
   }
 
@@ -337,7 +340,10 @@ export default function UnlistedCompaniesPage() {
             }
             if (fetchState?.status === "error") {
               return (
-                <Button size="sm" variant="outline" onClick={() => findContacts(company.id)}>Retry</Button>
+                <div>
+                  {fetchState.error && <p className="text-xs text-red-600 mb-1">{fetchState.error}</p>}
+                  <Button size="sm" variant="outline" onClick={() => findContacts(company.id)}>Retry</Button>
+                </div>
               )
             }
             if (fetchState?.status === "done") {

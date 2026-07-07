@@ -1757,7 +1757,19 @@ def find_contacts(org_id: str):
     candidates.sort(key=lambda p: _contact_title_rank(p.get("title")))
     top_candidates = candidates[:2]  # cap real credit spend: at most 2 reveals per company
 
+    # Genuinely no candidates at all — a real, cacheable "nobody found" result.
+    if not top_candidates:
+        now = time.time()
+        conn = _unlisted_cache_conn()
+        try:
+            conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, "[]", now))
+            conn.commit()
+        finally:
+            conn.close()
+        return {"contacts": [], "fromCache": False}
+
     contacts = []
+    enrich_failed = False
     for c in top_candidates:
         person_id = c.get("id")
         if not person_id:
@@ -1769,9 +1781,16 @@ def find_contacts(org_id: str):
                 timeout=20,
                 json={"id": person_id},
             )
+            if enrich_resp.status_code in (402, 422):
+                # Apollo's lead-credit balance, not the API rate limit, is
+                # exhausted — this happened silently before and got cached as
+                # a false "no contacts found" for 30 days. Never do that again.
+                enrich_failed = True
+                continue
             enrich_resp.raise_for_status()
             person = enrich_resp.json().get("person") or {}
         except Exception:
+            enrich_failed = True
             continue
         if not person.get("name"):
             continue
@@ -1782,6 +1801,15 @@ def find_contacts(org_id: str):
             "emailStatus": person.get("email_status"),
             "linkedinUrl": person.get("linkedin_url"),
         })
+
+    if not contacts and enrich_failed:
+        # Real candidates existed but every reveal call failed — do not cache
+        # this as "no contacts found." Surface it as an actual error instead.
+        raise HTTPException(
+            502,
+            f"Found {len(top_candidates)} candidate(s) but couldn't reveal them "
+            "(Apollo lead credits may be exhausted — check Settings > Plans/Billing).",
+        )
 
     now = time.time()
     conn = _unlisted_cache_conn()
