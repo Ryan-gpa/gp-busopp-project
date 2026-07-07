@@ -162,7 +162,13 @@ export interface UnlistedSearchResult {
   tier1: UnlistedCompany[]
   tier2: UnlistedCompany[]
   excludedAsxMatches: UnlistedCompany[]
-  pagination: any
+  pagination: {
+    total_entries?: number | null
+    total_pages?: number | null
+    fetched_entries?: number
+    fetched_pages?: number
+    truncated?: boolean
+  } | null
 }
 
 export const GP_SERVICES = [

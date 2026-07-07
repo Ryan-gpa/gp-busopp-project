@@ -41,11 +41,11 @@ export default function UnlistedCompaniesPage() {
       const data = await res.json()
       setResults(data)
 
-      // Automatically try to validate Tier 1 (stub hits)
+      // Automatically validate Tier 1 against the ASIC company register
       if (data.tier1) {
         data.tier1.forEach(async (company: UnlistedCompany) => {
           try {
-            const vRes = await fetch(`${API_BASE}/api/unlisted/validate/${company.id}`)
+            const vRes = await fetch(`${API_BASE}/api/unlisted/validate/${company.id}?name=${encodeURIComponent(company.name)}`)
             if (vRes.ok) {
               const vData = await vRes.json()
               setValidationStatuses(prev => ({
@@ -79,7 +79,18 @@ export default function UnlistedCompaniesPage() {
   }
 
   const renderValidationBadge = (status?: string) => {
-      return status === 'verified' ? <span className="text-green-600 flex items-center gap-1 text-xs"><CheckCircle2 className="h-4 w-4"/> Verified</span> : <span className="text-amber-600 flex items-center gap-1 text-xs"><AlertCircle className="h-4 w-4"/> Unverified</span>
+    switch (status) {
+      case 'verified':
+        return <span className="text-green-600 flex items-center gap-1 text-xs" title="Active on ASIC company register"><CheckCircle2 className="h-4 w-4"/> ASIC verified</span>
+      case 'deregistered':
+        return <span className="text-red-600 flex items-center gap-1 text-xs" title="Found on ASIC register but not active"><AlertCircle className="h-4 w-4"/> Deregistered</span>
+      case 'not_found':
+        return <span className="text-amber-600 flex items-center gap-1 text-xs" title="No matching name on the ASIC register"><AlertCircle className="h-4 w-4"/> Not on ASIC register</span>
+      case 'pending':
+        return <span className="text-gray-400 flex items-center gap-1 text-xs" title="ASIC register index is still building"><AlertCircle className="h-4 w-4"/> Checking&hellip;</span>
+      default:
+        return <span className="text-amber-600 flex items-center gap-1 text-xs"><AlertCircle className="h-4 w-4"/> Unverified</span>
+    }
   }
 
   const renderConfidenceBadge = () => {
@@ -181,6 +192,15 @@ export default function UnlistedCompaniesPage() {
 
       {results && (
         <div className="space-y-8">
+          {results.pagination && (
+            <div className="text-sm text-muted-foreground">
+              Found {results.pagination.fetched_entries ?? (results.tier1.length + results.tier2.length)} companies
+              {results.pagination.total_entries != null && ` of ${results.pagination.total_entries} matching in Apollo`}
+              {results.pagination.truncated && (
+                <span className="text-amber-600"> — capped at {results.pagination.fetched_pages} pages; narrow revenue range to see more</span>
+              )}
+            </div>
+          )}
           {results.excludedAsxMatches && results.excludedAsxMatches.length > 0 && (
             <details className="bg-muted/30 border rounded-md p-4 group">
               <summary className="text-sm font-medium cursor-pointer flex justify-between items-center text-muted-foreground group-open:mb-4">

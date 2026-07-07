@@ -6,16 +6,35 @@ import io
 import json
 import re
 import os
+import sqlite3
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import traceback
 import urllib.request
 import urllib.error
+import zipfile
 import requests
 import re
 from pathlib import Path
+
+def _load_dotenv():
+    """Load webapp/.env into os.environ (existing env vars take precedence)."""
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+_load_dotenv()
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -1004,6 +1023,127 @@ def normalize_company_name(name: str) -> str:
     return re.sub(r"\s+", " ", name).strip()
 
 
+# ── ASIC company register (free, weekly, data.gov.au) ───────────────────────
+# Gives us every registered Australian company (no revenue/employee data) so
+# Apollo hits can be validated as real, active companies rather than left as
+# an unverifiable stub. See CLAUDE.md "What still needs building".
+_ASIC_DATASET_API = "https://data.gov.au/data/api/3/action/package_show?id=asic-companies"
+_ASIC_DB_PATH = HERE / "asic_register.sqlite3"
+_ASIC_REFRESH_TTL = 7 * 86400  # ASIC republishes the snapshot weekly
+_asic_build_lock = threading.Lock()
+_asic_building = False
+
+
+def _asic_db_is_fresh() -> bool:
+    return _ASIC_DB_PATH.exists() and (time.time() - _ASIC_DB_PATH.stat().st_mtime) < _ASIC_REFRESH_TTL
+
+
+def _resolve_asic_zip_url() -> str:
+    """Ask data.gov.au's CKAN API for this week's company register download link (filename changes monthly)."""
+    req = urllib.request.Request(_ASIC_DATASET_API, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        meta = json.loads(r.read().decode("utf-8"))
+    zips = [res for res in meta["result"]["resources"] if (res.get("format") or "").upper() == "ZIP"]
+    if not zips:
+        raise RuntimeError("No ZIP resource found in ASIC company dataset metadata")
+    return zips[0]["url"]
+
+
+def _build_asic_register_db():
+    """Download the current ASIC company register snapshot and index it (name -> status/type/ACN) in SQLite."""
+    print("[asic] Refreshing company register index (~1-2 min, ~3M rows)...", file=sys.stderr)
+    url = _resolve_asic_zip_url()
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=180) as resp:
+        zip_bytes = io.BytesIO(resp.read())
+
+    tmp_path = _ASIC_DB_PATH.with_suffix(".building.sqlite3")
+    if tmp_path.exists():
+        tmp_path.unlink()
+
+    conn = sqlite3.connect(str(tmp_path))
+    conn.execute("CREATE TABLE companies (name_norm TEXT, name TEXT, acn TEXT, type TEXT, status TEXT)")
+
+    row_count = 0
+    with zipfile.ZipFile(zip_bytes) as zf:
+        csv_name = next(n for n in zf.namelist() if n.lower().endswith(".csv"))
+        with zf.open(csv_name) as raw:
+            text = io.TextIOWrapper(raw, encoding="utf-8-sig", errors="replace")
+            reader = csv.reader(text, delimiter="\t")
+            header = next(reader)
+            idx = {h.strip(): i for i, h in enumerate(header)}
+            need = max(idx["Company Name"], idx["ACN"], idx["Type"], idx["Status"])
+            batch = []
+            for row in reader:
+                if len(row) <= need:
+                    continue
+                name = row[idx["Company Name"]].strip()
+                if not name:
+                    continue
+                norm = normalize_company_name(name)
+                if not norm:
+                    continue
+                batch.append((norm, name, row[idx["ACN"]].strip(), row[idx["Type"]].strip(), row[idx["Status"]].strip()))
+                row_count += 1
+                if len(batch) >= 20000:
+                    conn.executemany("INSERT INTO companies VALUES (?,?,?,?,?)", batch)
+                    batch = []
+            if batch:
+                conn.executemany("INSERT INTO companies VALUES (?,?,?,?,?)", batch)
+
+    conn.execute("CREATE INDEX idx_name_norm ON companies(name_norm)")
+    conn.commit()
+    conn.close()
+    tmp_path.replace(_ASIC_DB_PATH)
+    print(f"[asic] Register index built: {row_count} rows", file=sys.stderr)
+
+
+def _ensure_asic_register_async():
+    """Kick off a background refresh if the local index is missing or stale. Never blocks the caller."""
+    global _asic_building
+    if _asic_db_is_fresh() or _asic_building:
+        return
+    with _asic_build_lock:
+        if _asic_building:
+            return
+        _asic_building = True
+
+    def _run():
+        global _asic_building
+        try:
+            _build_asic_register_db()
+        except Exception as e:
+            print(f"[asic] Could not refresh register: {e}", file=sys.stderr)
+        finally:
+            _asic_building = False
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def _asic_lookup(name: str) -> dict | None:
+    """Look up a company name against the ASIC register. Returns None if the index isn't built yet."""
+    if not _ASIC_DB_PATH.exists():
+        return None
+    norm = normalize_company_name(name or "")
+    if not norm:
+        return None
+    conn = sqlite3.connect(str(_ASIC_DB_PATH))
+    try:
+        cur = conn.execute(
+            "SELECT name, acn, type, status FROM companies WHERE name_norm = ? ORDER BY (status = 'REGD') DESC LIMIT 1",
+            (norm,),
+        )
+        row = cur.fetchone()
+    finally:
+        conn.close()
+    if not row:
+        return None
+    return {"matchedName": row[0], "acn": row[1], "type": row[2], "status": row[3]}
+
+
+_ensure_asic_register_async()
+
+
 @app.post("/api/unlisted/search")
 async def unlisted_search(body: dict):
     revenue_min = body.get("revenueMin")
@@ -1062,15 +1202,55 @@ async def unlisted_search(body: dict):
             "X-Api-Key": api_key,
             "Cache-Control": "no-cache"
         }
-                
-        try:
-            resp = requests.post("https://api.apollo.io/v1/mixed_companies/search", json=payload, headers=headers, timeout=30)
-            resp.raise_for_status()
-            data = resp.json()
-        except Exception as e:
-            raise HTTPException(502, f"Failed to search Apollo API: {str(e)}")
-            
-        organizations = data.get("organizations", [])
+
+        # Page through the full result set instead of returning Apollo's first
+        # page only. Apollo caps page * per_page at 50,000 records, so that's
+        # the hard ceiling regardless of how we paginate.
+        MAX_PAGES = 100  # safety cap = 10,000 orgs per search (avoids runaway credit burn)
+        PER_PAGE = 100
+        organizations = []
+        total_entries = None
+        total_pages = None
+        page = 1
+
+        while True:
+            payload["page"] = page
+            payload["per_page"] = PER_PAGE
+            try:
+                resp = requests.post("https://api.apollo.io/v1/mixed_companies/search", json=payload, headers=headers, timeout=30)
+                resp.raise_for_status()
+                page_data = resp.json()
+            except Exception as e:
+                if page == 1:
+                    raise HTTPException(502, f"Failed to search Apollo API: {str(e)}")
+                break  # keep whatever we already fetched if a later page fails
+
+            page_orgs = page_data.get("organizations", [])
+            organizations.extend(page_orgs)
+
+            pagination = page_data.get("pagination", {})
+            total_entries = pagination.get("total_entries", total_entries)
+            total_pages = pagination.get("total_pages", total_pages)
+
+            if not page_orgs:
+                break
+            if total_pages is not None and page >= total_pages:
+                break
+            if page >= MAX_PAGES:
+                break
+            page += 1
+            time.sleep(0.2)  # stay polite to Apollo's rate limiter
+
+        data = {
+            "organizations": organizations,
+            "pagination": {
+                "total_entries": total_entries,
+                "total_pages": total_pages,
+                "fetched_entries": len(organizations),
+                "fetched_pages": page,
+                "truncated": bool(total_pages and page < total_pages),
+            },
+        }
     
     # ASX Exclusion Filter
     global _companies_cache
@@ -1171,15 +1351,35 @@ async def unlisted_search(body: dict):
 
 
 @app.get("/api/unlisted/validate/{company_id}")
-def validate_unlisted(company_id: str):
-    # ASIC/ABR validation is NOT automatable yet
-    # TODO: Closing this gap requires:
-    # (a) register a free ABR web-service GUID at abr.business.gov.au/Tools/WebServices for entity-type/status lookups
-    # (b) download ASIC's company register bulk extract from data.gov.au for the same
-    # (c) a paid per-document pull from ASIC Connect to confirm an actual Form 388 lodgement exists for high-confidence Tier 1 candidates.
+def validate_unlisted(company_id: str, name: str = ""):
+    # Confirms the candidate is a real, active company on ASIC's public register
+    # (free weekly bulk extract from data.gov.au). This is existence/status only —
+    # ASIC's public data has no revenue or employee figures, so it cannot confirm
+    # "large proprietary company" status. A definitive large-proprietary check
+    # still requires a paid per-document Form 388 lodgement pull from ASIC Connect.
+    if not name.strip():
+        return {"status": "unverified", "reason": "No company name supplied"}
+
+    if not _ASIC_DB_PATH.exists():
+        _ensure_asic_register_async()
+        return {"status": "pending", "reason": "ASIC register index is still building"}
+
+    match = _asic_lookup(name)
+    if not match:
+        return {"status": "not_found", "reason": "No matching company name on the ASIC register"}
+    if match["status"] != "REGD":
+        return {
+            "status": "deregistered",
+            "reason": f"ASIC status: {match['status']}",
+            "acn": match["acn"],
+            "matchedName": match["matchedName"],
+        }
     return {
-        "status": "unverified",
-        "reason": "No ASIC/ABR credential configured"
+        "status": "verified",
+        "reason": "Active on ASIC company register",
+        "acn": match["acn"],
+        "asicType": match["type"],
+        "matchedName": match["matchedName"],
     }
 
 
