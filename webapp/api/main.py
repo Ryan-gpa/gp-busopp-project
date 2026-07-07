@@ -1088,9 +1088,13 @@ async def unlisted_search(body: dict):
             "Canva": {"ceo": "Abigail Stewart", "cfo": "Kelly Steckelberg", "emp": 8066},
             "Atlassian": {"ceo": "Mike Cannon-Brookes & Scott Farquhar", "cfo": "Joe Binz", "emp": 11000},
             "Fujitsu Australia": {"ceo": "Simon Denney", "cfo": "Ryo Nagano", "emp": 28210},
+            "Fujitsu": {"ceo": "Simon Denney", "cfo": "Ryo Nagano", "emp": 28210},
             "Commonwealth Bank": {"ceo": "Matt Comyn", "cfo": "Alan Docherty", "emp": 49000},
+            "Commonwealth Bank of Australia": {"ceo": "Matt Comyn", "cfo": "Alan Docherty", "emp": 49000},
             "Freelancer": {"ceo": "Matt Barrie", "cfo": "Neil Katz", "emp": 30630},
-            "Australian Financial Review": {"ceo": "Peter Kerr", "cfo": "N/A", "emp": 168}
+            "Freelancer.com": {"ceo": "Matt Barrie", "cfo": "Neil Katz", "emp": 30630},
+            "Australian Financial Review": {"ceo": "Peter Kerr", "cfo": "N/A", "emp": 168},
+            "The Australian Financial Review": {"ceo": "Peter Kerr", "cfo": "N/A", "emp": 168}
         }
         
         matched_data = researched_data.get(org.get("name"), {})
@@ -1112,6 +1116,18 @@ async def unlisted_search(body: dict):
             rev_val = float(rev) if rev is not None else 0
         except ValueError:
             rev_val = 0
+            
+        # Apply local filtering to respect UI inputs (since Apollo ignores them)
+        try:
+            r_min = float(revenue_min) if revenue_min is not None else None
+            r_max = float(revenue_max) if revenue_max is not None else None
+        except ValueError:
+            r_min, r_max = None, None
+            
+        if r_min is not None and rev_val < r_min:
+            continue
+        if r_max is not None and rev_val > r_max:
+            continue
             
         if rev_val >= t1_min:
             tier1.append(org)
