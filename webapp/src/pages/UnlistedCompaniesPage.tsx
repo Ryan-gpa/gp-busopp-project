@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, AlertCircle, Rocket, Landmark, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
+import { CheckCircle2, AlertCircle, Rocket, Landmark, ShieldAlert, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
 
 // Every field ASIC actually publishes for a matched company (see the
@@ -78,6 +78,8 @@ export default function UnlistedCompaniesPage() {
   const [results, setResults] = useState<UnlistedSearchResult | null>(null)
   const [validationStatuses, setValidationStatuses] = useState<Record<string, AsicValidation>>({})
   const [expandedAsic, setExpandedAsic] = useState<Record<string, boolean>>({})
+  const [expandedInfringements, setExpandedInfringements] = useState<Record<string, boolean>>({})
+  const [onlyInfringements, setOnlyInfringements] = useState(false)
   const [contactFetches, setContactFetches] = useState<Record<string, ContactFetchState>>({})
 
   // Form state
@@ -98,6 +100,8 @@ export default function UnlistedCompaniesPage() {
     setResults(null)
     setValidationStatuses({})
     setContactFetches({})
+    setExpandedInfringements({})
+    setOnlyInfringements(false)
     setTier1Page(1)
     setTier2Page(1)
     setSearchedMax(revenueMax)
@@ -225,6 +229,13 @@ export default function UnlistedCompaniesPage() {
       </div>
     ) : null
 
+  const renderInfringementIcon = (count: number) =>
+    count > 0 ? (
+      <div title={`Sourced from ASIC's Infringement Notices Register — ${count} notice${count > 1 ? "s" : ""} on file`} className="inline-flex items-center justify-center p-1 bg-red-50 text-red-600 rounded-full mr-1">
+        <ShieldAlert className="h-3 w-3" />
+      </div>
+    ) : null
+
   const renderValidationBadge = (status?: string) => {
     switch (status) {
       case 'verified':
@@ -282,6 +293,7 @@ export default function UnlistedCompaniesPage() {
           <div className="font-medium text-gray-900 flex items-center">
             {renderSourceIcon()}
             {renderAsicIcon(valInfo?.status)}
+            {renderInfringementIcon(company.infringementNotices?.length || 0)}
             {company.name}
           </div>
           <div className="text-sm text-gray-500">
@@ -320,6 +332,41 @@ export default function UnlistedCompaniesPage() {
                       </div>
                     ))}
                   </dl>
+                )}
+              </>
+            )}
+            {company.infringementNotices && company.infringementNotices.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  className="text-xs text-red-600 hover:underline mt-1 block"
+                  onClick={() => setExpandedInfringements(prev => ({ ...prev, [company.id]: !prev[company.id] }))}
+                >
+                  {expandedInfringements[company.id] ? "Hide" : "Show"} {company.infringementNotices.length} infringement notice{company.infringementNotices.length > 1 ? "s" : ""}
+                </button>
+                {expandedInfringements[company.id] && (
+                  <div className="mt-2 text-xs space-y-2 border-t pt-2">
+                    {company.infringementNotices.map((n, i) => (
+                      <div key={i} className="space-y-0.5">
+                        <div className="flex justify-between gap-3">
+                          <span className="text-muted-foreground">Date Paid</span>
+                          <span className="text-gray-900">{n.datePaid}</span>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <span className="text-muted-foreground">Legislation</span>
+                          <span className="text-gray-900 text-right">{n.legislation}</span>
+                        </div>
+                        <div className="flex gap-3">
+                          {n.noticePdfUrl && (
+                            <a href={n.noticePdfUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">Notice {n.noticeId}</a>
+                          )}
+                          {n.mediaReleaseUrl && (
+                            <a href={n.mediaReleaseUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">{n.mediaReleaseId}</a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </>
             )}
@@ -385,12 +432,21 @@ export default function UnlistedCompaniesPage() {
     )
   }
 
-  const tier1Sorted = useMemo(() => results ? sortCompanies(results.tier1, tier1Sort) : [], [results, tier1Sort])
+  const applyInfringementFilter = (list: UnlistedCompany[]) =>
+    onlyInfringements ? list.filter(c => (c.infringementNotices?.length || 0) > 0) : list
+
+  const tier1Sorted = useMemo(
+    () => results ? sortCompanies(applyInfringementFilter(results.tier1), tier1Sort) : [],
+    [results, tier1Sort, onlyInfringements]
+  )
   const tier1PageItems = useMemo(
     () => tier1Sorted.slice((tier1Page - 1) * PAGE_SIZE, tier1Page * PAGE_SIZE),
     [tier1Sorted, tier1Page]
   )
-  const tier2Sorted = useMemo(() => results ? sortCompanies(results.tier2, tier2Sort) : [], [results, tier2Sort])
+  const tier2Sorted = useMemo(
+    () => results ? sortCompanies(applyInfringementFilter(results.tier2), tier2Sort) : [],
+    [results, tier2Sort, onlyInfringements]
+  )
   const tier2PageItems = useMemo(
     () => tier2Sorted.slice((tier2Page - 1) * PAGE_SIZE, tier2Page * PAGE_SIZE),
     [tier2Sorted, tier2Page]
@@ -500,6 +556,23 @@ export default function UnlistedCompaniesPage() {
               </div>
             </div>
           )}
+          {(() => {
+            const infringedCount = [...results.tier1, ...results.tier2].filter(c => (c.infringementNotices?.length || 0) > 0).length
+            return infringedCount > 0 ? (
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={onlyInfringements}
+                  onChange={e => {
+                    setOnlyInfringements(e.target.checked)
+                    setTier1Page(1)
+                    setTier2Page(1)
+                  }}
+                />
+                Only show companies with ASIC infringement notices ({infringedCount})
+              </label>
+            ) : null
+          })()}
           <div className="bg-blue-50 border border-blue-200 text-blue-900 text-sm rounded-md p-4">
             <strong>Key Contacts costs real money.</strong> Clicking "Find Contacts" on a row spends actual Apollo
             credits to reveal a verified email (up to 2 people per company) — it does not run automatically for

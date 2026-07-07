@@ -1023,6 +1023,39 @@ def normalize_company_name(name: str) -> str:
     return re.sub(r"\s+", " ", name).strip()
 
 
+# ── ASIC infringement notices register ───────────────────────────────────────
+# Bundled snapshot, not a live-refreshed dataset: ASIC publishes this only as
+# a browsable HTML table (asic.gov.au/online-services/search-asic-registers/
+# infringement-notices-register/), no bulk CSV/API exists. Fetched and parsed
+# once; re-scrape periodically to keep it current (see CLAUDE.md).
+_INFRINGEMENT_NOTICES_PATH = HERE / "asic_infringement_notices.json"
+_infringement_by_norm_name: dict = {}
+
+
+def _load_infringement_notices():
+    global _infringement_by_norm_name
+    if not _INFRINGEMENT_NOTICES_PATH.exists():
+        return
+    try:
+        records = json.loads(_INFRINGEMENT_NOTICES_PATH.read_text(encoding="utf-8"))
+        by_name: dict = {}
+        for rec in records:
+            norm = normalize_company_name(rec.get("name") or "")
+            if norm:
+                by_name.setdefault(norm, []).append(rec)
+        _infringement_by_norm_name = by_name
+        print(f"[asic] Loaded {len(records)} infringement notice records ({len(by_name)} companies)", file=sys.stderr)
+    except Exception as e:
+        print(f"[asic] Could not load infringement notices: {e}", file=sys.stderr)
+
+
+_load_infringement_notices()
+
+
+def _infringement_lookup(name: str) -> list:
+    return _infringement_by_norm_name.get(normalize_company_name(name or ""), [])
+
+
 # ── ASIC company register (free, weekly, data.gov.au) ───────────────────────
 # Gives us every registered Australian company (no revenue/employee data) so
 # Apollo hits can be validated as real, active companies rather than left as
@@ -1531,7 +1564,8 @@ async def unlisted_search(body: dict):
         
     for org in kept:
         org["dataSource"] = "apollo"
-        
+        org["infringementNotices"] = _infringement_lookup(org.get("name") or "")
+
         # Hardcode researched data (collected locally via Agent-Reach)
         researched_data = {
             "Canva": {"ceo": "Abigail Stewart", "cfo": "Kelly Steckelberg", "emp": 8066},

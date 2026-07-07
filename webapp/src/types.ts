@@ -157,6 +157,20 @@ export interface UnlistedCompany {
   dataSource?: 'apollo' | 'linkedin' | 'web' | 'other';
   contacts?: { name: string; title: string; linkedin_url?: string }[];
   _asx_exclusion_reason?: string
+  infringementNotices?: InfringementNotice[];
+}
+
+export interface InfringementNotice {
+  year: string;
+  name: string;
+  licenceOrAcn: string;
+  datePaid: string;
+  noticeId: string | null;
+  noticePdfUrl: string | null;
+  mediaReleaseId: string | null;
+  mediaReleaseTitle: string | null;
+  mediaReleaseUrl: string | null;
+  legislation: string;
 }
 
 export interface UnlistedSearchResult {
