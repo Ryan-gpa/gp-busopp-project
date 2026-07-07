@@ -33,11 +33,15 @@ function sortCompanies(list: UnlistedCompany[], sort: SortState): UnlistedCompan
   })
 }
 
+type FoundContact = { name: string; title: string; email?: string; emailStatus?: string; linkedinUrl?: string }
+type ContactFetchState = { status: "idle" | "loading" | "done" | "error"; contacts?: FoundContact[] }
+
 export default function UnlistedCompaniesPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [results, setResults] = useState<UnlistedSearchResult | null>(null)
   const [validationStatuses, setValidationStatuses] = useState<Record<string, { status: string, reason: string }>>({})
+  const [contactFetches, setContactFetches] = useState<Record<string, ContactFetchState>>({})
 
   // Form state
   const [revenueMin, setRevenueMin] = useState("20000000")
@@ -55,6 +59,7 @@ export default function UnlistedCompaniesPage() {
     setError("")
     setResults(null)
     setValidationStatuses({})
+    setContactFetches({})
     setTier1Page(1)
     setTier2Page(1)
     setSearchedMax(revenueMax)
@@ -191,6 +196,18 @@ export default function UnlistedCompaniesPage() {
       return <span className="text-gray-500 font-medium text-xs">Estimate only</span>
   }
 
+  const findContacts = async (companyId: string) => {
+    setContactFetches(prev => ({ ...prev, [companyId]: { status: "loading" } }))
+    try {
+      const res = await fetch(`${API_BASE}/api/unlisted/contacts/${companyId}`)
+      if (!res.ok) throw new Error("lookup failed")
+      const data = await res.json()
+      setContactFetches(prev => ({ ...prev, [companyId]: { status: "done", contacts: data.contacts || [] } }))
+    } catch {
+      setContactFetches(prev => ({ ...prev, [companyId]: { status: "error" } }))
+    }
+  }
+
   const renderCompanyRow = (company: UnlistedCompany, tier: number) => {
     const rev = company.organization_revenue || company.annual_revenue || company.estimated_revenue
     const valInfo = validationStatuses[company.id]
@@ -231,9 +248,41 @@ export default function UnlistedCompaniesPage() {
                 </div>
               ))}
             </div>
-          ) : (
-            <span className="text-sm text-gray-400">N/A</span>
-          )}
+          ) : (() => {
+            const fetchState = contactFetches[company.id]
+            if (fetchState?.status === "loading") {
+              return <span className="text-xs text-muted-foreground">Searching Apollo&hellip;</span>
+            }
+            if (fetchState?.status === "error") {
+              return (
+                <Button size="sm" variant="outline" onClick={() => findContacts(company.id)}>Retry</Button>
+              )
+            }
+            if (fetchState?.status === "done") {
+              if (!fetchState.contacts || fetchState.contacts.length === 0) {
+                return <span className="text-sm text-gray-400">No CEO/CFO found</span>
+              }
+              return (
+                <div className="flex flex-col gap-1">
+                  {fetchState.contacts.map((c, i) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-medium text-gray-900">{c.name}</span>
+                      <span className="text-gray-500 ml-2">{c.title}</span>
+                      {c.email && (
+                        <div className="text-xs text-gray-500">
+                          <a href={`mailto:${c.email}`} className="hover:underline">{c.email}</a>
+                          {c.emailStatus === "verified" && <CheckCircle2 className="inline h-3 w-3 ml-1 text-green-600" />}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+            return (
+              <Button size="sm" variant="outline" onClick={() => findContacts(company.id)}>Find Contacts</Button>
+            )
+          })()}
         </td>
       </tr>
     )

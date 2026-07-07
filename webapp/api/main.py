@@ -1167,6 +1167,10 @@ def _unlisted_cache_conn():
         "apollo_id TEXT PRIMARY KEY, name TEXT, domain TEXT, data_json TEXT, "
         "first_seen REAL, last_seen REAL)"
     )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS contacts_cache ("
+        "org_id TEXT PRIMARY KEY, contacts_json TEXT, fetched_at REAL)"
+    )
     return conn
 
 
@@ -1632,6 +1636,117 @@ def validate_unlisted(company_id: str, name: str = ""):
         "asicType": match["type"],
         "matchedName": match["matchedName"],
     }
+
+
+_CONTACT_TITLES = ["Chief Executive Officer", "CEO", "Chief Financial Officer", "CFO", "Managing Director"]
+_CONTACTS_CACHE_TTL = 30 * 86400  # contact/title changes are rare — 30 days is fine
+
+
+_DISQUALIFYING_TITLE_WORDS = ("assistant", "deputy", "acting", "former", "ex-", "interim", "coordinator")
+
+
+def _is_decision_maker_title(title: str) -> bool:
+    """Apollo's title search does substring matching, so a query for 'Chief
+    Executive Officer' also matches 'Executive Assistant to the CEO' — that
+    title literally contains the phrase. Filter those out before spending a
+    real enrichment credit on someone who isn't the actual decision-maker."""
+    t = (title or "").lower()
+    return not any(word in t for word in _DISQUALIFYING_TITLE_WORDS)
+
+
+def _contact_title_rank(title: str) -> int:
+    t = (title or "").lower()
+    if "chief executive" in t or t.strip() == "ceo":
+        return 0
+    if "chief financial" in t or t.strip() == "cfo":
+        return 1
+    if "managing director" in t:
+        return 2
+    return 3
+
+
+@app.get("/api/unlisted/contacts/{org_id}")
+def find_contacts(org_id: str):
+    """Find CEO/CFO contacts for a company by Apollo organization id.
+
+    Two Apollo calls, on demand only (never automatic for a whole result
+    set): mixed_people/api_search to find candidates (free, obfuscated names),
+    then people/match per candidate to reveal full name + verified email
+    (costs a real Apollo credit per candidate — capped at 2 per company).
+    """
+    api_key = os.environ.get("APOLLO_API_KEY")
+    if not api_key:
+        return {"contacts": [], "fromCache": False, "reason": "No Apollo API key configured"}
+
+    conn = _unlisted_cache_conn()
+    try:
+        row = conn.execute(
+            "SELECT contacts_json, fetched_at FROM contacts_cache WHERE org_id = ?", (org_id,)
+        ).fetchone()
+    finally:
+        conn.close()
+    if row and (time.time() - row[1]) < _CONTACTS_CACHE_TTL:
+        return {"contacts": json.loads(row[0]), "fromCache": True}
+
+    headers = {"X-Api-Key": api_key, "Cache-Control": "no-cache"}
+    try:
+        search_resp = requests.post(
+            "https://api.apollo.io/api/v1/mixed_people/api_search",
+            headers=headers,
+            timeout=20,
+            json={"organization_ids": [org_id], "person_titles": _CONTACT_TITLES, "page": 1, "per_page": 10},
+        )
+        if search_resp.status_code == 429:
+            raise HTTPException(429, "Apollo people-search rate limit reached — try again shortly.")
+        search_resp.raise_for_status()
+        candidates = search_resp.json().get("people", [])
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"Apollo people search failed: {e}")
+
+    candidates = [c for c in candidates if _is_decision_maker_title(c.get("title"))]
+    candidates.sort(key=lambda p: _contact_title_rank(p.get("title")))
+    top_candidates = candidates[:2]  # cap real credit spend: at most 2 reveals per company
+
+    contacts = []
+    for c in top_candidates:
+        person_id = c.get("id")
+        if not person_id:
+            continue
+        try:
+            enrich_resp = requests.post(
+                "https://api.apollo.io/api/v1/people/match",
+                headers=headers,
+                timeout=20,
+                json={"id": person_id},
+            )
+            enrich_resp.raise_for_status()
+            person = enrich_resp.json().get("person") or {}
+        except Exception:
+            continue
+        if not person.get("name"):
+            continue
+        contacts.append({
+            "name": person["name"],
+            "title": c.get("title") or person.get("title") or "",
+            "email": person.get("email"),
+            "emailStatus": person.get("email_status"),
+            "linkedinUrl": person.get("linkedin_url"),
+        })
+
+    now = time.time()
+    conn = _unlisted_cache_conn()
+    try:
+        conn.execute(
+            "INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)",
+            (org_id, json.dumps(contacts), now),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    return {"contacts": contacts, "fromCache": False}
 
 
 
