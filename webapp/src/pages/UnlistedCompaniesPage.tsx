@@ -120,23 +120,27 @@ export default function UnlistedCompaniesPage() {
       const data = await res.json()
       setResults(data)
 
-      // Automatically validate Tier 1 against the ASIC company register
-      if (data.tier1) {
-        data.tier1.forEach(async (company: UnlistedCompany) => {
-          try {
-            const vRes = await fetch(`${API_BASE}/api/unlisted/validate/${company.id}?name=${encodeURIComponent(company.name)}`)
-            if (vRes.ok) {
-              const vData = await vRes.json()
-              setValidationStatuses(prev => ({
-                ...prev,
-                [company.id]: vData
-              }))
-            }
-          } catch (e) {
-            console.error("Validation error", e)
+      // Automatically check every company (both tiers) against the ASIC
+      // register — it's a free local SQLite lookup, not a paid Apollo call,
+      // so there's no cost reason to limit this to Tier 1 only. Tier 1 shows
+      // it as the primary badge (large-proprietary lodgement context); Tier 2
+      // shows it as a secondary "does this company actually exist" check
+      // alongside the revenue "Estimate only" confidence badge.
+      const allCompanies = [...(data.tier1 || []), ...(data.tier2 || [])]
+      allCompanies.forEach(async (company: UnlistedCompany) => {
+        try {
+          const vRes = await fetch(`${API_BASE}/api/unlisted/validate/${company.id}?name=${encodeURIComponent(company.name)}`)
+          if (vRes.ok) {
+            const vData = await vRes.json()
+            setValidationStatuses(prev => ({
+              ...prev,
+              [company.id]: vData
+            }))
           }
-        })
-      }
+        } catch (e) {
+          console.error("Validation error", e)
+        }
+      })
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -288,32 +292,33 @@ export default function UnlistedCompaniesPage() {
           {employeeDisplay}
         </td>
         <td className="p-4">
-          {tier === 1 ? (
-            <div>
-              {renderValidationBadge(valInfo?.status)}
-              {asicDetailFields.length > 0 && (
-                <>
-                  <button
-                    type="button"
-                    className="text-xs text-muted-foreground hover:underline mt-1"
-                    onClick={() => setExpandedAsic(prev => ({ ...prev, [company.id]: !prev[company.id] }))}
-                  >
-                    {asicExpanded ? "Hide ASIC details" : "Show ASIC details"}
-                  </button>
-                  {asicExpanded && (
-                    <dl className="mt-2 text-xs space-y-1 border-t pt-2">
-                      {asicDetailFields.map(([key, label]) => (
-                        <div key={key} className="flex justify-between gap-3">
-                          <dt className="text-muted-foreground">{label}</dt>
-                          <dd className="text-gray-900 text-right">{valInfo![key]}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
-                </>
-              )}
-            </div>
-          ) : renderConfidenceBadge()}
+          <div>
+            {tier === 1 ? renderValidationBadge(valInfo?.status) : renderConfidenceBadge()}
+            {tier === 2 && valInfo && (
+              <div className="mt-1">{renderValidationBadge(valInfo.status)}</div>
+            )}
+            {asicDetailFields.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:underline mt-1"
+                  onClick={() => setExpandedAsic(prev => ({ ...prev, [company.id]: !prev[company.id] }))}
+                >
+                  {asicExpanded ? "Hide ASIC details" : "Show ASIC details"}
+                </button>
+                {asicExpanded && (
+                  <dl className="mt-2 text-xs space-y-1 border-t pt-2">
+                    {asicDetailFields.map(([key, label]) => (
+                      <div key={key} className="flex justify-between gap-3">
+                        <dt className="text-muted-foreground">{label}</dt>
+                        <dd className="text-gray-900 text-right">{valInfo![key]}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </>
+            )}
+          </div>
         </td>
         <td className="p-4">
           {company.contacts && company.contacts.length > 0 ? (
