@@ -217,6 +217,22 @@ export default function UnlistedCompaniesPage() {
             </details>
           )}
 
+          {results.excludedOverMax && results.excludedOverMax.length > 0 && (
+            <details className="bg-muted/30 border rounded-md p-4 group">
+              <summary className="text-sm font-medium cursor-pointer flex justify-between items-center text-muted-foreground group-open:mb-4">
+                {results.excludedOverMax.length} candidates excluded for exceeding Revenue Max
+                <span className="text-xs border px-2 py-0.5 rounded">Expand</span>
+              </summary>
+              <div className="text-sm text-muted-foreground max-h-48 overflow-y-auto">
+                <ul className="list-disc pl-5 space-y-1">
+                  {results.excludedOverMax.map(c => (
+                    <li key={c.id}>{c.name} ({c.domain})</li>
+                  ))}
+                </ul>
+              </div>
+            </details>
+          )}
+
           <div>
             <h2 className="text-xl font-heading font-medium text-navy-deep mb-4 border-b pb-2">Tier 1 &mdash; $50M+ (ASIC-verifiable)</h2>
             <div className="border rounded-md overflow-hidden bg-card">

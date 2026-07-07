@@ -162,6 +162,7 @@ export interface UnlistedSearchResult {
   tier1: UnlistedCompany[]
   tier2: UnlistedCompany[]
   excludedAsxMatches: UnlistedCompany[]
+  excludedOverMax: UnlistedCompany[]
   pagination: {
     total_entries?: number | null
     total_pages?: number | null

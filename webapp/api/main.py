@@ -1252,18 +1252,39 @@ async def unlisted_search(body: dict):
             },
         }
     
-    # ASX Exclusion Filter
+    # ASX Exclusion Filter — token-prefix match, not just exact string equality.
+    # Apollo frequently returns a shortened trading name ("Commonwealth Bank")
+    # while ASX's register holds the full legal name ("Commonwealth Bank of
+    # Australia"); an exact-string check misses that and lets ASX-listed
+    # companies leak into the "unlisted prospects" list.
     global _companies_cache
-    asx_names = {normalize_company_name(c["name"]) for c in _companies_cache}
-    
+    asx_by_first_token: dict = {}
+    for c in _companies_cache:
+        toks = tuple(normalize_company_name(c["name"]).split())
+        if toks:
+            asx_by_first_token.setdefault(toks[0], []).append(toks)
+
+    def _asx_match_reason(org_name: str):
+        org_toks = tuple(normalize_company_name(org_name).split())
+        if not org_toks:
+            return None
+        for asx_toks in asx_by_first_token.get(org_toks[0], []):
+            if org_toks == asx_toks:
+                return "exact_normalized_name_match"
+            shorter, longer = (org_toks, asx_toks) if len(org_toks) <= len(asx_toks) else (asx_toks, org_toks)
+            # Require at least 2 shared leading words so a single generic
+            # word (e.g. "Australian") can't trigger a false-positive exclusion.
+            if len(shorter) >= 2 and longer[: len(shorter)] == shorter:
+                return "prefix_token_match"
+        return None
+
     kept = []
     excluded = []
-    
+
     for org in organizations:
-        name = org.get("name") or ""
-        norm = normalize_company_name(name)
-        if norm and norm in asx_names:
-            org["_asx_exclusion_reason"] = "exact_normalized_name_match"
+        reason = _asx_match_reason(org.get("name") or "")
+        if reason:
+            org["_asx_exclusion_reason"] = reason
             excluded.append(org)
         else:
             kept.append(org)
@@ -1271,6 +1292,7 @@ async def unlisted_search(body: dict):
     # Load thresholds
     tier1 = []
     tier2 = []
+    excluded_over_max = []
     unlisted_thresholds_path = KIT_DIR / "config" / "unlisted_thresholds.json"
     t1_min = 50000000
     t2_min = 20000000
@@ -1332,20 +1354,32 @@ async def unlisted_search(body: dict):
                 rev_val = 0
         except ValueError:
             rev_val = 0
-            
-        # Do not strictly skip anything based on local values anymore, 
-        # just place them in the correct tier based on estimated revenue
+
+        # revenueMax narrows the Apollo employee-range query, but that's only
+        # a proxy — it doesn't guarantee Apollo (or our own employee*150k
+        # estimate) stays under the cap. Enforce it for real here so setting
+        # a max actually excludes companies bigger than it, instead of a
+        # megacap slipping through into "Tier 1" just because rev_val >= t1_min.
+        try:
+            r_max_val = float(revenue_max) if revenue_max is not None else None
+        except (TypeError, ValueError):
+            r_max_val = None
+
+        if r_max_val is not None and rev_val > r_max_val:
+            org["_exclusion_reason"] = "exceeds_revenue_max"
+            excluded_over_max.append(org)
+            continue
+
         if rev_val >= t1_min:
             tier1.append(org)
-        elif rev_val >= t2_min:
-            tier2.append(org)
         else:
             tier2.append(org)
-            
+
     return {
         "tier1": tier1,
         "tier2": tier2,
         "excludedAsxMatches": excluded,
+        "excludedOverMax": excluded_over_max,
         "pagination": data.get("pagination")
     }
 
