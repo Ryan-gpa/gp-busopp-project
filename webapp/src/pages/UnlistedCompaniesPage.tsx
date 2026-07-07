@@ -1,7 +1,43 @@
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, AlertCircle, Rocket, Globe, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
+import { CheckCircle2, AlertCircle, Rocket, Landmark, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
+
+// Every field ASIC actually publishes for a matched company (see the
+// dataset's help file on data.gov.au) — blank ones are omitted by the backend.
+type AsicValidation = {
+  status: string
+  reason: string
+  matchedName?: string
+  acn?: string
+  abn?: string
+  asicType?: string
+  asicClass?: string
+  asicSubClass?: string
+  dateOfRegistration?: string
+  dateOfDeregistration?: string
+  previousStateOfRegistration?: string
+  stateRegistrationNumber?: string
+  modifiedSinceLastReport?: string
+  currentNameIndicator?: string
+  currentName?: string
+  currentNameStartDate?: string
+}
+
+const ASIC_FIELD_LABELS: [keyof AsicValidation, string][] = [
+  ["acn", "ACN"],
+  ["abn", "ABN"],
+  ["asicType", "Type"],
+  ["asicClass", "Class"],
+  ["asicSubClass", "Sub Class"],
+  ["dateOfRegistration", "Date of Registration"],
+  ["dateOfDeregistration", "Date of Deregistration"],
+  ["currentName", "Current Name"],
+  ["currentNameStartDate", "Current Name Start Date"],
+  ["previousStateOfRegistration", "Previous State of Registration"],
+  ["stateRegistrationNumber", "State Registration Number"],
+  ["modifiedSinceLastReport", "Modified Since Last Report"],
+]
 
 const API_BASE = import.meta.env.VITE_API_URL || ""
 const PAGE_SIZE = 25
@@ -40,7 +76,8 @@ export default function UnlistedCompaniesPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [results, setResults] = useState<UnlistedSearchResult | null>(null)
-  const [validationStatuses, setValidationStatuses] = useState<Record<string, { status: string, reason: string }>>({})
+  const [validationStatuses, setValidationStatuses] = useState<Record<string, AsicValidation>>({})
+  const [expandedAsic, setExpandedAsic] = useState<Record<string, boolean>>({})
   const [contactFetches, setContactFetches] = useState<Record<string, ContactFetchState>>({})
 
   // Form state
@@ -164,18 +201,23 @@ export default function UnlistedCompaniesPage() {
     )
   }
 
-  const renderSourceIcon = (source?: string) => {
-    switch (source) {
-      case 'apollo':
-        return <div title="Data from Apollo" className="inline-flex items-center justify-center p-1 bg-indigo-50 text-indigo-600 rounded-full mr-2"><Rocket className="h-3 w-3" /></div>
-      case 'linkedin':
-        return <div title="Data from LinkedIn" className="inline-flex items-center justify-center p-1 bg-blue-50 text-blue-600 rounded-full mr-2"><Globe className="h-3 w-3" /></div>
-      case 'web':
-        return <div title="Data from Web" className="inline-flex items-center justify-center p-1 bg-green-50 text-green-600 rounded-full mr-2"><Globe className="h-3 w-3" /></div>
-      default:
-        return <div title="Data from Apollo" className="inline-flex items-center justify-center p-1 bg-indigo-50 text-indigo-600 rounded-full mr-2"><Rocket className="h-3 w-3" /></div>
-    }
-  }
+  // Every company in this tool currently comes from Apollo — there is no
+  // live LinkedIn or web scraper. This used to branch on 'linkedin' / 'web'
+  // values that nothing ever actually set (dead code left over from an
+  // earlier design), so it's been removed rather than kept as a decoration
+  // that implies capabilities that don't exist.
+  const renderSourceIcon = () => (
+    <div title="Company data from Apollo" className="inline-flex items-center justify-center p-1 bg-indigo-50 text-indigo-600 rounded-full mr-2">
+      <Rocket className="h-3 w-3" />
+    </div>
+  )
+
+  const renderAsicIcon = (status?: string) =>
+    status === 'verified' ? (
+      <div title="Independently confirmed active on ASIC's company register" className="inline-flex items-center justify-center p-1 bg-violet-50 text-violet-700 rounded-full mr-1">
+        <Landmark className="h-3 w-3" />
+      </div>
+    ) : null
 
   const renderValidationBadge = (status?: string) => {
     switch (status) {
@@ -211,16 +253,26 @@ export default function UnlistedCompaniesPage() {
   const renderCompanyRow = (company: UnlistedCompany, tier: number) => {
     const rev = company.organization_revenue || company.annual_revenue || company.estimated_revenue
     const valInfo = validationStatuses[company.id]
-    
-    const employeeDisplay = company.linkedin_employee_count 
-      ? <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" title="Verified by LinkedIn"></span>{company.linkedin_employee_count}</span>
+    const asicExpanded = !!expandedAsic[company.id]
+    const asicDetailFields = valInfo ? ASIC_FIELD_LABELS.filter(([key]) => valInfo[key]) : []
+
+    const employeeDisplay = company.linkedin_employee_count
+      ? (
+        <span className="flex items-center gap-1">
+          {company.employeeCountSource === 'manual_research' && (
+            <span className="w-2 h-2 rounded-full bg-blue-500" title="From manual research (Agent-Reach), not a live source"></span>
+          )}
+          {company.linkedin_employee_count}
+        </span>
+      )
       : (company.estimated_num_employees || "?")
 
     return (
       <tr key={company.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
         <td className="p-4">
           <div className="font-medium text-gray-900 flex items-center">
-            {renderSourceIcon(company.dataSource)}
+            {renderSourceIcon()}
+            {renderAsicIcon(valInfo?.status)}
             {company.name}
           </div>
           <div className="text-sm text-gray-500">
@@ -236,7 +288,32 @@ export default function UnlistedCompaniesPage() {
           {employeeDisplay}
         </td>
         <td className="p-4">
-          {tier === 1 ? renderValidationBadge(valInfo?.status) : renderConfidenceBadge()}
+          {tier === 1 ? (
+            <div>
+              {renderValidationBadge(valInfo?.status)}
+              {asicDetailFields.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:underline mt-1"
+                    onClick={() => setExpandedAsic(prev => ({ ...prev, [company.id]: !prev[company.id] }))}
+                  >
+                    {asicExpanded ? "Hide ASIC details" : "Show ASIC details"}
+                  </button>
+                  {asicExpanded && (
+                    <dl className="mt-2 text-xs space-y-1 border-t pt-2">
+                      {asicDetailFields.map(([key, label]) => (
+                        <div key={key} className="flex justify-between gap-3">
+                          <dt className="text-muted-foreground">{label}</dt>
+                          <dd className="text-gray-900 text-right">{valInfo![key]}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </>
+              )}
+            </div>
+          ) : renderConfidenceBadge()}
         </td>
         <td className="p-4">
           {company.contacts && company.contacts.length > 0 ? (

@@ -1028,7 +1028,11 @@ def normalize_company_name(name: str) -> str:
 # Apollo hits can be validated as real, active companies rather than left as
 # an unverifiable stub. See CLAUDE.md "What still needs building".
 _ASIC_DATASET_API = "https://data.gov.au/data/api/3/action/package_show?id=asic-companies"
-_ASIC_DB_PATH = HERE / "asic_register.sqlite3"
+# v2: schema now carries every field ASIC actually publishes (Class, Sub Class,
+# dates, ABN, previous state, etc.), not just name/acn/type/status. New
+# filename so any pre-existing v1 file (fewer columns) is never queried
+# against the new SELECT — it's just orphaned and a fresh build replaces it.
+_ASIC_DB_PATH = HERE / "asic_register_v2.sqlite3"
 _ASIC_REFRESH_TTL = 7 * 86400  # ASIC republishes the snapshot weekly
 _asic_build_lock = threading.Lock()
 _asic_building = False
@@ -1049,8 +1053,26 @@ def _resolve_asic_zip_url() -> str:
     return zips[0]["url"]
 
 
+# Every field ASIC actually publishes in the bulk extract (see the dataset's
+# own help file: https://data.gov.au/data/dataset/asic-companies). Order here
+# is the CSV's real column order — kept in sync deliberately.
+_ASIC_CSV_COLUMNS = [
+    "Company Name", "ACN", "Type", "Class", "Sub Class", "Status",
+    "Date of Registration", "Date of Deregistration",
+    "Previous State of Registration", "State Registration number",
+    "Modified since last report", "Current Name Indicator", "ABN",
+    "Current Name", "Current Name Start Date",
+]
+_ASIC_DB_COLUMNS = [
+    "name_norm", "name", "acn", "type", "class", "sub_class", "status",
+    "date_of_registration", "date_of_deregistration", "previous_state",
+    "state_registration_number", "modified_since_last_report",
+    "current_name_indicator", "abn", "current_name", "current_name_start_date",
+]
+
+
 def _build_asic_register_db():
-    """Download the current ASIC company register snapshot and index it (name -> status/type/ACN) in SQLite."""
+    """Download the current ASIC company register snapshot and index every published field in SQLite."""
     print("[asic] Refreshing company register index (~1-2 min, ~3M rows)...", file=sys.stderr)
     url = _resolve_asic_zip_url()
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -1062,7 +1084,8 @@ def _build_asic_register_db():
         tmp_path.unlink()
 
     conn = sqlite3.connect(str(tmp_path))
-    conn.execute("CREATE TABLE companies (name_norm TEXT, name TEXT, acn TEXT, type TEXT, status TEXT)")
+    conn.execute(f"CREATE TABLE companies ({', '.join(c + ' TEXT' for c in _ASIC_DB_COLUMNS)})")
+    placeholders = ",".join("?" * len(_ASIC_DB_COLUMNS))
 
     row_count = 0
     with zipfile.ZipFile(zip_bytes) as zf:
@@ -1072,7 +1095,8 @@ def _build_asic_register_db():
             reader = csv.reader(text, delimiter="\t")
             header = next(reader)
             idx = {h.strip(): i for i, h in enumerate(header)}
-            need = max(idx["Company Name"], idx["ACN"], idx["Type"], idx["Status"])
+            col_indices = [idx[c] for c in _ASIC_CSV_COLUMNS]
+            need = max(col_indices)
             batch = []
             for row in reader:
                 if len(row) <= need:
@@ -1083,13 +1107,14 @@ def _build_asic_register_db():
                 norm = normalize_company_name(name)
                 if not norm:
                     continue
-                batch.append((norm, name, row[idx["ACN"]].strip(), row[idx["Type"]].strip(), row[idx["Status"]].strip()))
+                values = tuple(row[i].strip() for i in col_indices)
+                batch.append((norm,) + values)
                 row_count += 1
                 if len(batch) >= 20000:
-                    conn.executemany("INSERT INTO companies VALUES (?,?,?,?,?)", batch)
+                    conn.executemany(f"INSERT INTO companies VALUES ({placeholders})", batch)
                     batch = []
             if batch:
-                conn.executemany("INSERT INTO companies VALUES (?,?,?,?,?)", batch)
+                conn.executemany(f"INSERT INTO companies VALUES ({placeholders})", batch)
 
     conn.execute("CREATE INDEX idx_name_norm ON companies(name_norm)")
     conn.commit()
@@ -1121,16 +1146,17 @@ def _ensure_asic_register_async():
 
 
 def _asic_lookup(name: str) -> dict | None:
-    """Look up a company name against the ASIC register. Returns None if the index isn't built yet."""
+    """Look up a company name against the ASIC register. Returns every published field, or None if no match / index not built yet."""
     if not _ASIC_DB_PATH.exists():
         return None
     norm = normalize_company_name(name or "")
     if not norm:
         return None
+    fields = _ASIC_DB_COLUMNS[1:]  # everything except name_norm
     conn = sqlite3.connect(str(_ASIC_DB_PATH))
     try:
         cur = conn.execute(
-            "SELECT name, acn, type, status FROM companies WHERE name_norm = ? ORDER BY (status = 'REGD') DESC LIMIT 1",
+            f"SELECT {', '.join(fields)} FROM companies WHERE name_norm = ? ORDER BY (status = 'REGD') DESC LIMIT 1",
             (norm,),
         )
         row = cur.fetchone()
@@ -1138,7 +1164,7 @@ def _asic_lookup(name: str) -> dict | None:
         conn.close()
     if not row:
         return None
-    return {"matchedName": row[0], "acn": row[1], "type": row[2], "status": row[3]}
+    return dict(zip(fields, row))
 
 
 _ensure_asic_register_async()
@@ -1511,7 +1537,14 @@ async def unlisted_search(body: dict):
         
         matched_data = researched_data.get(org.get("name"), {})
         org["linkedin_employee_count"] = matched_data.get("emp", org.get("estimated_num_employees"))
-        
+        # This field name is misleading: for the ~10 hardcoded companies above
+        # it really was manually researched (via Agent-Reach) at some point;
+        # for everyone else it's just org["estimated_num_employees"] copied
+        # over from Apollo, not independently checked against anything. Flag
+        # which one actually happened so the frontend doesn't claim "verified"
+        # for a plain Apollo estimate.
+        org["employeeCountSource"] = "manual_research" if matched_data else "apollo_estimate"
+
         ceo_name = matched_data.get("ceo")
         cfo_name = matched_data.get("cfo")
         
@@ -1627,20 +1660,30 @@ def validate_unlisted(company_id: str, name: str = ""):
     match = _asic_lookup(name)
     if not match:
         return {"status": "not_found", "reason": "No matching company name on the ASIC register"}
-    if match["status"] != "REGD":
-        return {
-            "status": "deregistered",
-            "reason": f"ASIC status: {match['status']}",
-            "acn": match["acn"],
-            "matchedName": match["matchedName"],
-        }
-    return {
-        "status": "verified",
-        "reason": "Active on ASIC company register",
+
+    # Full field set as published by ASIC (see the dataset's help file) —
+    # camelCased for the frontend, blank fields dropped rather than sent as "".
+    fields = {
+        "matchedName": match["name"],
         "acn": match["acn"],
+        "abn": match["abn"],
         "asicType": match["type"],
-        "matchedName": match["matchedName"],
+        "asicClass": match["class"],
+        "asicSubClass": match["sub_class"],
+        "dateOfRegistration": match["date_of_registration"],
+        "dateOfDeregistration": match["date_of_deregistration"],
+        "previousStateOfRegistration": match["previous_state"],
+        "stateRegistrationNumber": match["state_registration_number"],
+        "modifiedSinceLastReport": match["modified_since_last_report"],
+        "currentNameIndicator": match["current_name_indicator"],
+        "currentName": match["current_name"],
+        "currentNameStartDate": match["current_name_start_date"],
     }
+    fields = {k: v for k, v in fields.items() if v}
+
+    if match["status"] != "REGD":
+        return {"status": "deregistered", "reason": f"ASIC status: {match['status']}", **fields}
+    return {"status": "verified", "reason": "Active on ASIC company register", **fields}
 
 
 _CONTACT_TITLES = ["Chief Executive Officer", "CEO", "Chief Financial Officer", "CFO", "Managing Director"]

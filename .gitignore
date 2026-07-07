@@ -45,6 +45,7 @@ disclosure-review-kit/config/box_config.json
 disclosure-review-kit/config/audit_log.json
 # webapp/api/asx_companies_cache.json  ← intentionally committed as static bundle
 webapp/api/asic_register.sqlite3
+webapp/api/asic_register_v2.sqlite3
 webapp/api/*.building.sqlite3
 webapp/api/unlisted_search_cache.sqlite3
 

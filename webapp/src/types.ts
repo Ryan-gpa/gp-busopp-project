@@ -152,7 +152,8 @@ export interface UnlistedCompany {
   annual_revenue?: number;
   estimated_revenue?: number;
   estimated_num_employees?: number;
-  linkedin_employee_count?: number; // Added from Agent-Reach linkedin scraper
+  linkedin_employee_count?: number; // despite the name, this is org["estimated_num_employees"] unless employeeCountSource says otherwise
+  employeeCountSource?: 'manual_research' | 'apollo_estimate';
   dataSource?: 'apollo' | 'linkedin' | 'web' | 'other';
   contacts?: { name: string; title: string; linkedin_url?: string }[];
   _asx_exclusion_reason?: string
