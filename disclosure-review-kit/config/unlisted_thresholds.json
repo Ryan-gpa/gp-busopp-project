@@ -1,0 +1,22 @@
+{
+  "tiers": [
+    {
+      "id": "tier1_asic_verifiable",
+      "label": "$50M+ revenue — ASIC-verifiable",
+      "revenue_min": 50000000,
+      "revenue_max": null,
+      "rationale": "Matches the Corporations Act s45A large proprietary company line (2 of 3: revenue >=$50M, gross assets >=$25M, employees >=100). Large proprietary companies must lodge audited financials with ASIC (Form 388), which appear on the public register. A candidate in this tier that also has a lodged financial report on ASIC's register is high-confidence.",
+      "confidence_ceiling": "high"
+    },
+    {
+      "id": "tier2_estimate_only",
+      "label": "$20M-$50M revenue — estimate only",
+      "revenue_min": 20000000,
+      "revenue_max": 50000000,
+      "rationale": "Below the statutory large-proprietary line. No ASIC lodgement obligation exists at this size, so there is no independent public filing to corroborate revenue. Confidence rests entirely on the firmographic data source's estimate.",
+      "confidence_ceiling": "medium"
+    }
+  ],
+  "geography": ["Australia"],
+  "notes": "Revenue figures from Apollo (or any firmographic provider) are estimates, not audited figures. Treat as a shortlist to validate, not a finished target list."
+}

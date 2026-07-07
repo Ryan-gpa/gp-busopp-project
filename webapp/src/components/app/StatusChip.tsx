@@ -7,6 +7,7 @@ const STATUS_CLASSES: Record<RenderStatus, string> = {
   "Not detected":            "status-notfound",
   "Below materiality":       "status-below",
   "N/A":                     "bg-muted text-muted-foreground",
+  "Unverified":              "status-unverified",
 }
 
 interface Props {

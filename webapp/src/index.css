@@ -42,6 +42,7 @@
   .status-represented { @apply bg-[#FFE699] text-[#806000]; }
   .status-notfound    { @apply bg-[#FFC7CE] text-[#9C0006]; }
   .status-below       { @apply bg-[#DDEBF7] text-[#1F4E79]; }
+  .status-unverified  { @apply bg-[#E2E8F0] text-[#475569]; }
   .opp-green          { @apply bg-[#C6E0B4] text-[#375623]; }
   .opp-amber          { @apply bg-[#FFE699] text-[#806000]; }
 }

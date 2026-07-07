@@ -124,6 +124,7 @@ export type RenderStatus =
   | "Not detected"
   | "Below materiality"
   | "N/A"
+  | "Unverified"
 
 export function renderStatus(item: ResultItem): RenderStatus {
   if (item.status === "N/A") return "N/A"
@@ -140,7 +141,26 @@ export const RENDER_STATUS_ORDER: RenderStatus[] = [
   "Addressed",
   "Below materiality",
   "N/A",
+  "Unverified"
 ]
+
+export interface UnlistedCompany {
+  id: string
+  name: string
+  domain: string
+  estimated_revenue?: number
+  annual_revenue?: number
+  estimated_num_employees?: number
+  linkedin_employee_count?: number
+  _asx_exclusion_reason?: string
+}
+
+export interface UnlistedSearchResult {
+  tier1: UnlistedCompany[]
+  tier2: UnlistedCompany[]
+  excludedAsxMatches: UnlistedCompany[]
+  pagination: any
+}
 
 export const GP_SERVICES = [
   "Transaction Readiness",

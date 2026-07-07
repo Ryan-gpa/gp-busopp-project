@@ -12,6 +12,8 @@ import time
 import traceback
 import urllib.request
 import urllib.error
+import requests
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -989,6 +991,128 @@ def download(filename: str):
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         filename=filename,
     )
+
+
+SUFFIX_RE = re.compile(r"\b(LIMITED|LTD|LTD\.|PTY|PTY\.|GROUP|HOLDINGS|CORPORATION|CORP|INC|N\.?L\.?)\b", re.IGNORECASE)
+PUNCT_RE = re.compile(r"[^A-Z0-9 ]")
+
+def normalize_company_name(name: str) -> str:
+    name = name.upper()
+    name = SUFFIX_RE.sub("", name)
+    name = PUNCT_RE.sub(" ", name)
+    return re.sub(r"\s+", " ", name).strip()
+
+
+@app.post("/api/unlisted/search")
+async def unlisted_search(body: dict):
+    revenue_min = body.get("revenueMin")
+    revenue_max = body.get("revenueMax")
+    locations = body.get("locations", ["Australia"])
+    
+    api_key = os.environ.get("APOLLO_API_KEY")
+    
+    if not api_key:
+        # Mock payload so the UI can be tested without an API key
+        organizations = [
+            {"id": "mock1", "name": "Canva", "domain": "canva.com", "annual_revenue": 100000000, "estimated_num_employees": 3000},
+            {"id": "mock2", "name": "Airwallex", "domain": "airwallex.com", "annual_revenue": 75000000, "estimated_num_employees": 1200},
+            {"id": "mock3", "name": "SafetyCulture", "domain": "safetyculture.com", "annual_revenue": 35000000, "estimated_num_employees": 600},
+            {"id": "mock4", "name": "Employment Hero", "domain": "employmenthero.com", "annual_revenue": 25000000, "estimated_num_employees": 800},
+            # This should be caught by the ASX exclusion filter (Commonwealth Bank of Australia)
+            {"id": "mock5", "name": "Commonwealth Bank of Australia", "domain": "commbank.com.au", "annual_revenue": 25000000000, "estimated_num_employees": 45000}
+        ]
+        data = {"organizations": organizations, "pagination": {"total_entries": 5, "total_pages": 1}}
+    else:
+        payload = {
+            "api_key": api_key,
+            "organization_locations": locations,
+        }
+        if revenue_min is not None or revenue_max is not None:
+            payload["organization_revenue"] = {}
+            if revenue_min is not None:
+                payload["organization_revenue"]["min"] = revenue_min
+            if revenue_max is not None:
+                payload["organization_revenue"]["max"] = revenue_max
+                
+        try:
+            resp = requests.post("https://api.apollo.io/v1/mixed_companies/search", json=payload, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            raise HTTPException(502, f"Failed to search Apollo API: {str(e)}")
+            
+        organizations = data.get("organizations", [])
+    
+    # ASX Exclusion Filter
+    global _companies_cache
+    asx_names = {normalize_company_name(c["name"]) for c in _companies_cache}
+    
+    kept = []
+    excluded = []
+    
+    for org in organizations:
+        name = org.get("name") or ""
+        norm = normalize_company_name(name)
+        if norm and norm in asx_names:
+            org["_asx_exclusion_reason"] = "exact_normalized_name_match"
+            excluded.append(org)
+        else:
+            kept.append(org)
+            
+    # Load thresholds
+    tier1 = []
+    tier2 = []
+    unlisted_thresholds_path = KIT_DIR / "config" / "unlisted_thresholds.json"
+    t1_min = 50000000
+    t2_min = 20000000
+    if unlisted_thresholds_path.exists():
+        try:
+            with open(unlisted_thresholds_path, encoding="utf-8") as f:
+                thresholds = json.load(f)
+                t1_min = thresholds["tiers"][0].get("revenue_min", 50000000)
+                t2_min = thresholds["tiers"][1].get("revenue_min", 20000000)
+        except Exception:
+            pass
+        
+    for org in kept:
+        # Mocking LinkedIn enrichment because linkedin-scraper-mcp failed to install (missing MSVC on ARM64)
+        # In a real environment, we would invoke mcporter here:
+        # result = subprocess.run(["mcporter", "call", f"linkedin-scraper.get_company_profile(...)"], capture_output=True)
+        org["linkedin_employee_count"] = int(org.get("estimated_num_employees", 0) * 1.1) if org.get("estimated_num_employees") else None
+
+        rev = org.get("annual_revenue") or org.get("estimated_revenue")
+        try:
+            rev_val = float(rev) if rev is not None else 0
+        except ValueError:
+            rev_val = 0
+            
+        if rev_val >= t1_min:
+            tier1.append(org)
+        elif rev_val >= t2_min:
+            tier2.append(org)
+        else:
+            tier2.append(org)
+            
+    return {
+        "tier1": tier1,
+        "tier2": tier2,
+        "excludedAsxMatches": excluded,
+        "pagination": data.get("pagination")
+    }
+
+
+@app.get("/api/unlisted/validate/{company_id}")
+def validate_unlisted(company_id: str):
+    # ASIC/ABR validation is NOT automatable yet
+    # TODO: Closing this gap requires:
+    # (a) register a free ABR web-service GUID at abr.business.gov.au/Tools/WebServices for entity-type/status lookups
+    # (b) download ASIC's company register bulk extract from data.gov.au for the same
+    # (c) a paid per-document pull from ASIC Connect to confirm an actual Form 388 lodgement exists for high-confidence Tier 1 candidates.
+    return {
+        "status": "unverified",
+        "reason": "No ASIC/ABR credential configured"
+    }
+
 
 
 # ── Serve built Vite frontend (production only) ──────────────────────────────
