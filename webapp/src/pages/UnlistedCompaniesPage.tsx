@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Building2, Search, CheckCircle2, XCircle, AlertCircle, Rocket, Globe } from "lucide-react"
-import { StatusChip } from "@/components/app/StatusChip"
+import { CheckCircle2, AlertCircle, Rocket, Globe } from "lucide-react"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
 
 const API_BASE = import.meta.env.VITE_API_URL || ""
@@ -83,7 +82,7 @@ export default function UnlistedCompaniesPage() {
       return status === 'verified' ? <span className="text-green-600 flex items-center gap-1 text-xs"><CheckCircle2 className="h-4 w-4"/> Verified</span> : <span className="text-amber-600 flex items-center gap-1 text-xs"><AlertCircle className="h-4 w-4"/> Unverified</span>
   }
 
-  const renderConfidenceBadge = (status?: string) => {
+  const renderConfidenceBadge = () => {
       return <span className="text-gray-500 font-medium text-xs">Estimate only</span>
   }
 
@@ -115,7 +114,7 @@ export default function UnlistedCompaniesPage() {
           {employeeDisplay}
         </td>
         <td className="p-4">
-          {tier === 1 ? renderValidationBadge(valInfo?.status) : renderConfidenceBadge(valInfo?.status)}
+          {tier === 1 ? renderValidationBadge(valInfo?.status) : renderConfidenceBadge()}
         </td>
         <td className="p-4">
           {company.contacts && company.contacts.length > 0 ? (
