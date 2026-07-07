@@ -1144,12 +1144,101 @@ def _asic_lookup(name: str) -> dict | None:
 _ensure_asic_register_async()
 
 
+# ── Unlisted-search cache (SQLite) ───────────────────────────────────────────
+# Every Apollo mixed_companies/search call spends part of a 200-calls/hour
+# budget (one paginated search can cost up to MAX_PAGES calls on its own).
+# Caching identical searches means a repeat lookup returns instantly with zero
+# Apollo calls, and every company we've ever fetched is persisted so a future
+# CEO/CFO contact-enrichment pass can run against this table directly instead
+# of re-querying Apollo's organization search to rediscover the same companies.
+_UNLISTED_CACHE_DB = HERE / "unlisted_search_cache.sqlite3"
+_UNLISTED_CACHE_TTL = 86400  # 24h for a complete result
+_UNLISTED_CACHE_TTL_PARTIAL = 900  # 15 min for a result cut short by rate limiting
+
+
+def _unlisted_cache_conn():
+    conn = sqlite3.connect(str(_UNLISTED_CACHE_DB))
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS search_cache ("
+        "query_hash TEXT PRIMARY KEY, params_json TEXT, result_json TEXT, fetched_at REAL, ttl REAL)"
+    )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS companies ("
+        "apollo_id TEXT PRIMARY KEY, name TEXT, domain TEXT, data_json TEXT, "
+        "first_seen REAL, last_seen REAL)"
+    )
+    return conn
+
+
+def _unlisted_query_hash(revenue_min, revenue_max, locations) -> str:
+    key = json.dumps(
+        {"revenue_min": revenue_min, "revenue_max": revenue_max, "locations": sorted(locations or [])},
+        sort_keys=True,
+    )
+    return hashlib.sha256(key.encode()).hexdigest()
+
+
+def _unlisted_cache_get(query_hash: str):
+    conn = _unlisted_cache_conn()
+    try:
+        row = conn.execute(
+            "SELECT result_json, fetched_at, ttl FROM search_cache WHERE query_hash = ?", (query_hash,)
+        ).fetchone()
+    finally:
+        conn.close()
+    if not row:
+        return None
+    result_json, fetched_at, ttl = row
+    if time.time() - fetched_at > ttl:
+        return None
+    return json.loads(result_json), fetched_at
+
+
+def _unlisted_cache_put(query_hash: str, params: dict, result: dict, now: float, partial: bool):
+    conn = _unlisted_cache_conn()
+    try:
+        ttl = _UNLISTED_CACHE_TTL_PARTIAL if partial else _UNLISTED_CACHE_TTL
+        conn.execute(
+            "INSERT OR REPLACE INTO search_cache VALUES (?,?,?,?,?)",
+            (query_hash, json.dumps(params), json.dumps(result), now, ttl),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _unlisted_companies_upsert(organizations: list, now: float):
+    conn = _unlisted_cache_conn()
+    try:
+        for org in organizations:
+            org_id = org.get("id")
+            if not org_id:
+                continue
+            existing = conn.execute(
+                "SELECT first_seen FROM companies WHERE apollo_id = ?", (org_id,)
+            ).fetchone()
+            first_seen = existing[0] if existing else now
+            conn.execute(
+                "INSERT OR REPLACE INTO companies VALUES (?,?,?,?,?,?)",
+                (org_id, org.get("name"), org.get("domain") or org.get("primary_domain"), json.dumps(org), first_seen, now),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 @app.post("/api/unlisted/search")
 async def unlisted_search(body: dict):
     revenue_min = body.get("revenueMin")
     revenue_max = body.get("revenueMax")
     locations = body.get("locations", ["Australia"])
-    
+
+    query_hash = _unlisted_query_hash(revenue_min, revenue_max, locations)
+    cached = _unlisted_cache_get(query_hash)
+    if cached:
+        cached_result, fetched_at = cached
+        return {**cached_result, "fetchedAt": fetched_at, "fromCache": True}
+
     api_key = os.environ.get("APOLLO_API_KEY")
     
     if not api_key:
@@ -1389,13 +1478,28 @@ async def unlisted_search(body: dict):
         else:
             tier2.append(org)
 
-    return {
+    now = time.time()
+    _unlisted_companies_upsert(organizations, now)
+
+    pagination = data.get("pagination") or {}
+    result = {
         "tier1": tier1,
         "tier2": tier2,
         "excludedAsxMatches": excluded,
         "excludedOverMax": excluded_over_max,
-        "pagination": data.get("pagination")
+        "pagination": pagination,
     }
+    _unlisted_cache_put(
+        query_hash,
+        {"revenueMin": revenue_min, "revenueMax": revenue_max, "locations": locations},
+        result,
+        now,
+        # Only a real rate-limit cutoff gets a short TTL — hitting our own
+        # MAX_PAGES safety cap is an expected, complete-enough result and
+        # should get the full 24h TTL like any other successful search.
+        partial=bool(pagination.get("rate_limited")),
+    )
+    return {**result, "fetchedAt": now, "fromCache": False}
 
 
 @app.get("/api/unlisted/validate/{company_id}")

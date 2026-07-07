@@ -65,6 +65,17 @@ export default function UnlistedCompaniesPage() {
     }
   }
 
+  const formatRecency = (fetchedAt?: number) => {
+    if (!fetchedAt) return null
+    const ageMs = Date.now() - fetchedAt * 1000
+    const mins = Math.round(ageMs / 60000)
+    if (mins < 1) return "just now"
+    if (mins < 60) return `${mins} min ago`
+    const hours = Math.round(mins / 60)
+    if (hours < 24) return `${hours}h ago`
+    return new Date(fetchedAt * 1000).toLocaleString()
+  }
+
   const renderSourceIcon = (source?: string) => {
     switch (source) {
       case 'apollo':
@@ -187,6 +198,11 @@ export default function UnlistedCompaniesPage() {
             {loading ? "Searching..." : "Search"}
           </Button>
         </form>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Tip: set a Revenue Max, not just a Min. This API is rate-limited to 200 calls/hour — a search with no
+          upper bound has to page through far more results and burns through that limit much faster than a
+          narrow band does.
+        </p>
         {error && <div className="mt-4 text-destructive text-sm">{error}</div>}
       </div>
 
@@ -194,12 +210,20 @@ export default function UnlistedCompaniesPage() {
         <div className="space-y-8">
           {results.pagination && (
             <div className="text-sm text-muted-foreground">
-              Found {results.pagination.fetched_entries ?? (results.tier1.length + results.tier2.length)} companies
-              {results.pagination.total_entries != null && ` of ${results.pagination.total_entries} matching in Apollo`}
-              {results.pagination.rate_limited ? (
-                <span className="text-amber-600"> — stopped early: Apollo's hourly rate limit was hit mid-search</span>
-              ) : results.pagination.truncated && (
-                <span className="text-amber-600"> — capped at {results.pagination.fetched_pages} pages; narrow revenue range to see more</span>
+              <div>
+                Found {results.pagination.fetched_entries ?? (results.tier1.length + results.tier2.length)} companies
+                {results.pagination.total_entries != null && ` of ${results.pagination.total_entries} matching in Apollo`}
+                {results.pagination.rate_limited ? (
+                  <span className="text-amber-600"> — stopped early: Apollo's hourly rate limit was hit mid-search. Try a narrower revenue range next time.</span>
+                ) : results.pagination.truncated && (
+                  <span className="text-amber-600"> — capped at {results.pagination.fetched_pages} pages; narrow revenue range to see more</span>
+                )}
+              </div>
+              {results.fetchedAt && (
+                <div className="text-xs mt-0.5">
+                  Data fetched {formatRecency(results.fetchedAt)}
+                  {results.fromCache ? " (cached — served without calling Apollo)" : " (fresh from Apollo)"}
+                </div>
               )}
             </div>
           )}

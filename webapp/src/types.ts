@@ -171,6 +171,8 @@ export interface UnlistedSearchResult {
     rate_limited?: boolean
     truncated?: boolean
   } | null
+  fetchedAt?: number // unix seconds
+  fromCache?: boolean
 }
 
 export const GP_SERVICES = [
