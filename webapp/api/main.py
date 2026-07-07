@@ -1047,9 +1047,13 @@ async def unlisted_search(body: dict):
             if emp_min <= 5000 and emp_max >= 1001: ranges.append("1001,5000")
             if emp_min <= 10000 and emp_max >= 5001: ranges.append("5001,10000")
             if emp_max >= 10001: ranges.append("10001+")
-            
             if ranges:
                 payload["organization_num_employees_ranges"] = ranges
+                
+            # Always sort ascending by employee count so that entering small minimums 
+            # returns companies near that minimum instead of defaulting to Canva every time.
+            payload["sort_by"] = "organization_num_employees"
+            payload["sort_ascending"] = True
         except:
             pass
                 
