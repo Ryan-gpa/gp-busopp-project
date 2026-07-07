@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { StatusChip } from "@/components/app/StatusChip"
-import { UnlistedSearchResult, UnlistedCompany } from "@/types"
+import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
 
 const API_BASE = import.meta.env.VITE_API_URL || ""
 
