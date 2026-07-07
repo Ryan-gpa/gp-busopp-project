@@ -1263,6 +1263,11 @@ def _local_companies_matching(revenue_min, revenue_max) -> list:
     return matches
 
 
+# TODO: this SQLite cache (companies, contacts_cache) is a per-deployment
+# local store with no connection to HubSpot. GP already syncs contacts to
+# HubSpot elsewhere (see the gp-contacts/gp-enrich pipeline) — companies and
+# CEO/CFO contacts found here should eventually push to HubSpot too, so BD
+# follow-up doesn't require manually re-entering what Apollo already found.
 def _unlisted_companies_upsert(organizations: list, now: float):
     conn = _unlisted_cache_conn()
     try:
