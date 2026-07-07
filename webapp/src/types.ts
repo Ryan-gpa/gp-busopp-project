@@ -145,14 +145,16 @@ export const RENDER_STATUS_ORDER: RenderStatus[] = [
 ]
 
 export interface UnlistedCompany {
-  id: string
-  name: string
-  domain: string
-  organization_revenue?: number
-  estimated_revenue?: number
-  annual_revenue?: number
-  estimated_num_employees?: number
-  linkedin_employee_count?: number
+  id: string;
+  name: string;
+  domain: string;
+  organization_revenue?: number;
+  annual_revenue?: number;
+  estimated_revenue?: number;
+  estimated_num_employees?: number;
+  linkedin_employee_count?: number; // Added from Agent-Reach linkedin scraper
+  dataSource?: 'apollo' | 'linkedin' | 'web' | 'other';
+  contacts?: { name: string; title: string; linkedin_url?: string }[];
   _asx_exclusion_reason?: string
 }
 

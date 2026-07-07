@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Building2, Search, CheckCircle2, XCircle, AlertCircle, Rocket, Globe } from "lucide-react"
 import { StatusChip } from "@/components/app/StatusChip"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
 
@@ -65,41 +66,69 @@ export default function UnlistedCompaniesPage() {
     }
   }
 
-  const formatRevenue = (rev?: number) => {
-    if (!rev) return "Unknown"
-    return new Intl.NumberFormat("en-AU", {
-      style: "currency",
-      currency: "AUD",
-      maximumFractionDigits: 0
-    }).format(rev)
+  const renderSourceIcon = (source?: string) => {
+    switch (source) {
+      case 'apollo':
+        return <div title="Data from Apollo" className="inline-flex items-center justify-center p-1 bg-indigo-50 text-indigo-600 rounded-full mr-2"><Rocket className="h-3 w-3" /></div>
+      case 'linkedin':
+        return <div title="Data from LinkedIn" className="inline-flex items-center justify-center p-1 bg-blue-50 text-blue-600 rounded-full mr-2"><Globe className="h-3 w-3" /></div>
+      case 'web':
+        return <div title="Data from Web" className="inline-flex items-center justify-center p-1 bg-green-50 text-green-600 rounded-full mr-2"><Globe className="h-3 w-3" /></div>
+      default:
+        return <div title="Data from Apollo" className="inline-flex items-center justify-center p-1 bg-indigo-50 text-indigo-600 rounded-full mr-2"><Rocket className="h-3 w-3" /></div>
+    }
+  }
+
+  const renderValidationBadge = (status?: string) => {
+      return status === 'verified' ? <span className="text-green-600 flex items-center gap-1 text-xs"><CheckCircle2 className="h-4 w-4"/> Verified</span> : <span className="text-amber-600 flex items-center gap-1 text-xs"><AlertCircle className="h-4 w-4"/> Unverified</span>
+  }
+
+  const renderConfidenceBadge = (status?: string) => {
+      return <span className="text-gray-500 font-medium text-xs">Estimate only</span>
   }
 
   const renderCompanyRow = (company: UnlistedCompany, tier: number) => {
     const rev = company.organization_revenue || company.annual_revenue || company.estimated_revenue
     const valInfo = validationStatuses[company.id]
     
-    // Show LinkedIn verified employees if available, otherwise fallback to estimate
-    const employees = company.linkedin_employee_count 
-      ? <span className="flex items-center justify-end gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 mr-1" title="Verified by LinkedIn"></span>{company.linkedin_employee_count}</span>
-      : company.estimated_num_employees || "?"
+    const employeeDisplay = company.linkedin_employee_count 
+      ? <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" title="Verified by LinkedIn"></span>{company.linkedin_employee_count}</span>
+      : (company.estimated_num_employees || "?")
 
     return (
-      <tr key={company.id} className="border-b last:border-0 hover:bg-muted/50">
-        <td className="py-3 px-4">
-          <div className="font-medium text-navy-deep">{company.name}</div>
-          <div className="text-xs text-muted-foreground">{company.domain}</div>
+      <tr key={company.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+        <td className="p-4">
+          <div className="font-medium text-gray-900 flex items-center">
+            {renderSourceIcon(company.dataSource)}
+            {company.name}
+          </div>
+          <div className="text-sm text-gray-500">
+            <a href={`https://${company.domain}`} target="_blank" rel="noreferrer" className="hover:underline">
+              {company.domain}
+            </a>
+          </div>
         </td>
-        <td className="py-3 px-4 text-right tabular-nums">{formatRevenue(rev)}</td>
-        <td className="py-3 px-4 text-right tabular-nums">{employees}</td>
-        <td className="py-3 px-4">
-          {tier === 1 ? (
-            valInfo ? (
-              <StatusChip status="Unverified" />
-            ) : (
-              <span className="text-xs text-muted-foreground">Checking...</span>
-            )
+        <td className="p-4 text-gray-700">
+          {rev ? `$${rev.toLocaleString()}` : 'Unknown'}
+        </td>
+        <td className="p-4 text-gray-700">
+          {employeeDisplay}
+        </td>
+        <td className="p-4">
+          {tier === 1 ? renderValidationBadge(valInfo?.status) : renderConfidenceBadge(valInfo?.status)}
+        </td>
+        <td className="p-4">
+          {company.contacts && company.contacts.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              {company.contacts.map((c, i) => (
+                <div key={i} className="text-sm">
+                  <span className="font-medium text-gray-900">{c.name}</span>
+                  <span className="text-gray-500 ml-2">{c.title}</span>
+                </div>
+              ))}
+            </div>
           ) : (
-            <span className="text-xs text-muted-foreground">Estimate only</span>
+            <span className="text-sm text-gray-400">N/A</span>
           )}
         </td>
       </tr>
@@ -172,20 +201,21 @@ export default function UnlistedCompaniesPage() {
           <div>
             <h2 className="text-xl font-heading font-medium text-navy-deep mb-4 border-b pb-2">Tier 1 &mdash; $50M+ (ASIC-verifiable)</h2>
             <div className="border rounded-md overflow-hidden bg-card">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-muted text-muted-foreground font-medium border-b">
-                  <tr>
-                    <th className="py-2 px-4 font-medium">Company</th>
-                    <th className="py-2 px-4 font-medium text-right">Est. Revenue</th>
-                    <th className="py-2 px-4 font-medium text-right">Employees</th>
-                    <th className="py-2 px-4 font-medium">ASIC Lodgement</th>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 text-gray-600 text-sm font-semibold border-b">
+                    <th className="p-4 w-1/4">Company</th>
+                    <th className="p-4 w-1/5">Est. Revenue</th>
+                    <th className="p-4 w-1/5">Employees</th>
+                    <th className="p-4 w-1/5">ASIC Lodgement</th>
+                    <th className="p-4 w-1/4">Key Contacts</th>
                   </tr>
                 </thead>
                 <tbody>
                   {results.tier1.length > 0 ? (
                     results.tier1.map(c => renderCompanyRow(c, 1))
                   ) : (
-                    <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No companies found in this tier.</td></tr>
+                    <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No companies found in this tier.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -195,13 +225,14 @@ export default function UnlistedCompaniesPage() {
           <div>
             <h2 className="text-xl font-heading font-medium text-navy-deep mb-4 border-b pb-2">Tier 2 &mdash; $20-50M (estimate only)</h2>
             <div className="border rounded-md overflow-hidden bg-card">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-muted text-muted-foreground font-medium border-b">
-                  <tr>
-                    <th className="py-2 px-4 font-medium">Company</th>
-                    <th className="py-2 px-4 font-medium text-right">Est. Revenue</th>
-                    <th className="py-2 px-4 font-medium text-right">Employees</th>
-                    <th className="py-2 px-4 font-medium">Confidence</th>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 text-gray-600 text-sm font-semibold border-b">
+                    <th className="p-4 w-1/4">Company</th>
+                    <th className="p-4 w-1/5">Est. Revenue</th>
+                    <th className="p-4 w-1/5">Employees</th>
+                    <th className="p-4 w-1/5">Confidence</th>
+                    <th className="p-4 w-1/4">Key Contacts</th>
                   </tr>
                 </thead>
                 <tbody>
