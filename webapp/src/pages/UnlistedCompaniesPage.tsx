@@ -365,7 +365,7 @@ export default function UnlistedCompaniesPage() {
           {results.excludedUnderMin && results.excludedUnderMin.length > 0 && (
             <details className="bg-muted/30 border rounded-md p-4 group">
               <summary className="text-sm font-medium cursor-pointer flex justify-between items-center text-muted-foreground group-open:mb-4">
-                {results.excludedUnderMin.length} candidates excluded for being below Revenue Min
+                {results.excludedUnderMin.length} candidates excluded for being below Revenue Min (or the $20M Tier 2 floor)
                 <span className="text-xs border px-2 py-0.5 rounded">Expand</span>
               </summary>
               <div className="text-sm text-muted-foreground max-h-48 overflow-y-auto">
