@@ -1085,7 +1085,7 @@ async def unlisted_search(body: dict):
         # result = subprocess.run(["mcporter", "call", f"linkedin-scraper.get_company_profile(...)"], capture_output=True)
         org["linkedin_employee_count"] = int(org.get("estimated_num_employees", 0) * 1.1) if org.get("estimated_num_employees") else None
 
-        rev = org.get("annual_revenue") or org.get("estimated_revenue")
+        rev = org.get("organization_revenue") or org.get("annual_revenue") or org.get("estimated_revenue")
         try:
             rev_val = float(rev) if rev is not None else 0
         except ValueError:

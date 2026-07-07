@@ -148,6 +148,7 @@ export interface UnlistedCompany {
   id: string
   name: string
   domain: string
+  organization_revenue?: number
   estimated_revenue?: number
   annual_revenue?: number
   estimated_num_employees?: number

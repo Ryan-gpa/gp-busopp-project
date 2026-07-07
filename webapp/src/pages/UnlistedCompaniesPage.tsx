@@ -75,7 +75,7 @@ export default function UnlistedCompaniesPage() {
   }
 
   const renderCompanyRow = (company: UnlistedCompany, tier: number) => {
-    const rev = company.annual_revenue || company.estimated_revenue
+    const rev = company.organization_revenue || company.annual_revenue || company.estimated_revenue
     const valInfo = validationStatuses[company.id]
     
     // Show LinkedIn verified employees if available, otherwise fallback to estimate
