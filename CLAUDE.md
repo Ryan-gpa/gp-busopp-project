@@ -21,7 +21,13 @@ Co-work POC/
 ├── Annual_Differences.docx          — DONE: FY2025 vs Pinnacle Annual comparison
 ├── disclosure-review-kit/           — CLI engine (THE DURABLE IP)
 └── webapp/                          — React + FastAPI web app (SUBSTANTIALLY BUILT)
-```
+
+### Unlisted Companies Search (NEW)
+A new feature was recently added to find private Australian companies as GP prospects using Apollo's API. It includes:
+- A `UnlistedCompaniesPage.tsx` React frontend that takes revenue filters.
+- A `/api/unlisted/search` FastAPI backend that translates those revenue queries into headcount estimates (as a proxy, since Apollo ignores exact revenue).
+- Automatic ASX cross-referencing to exclude companies already captured by the main review kit.
+- Note: It queries Apollo's `mixed_companies/search` endpoint and sorts by ascending employee headcount to discover mid-tier businesses rather than giants.
 
 ### disclosure-review-kit/
 
@@ -49,8 +55,8 @@ research/
 
 ```
 api/
-  main.py                  — FastAPI backend (7 endpoints + PDF generation via LibreOffice / docx2pdf)
-  requirements.txt         — fastapi uvicorn python-multipart pdfplumber boxsdk docx2pdf
+  main.py                  — FastAPI backend (7 endpoints + PDF gen + Apollo unlisted search)
+  requirements.txt         — fastapi uvicorn python-multipart pdfplumber boxsdk docx2pdf requests
 src/
   main.tsx                 — React entry point
   App.tsx                  — Router (/ = UploadPage, /results = ResultsPage)
@@ -61,6 +67,7 @@ src/
   pages/
     UploadPage.tsx          — PDF upload form + options → POST /api/review → navigate /results
     ResultsPage.tsx         — 4-tab results, sticky generate bar, prefs loading, TypeConfigPanel
+    UnlistedCompaniesPage.tsx — Apollo-backed search for private prospects
   components/
     ui/                     — shadcn/ui primitives (button, card, tabs, progress) — written manually
     app/
