@@ -1024,7 +1024,6 @@ async def unlisted_search(body: dict):
         data = {"organizations": organizations, "pagination": {"total_entries": 5, "total_pages": 1}}
     else:
         payload = {
-            "api_key": api_key,
             "organization_locations": locations,
         }
         if revenue_min is not None or revenue_max is not None:
@@ -1034,8 +1033,14 @@ async def unlisted_search(body: dict):
             if revenue_max is not None:
                 payload["organization_revenue"]["max"] = revenue_max
                 
+        headers = {
+            "Content-Type": "application/json",
+            "X-Api-Key": api_key,
+            "Cache-Control": "no-cache"
+        }
+                
         try:
-            resp = requests.post("https://api.apollo.io/v1/mixed_companies/search", json=payload, timeout=30)
+            resp = requests.post("https://api.apollo.io/v1/mixed_companies/search", json=payload, headers=headers, timeout=30)
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
