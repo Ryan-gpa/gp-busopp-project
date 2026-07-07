@@ -280,7 +280,14 @@ export default function UnlistedCompaniesPage() {
               )
             }
             return (
-              <Button size="sm" variant="outline" onClick={() => findContacts(company.id)}>Find Contacts</Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => findContacts(company.id)}
+                title="Spends real Apollo credits to reveal a verified email — only use for companies you're actually pursuing"
+              >
+                Find Contacts
+              </Button>
             )
           })()}
         </td>
@@ -393,6 +400,12 @@ export default function UnlistedCompaniesPage() {
               </div>
             </div>
           )}
+          <div className="bg-blue-50 border border-blue-200 text-blue-900 text-sm rounded-md p-4">
+            <strong>Key Contacts costs real money.</strong> Clicking "Find Contacts" on a row spends actual Apollo
+            credits to reveal a verified email (up to 2 people per company) — it does not run automatically for
+            the whole list. Only click it for companies you've actually decided to pursue. Results are saved for
+            30 days, so re-clicking the same company later is free.
+          </div>
           {results.excludedAsxMatches && results.excludedAsxMatches.length > 0 && (
             <details className="bg-muted/30 border rounded-md p-4 group">
               <summary className="text-sm font-medium cursor-pointer flex justify-between items-center text-muted-foreground group-open:mb-4">
