@@ -83,6 +83,7 @@ export default function UnlistedCompaniesPage() {
   // Form state
   const [revenueMin, setRevenueMin] = useState("20000000")
   const [revenueMax, setRevenueMax] = useState("")
+  const [companyName, setCompanyName] = useState("")
 
   const [tier1Sort, setTier1Sort] = useState<SortState>({ key: "revenue", dir: "desc" })
   const [tier1Page, setTier1Page] = useState(1)
@@ -105,6 +106,7 @@ export default function UnlistedCompaniesPage() {
       const payload: any = { locations: ["Australia"] }
       if (revenueMin) payload.revenueMin = Number(revenueMin)
       if (revenueMax) payload.revenueMax = Number(revenueMax)
+      if (companyName.trim()) payload.companyName = companyName.trim()
 
       const res = await fetch(`${API_BASE}/api/unlisted/search`, {
         method: "POST",
@@ -410,6 +412,16 @@ export default function UnlistedCompaniesPage() {
 
       <div className="bg-card border rounded-md p-6">
         <form onSubmit={handleSearch} className="flex items-end gap-4">
+          <div className="flex-1">
+            <label className="text-sm font-medium mb-1 block">Company Name</label>
+            <input
+              type="text"
+              className="w-full border rounded px-3 py-2 text-sm bg-background text-foreground"
+              value={companyName}
+              onChange={e => setCompanyName(e.target.value)}
+              placeholder="e.g. Canva (optional)"
+            />
+          </div>
           <div className="flex-1">
             <label className="text-sm font-medium mb-1 block">Revenue Min (AUD)</label>
             <input 

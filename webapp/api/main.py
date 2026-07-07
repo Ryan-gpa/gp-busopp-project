@@ -1200,9 +1200,14 @@ def _unlisted_cache_conn():
     return conn
 
 
-def _unlisted_query_hash(revenue_min, revenue_max, locations) -> str:
+def _unlisted_query_hash(revenue_min, revenue_max, locations, company_name=None) -> str:
     key = json.dumps(
-        {"revenue_min": revenue_min, "revenue_max": revenue_max, "locations": sorted(locations or [])},
+        {
+            "revenue_min": revenue_min,
+            "revenue_max": revenue_max,
+            "locations": sorted(locations or []),
+            "company_name": (company_name or "").strip().lower(),
+        },
         sort_keys=True,
     )
     return hashlib.sha256(key.encode()).hexdigest()
@@ -1253,7 +1258,7 @@ def _estimate_org_revenue(org: dict):
     return None
 
 
-def _local_companies_matching(revenue_min, revenue_max) -> list:
+def _local_companies_matching(revenue_min, revenue_max, company_name=None) -> list:
     """Fall back to companies persisted from past searches when a live Apollo
     call fails (e.g. rate limiting). Best-effort only — it only covers
     companies we've happened to fetch before, not a real search of Apollo."""
@@ -1267,6 +1272,7 @@ def _local_companies_matching(revenue_min, revenue_max) -> list:
         r_max = float(revenue_max) if revenue_max is not None else None
     except (TypeError, ValueError):
         r_max = None
+    name_needle = (company_name or "").strip().lower()
 
     conn = _unlisted_cache_conn()
     try:
@@ -1277,6 +1283,8 @@ def _local_companies_matching(revenue_min, revenue_max) -> list:
     matches = []
     for data_json, last_seen in rows:
         org = json.loads(data_json)
+        if name_needle and name_needle not in (org.get("name") or "").lower():
+            continue
         rev_val = _estimate_org_revenue(org)
         if rev_val is None:
             continue
@@ -1319,8 +1327,9 @@ async def unlisted_search(body: dict):
     revenue_min = body.get("revenueMin")
     revenue_max = body.get("revenueMax")
     locations = body.get("locations", ["Australia"])
+    company_name = body.get("companyName")
 
-    query_hash = _unlisted_query_hash(revenue_min, revenue_max, locations)
+    query_hash = _unlisted_query_hash(revenue_min, revenue_max, locations, company_name)
     cached = _unlisted_cache_get(query_hash)
     if cached:
         cached_result, fetched_at = cached
@@ -1343,7 +1352,9 @@ async def unlisted_search(body: dict):
         payload = {
             "organization_locations": locations,
         }
-        
+        if company_name and company_name.strip():
+            payload["q_organization_name"] = company_name.strip()
+
         # Convert revenue filters to employee ranges (proxy)
         try:
             r_min = float(revenue_min) if revenue_min is not None else 0
@@ -1405,7 +1416,7 @@ async def unlisted_search(body: dict):
                         # Apollo itself is unavailable for a fresh fetch — fall back to
                         # whatever we've already persisted locally from past searches
                         # instead of failing outright.
-                        fallback = _local_companies_matching(revenue_min, revenue_max)
+                        fallback = _local_companies_matching(revenue_min, revenue_max, company_name)
                         if fallback:
                             organizations = fallback
                             served_from_local_fallback = True
@@ -1420,7 +1431,7 @@ async def unlisted_search(body: dict):
                 raise
             except Exception as e:
                 if page == 1:
-                    fallback = _local_companies_matching(revenue_min, revenue_max)
+                    fallback = _local_companies_matching(revenue_min, revenue_max, company_name)
                     if fallback:
                         organizations = fallback
                         served_from_local_fallback = True
@@ -1632,7 +1643,7 @@ async def unlisted_search(body: dict):
     _unlisted_companies_upsert(_raw_organizations_snapshot, now)
     _unlisted_cache_put(
         query_hash,
-        {"revenueMin": revenue_min, "revenueMax": revenue_max, "locations": locations},
+        {"revenueMin": revenue_min, "revenueMax": revenue_max, "locations": locations, "companyName": company_name},
         result,
         now,
         # Only a real rate-limit cutoff gets a short TTL — hitting our own
