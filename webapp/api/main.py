@@ -1463,6 +1463,7 @@ async def unlisted_search(body: dict):
     tier1 = []
     tier2 = []
     excluded_over_max = []
+    excluded_under_min = []
     unlisted_thresholds_path = KIT_DIR / "config" / "unlisted_thresholds.json"
     t1_min = 50000000
     t2_min = 20000000
@@ -1535,6 +1536,15 @@ async def unlisted_search(body: dict):
         except (TypeError, ValueError):
             r_max_val = None
 
+        # Same gap as revenueMax had: t2_min/r_min_val were loaded but never
+        # actually checked against anything, so a company Apollo estimated at
+        # $1M could still land in a table labelled "Tier 2 — $20-50M". Enforce
+        # the floor for real, the same way the ceiling is enforced above.
+        if r_min_val is not None and rev_val < r_min_val:
+            org["_exclusion_reason"] = "below_revenue_min"
+            excluded_under_min.append(org)
+            continue
+
         if r_max_val is not None and rev_val > r_max_val:
             org["_exclusion_reason"] = "exceeds_revenue_max"
             excluded_over_max.append(org)
@@ -1552,6 +1562,7 @@ async def unlisted_search(body: dict):
         "tier2": tier2,
         "excludedAsxMatches": excluded,
         "excludedOverMax": excluded_over_max,
+        "excludedUnderMin": excluded_under_min,
         "pagination": pagination,
     }
 

@@ -1,9 +1,37 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, AlertCircle, Rocket, Globe } from "lucide-react"
+import { CheckCircle2, AlertCircle, Rocket, Globe, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
 
 const API_BASE = import.meta.env.VITE_API_URL || ""
+const PAGE_SIZE = 25
+
+type SortKey = "name" | "revenue" | "employees"
+type SortState = { key: SortKey; dir: "asc" | "desc" }
+
+const getRevenueValue = (c: UnlistedCompany): number | null => {
+  const v = c.organization_revenue ?? c.annual_revenue ?? c.estimated_revenue
+  return v ?? null
+}
+const getEmployeeValue = (c: UnlistedCompany): number | null => {
+  const v = c.linkedin_employee_count ?? c.estimated_num_employees
+  return v ?? null
+}
+
+function sortCompanies(list: UnlistedCompany[], sort: SortState): UnlistedCompany[] {
+  const dirMul = sort.dir === "asc" ? 1 : -1
+  return [...list].sort((a, b) => {
+    if (sort.key === "name") {
+      return a.name.localeCompare(b.name) * dirMul
+    }
+    const av = sort.key === "revenue" ? getRevenueValue(a) : getEmployeeValue(a)
+    const bv = sort.key === "revenue" ? getRevenueValue(b) : getEmployeeValue(b)
+    if (av == null && bv == null) return 0
+    if (av == null) return 1 // unknowns sort last regardless of direction
+    if (bv == null) return -1
+    return (av - bv) * dirMul
+  })
+}
 
 export default function UnlistedCompaniesPage() {
   const [loading, setLoading] = useState(false)
@@ -15,12 +43,19 @@ export default function UnlistedCompaniesPage() {
   const [revenueMin, setRevenueMin] = useState("20000000")
   const [revenueMax, setRevenueMax] = useState("")
 
+  const [tier1Sort, setTier1Sort] = useState<SortState>({ key: "revenue", dir: "desc" })
+  const [tier1Page, setTier1Page] = useState(1)
+  const [tier2Sort, setTier2Sort] = useState<SortState>({ key: "revenue", dir: "desc" })
+  const [tier2Page, setTier2Page] = useState(1)
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError("")
     setResults(null)
     setValidationStatuses({})
+    setTier1Page(1)
+    setTier2Page(1)
 
     try {
       const payload: any = { locations: ["Australia"] }
@@ -74,6 +109,52 @@ export default function UnlistedCompaniesPage() {
     const hours = Math.round(mins / 60)
     if (hours < 24) return `${hours}h ago`
     return new Date(fetchedAt * 1000).toLocaleString()
+  }
+
+  const SortableTh = ({ label, sortKey, sort, onSort, className }: {
+    label: string
+    sortKey: SortKey
+    sort: SortState
+    onSort: (key: SortKey) => void
+    className?: string
+  }) => {
+    const active = sort.key === sortKey
+    return (
+      <th className={`p-4 select-none ${className ?? ""}`}>
+        <button
+          type="button"
+          onClick={() => onSort(sortKey)}
+          className="flex items-center gap-1 hover:text-foreground"
+        >
+          {label}
+          {active ? (
+            sort.dir === "asc" ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronsUpDown className="h-3.5 w-3.5 opacity-40" />
+          )}
+        </button>
+      </th>
+    )
+  }
+
+  const makeSortHandler = (setSort: React.Dispatch<React.SetStateAction<SortState>>, setPage: React.Dispatch<React.SetStateAction<number>>) =>
+    (key: SortKey) => {
+      setSort(prev => prev.key === key ? { key, dir: prev.dir === "asc" ? "desc" : "asc" } : { key, dir: key === "name" ? "asc" : "desc" })
+      setPage(1)
+    }
+
+  const PaginationFooter = ({ page, setPage, total }: { page: number, setPage: (p: number) => void, total: number }) => {
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+    if (totalPages <= 1) return null
+    return (
+      <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 text-sm text-muted-foreground">
+        <span>Page {page} of {totalPages} &middot; {total} companies</span>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
+          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</Button>
+        </div>
+      </div>
+    )
   }
 
   const renderSourceIcon = (source?: string) => {
@@ -155,6 +236,19 @@ export default function UnlistedCompaniesPage() {
       </tr>
     )
   }
+
+  const tier1Sorted = useMemo(() => results ? sortCompanies(results.tier1, tier1Sort) : [], [results, tier1Sort])
+  const tier1PageItems = useMemo(
+    () => tier1Sorted.slice((tier1Page - 1) * PAGE_SIZE, tier1Page * PAGE_SIZE),
+    [tier1Sorted, tier1Page]
+  )
+  const tier2Sorted = useMemo(() => results ? sortCompanies(results.tier2, tier2Sort) : [], [results, tier2Sort])
+  const tier2PageItems = useMemo(
+    () => tier2Sorted.slice((tier2Page - 1) * PAGE_SIZE, tier2Page * PAGE_SIZE),
+    [tier2Sorted, tier2Page]
+  )
+  const onSortTier1 = makeSortHandler(setTier1Sort, setTier1Page)
+  const onSortTier2 = makeSortHandler(setTier2Sort, setTier2Page)
 
   return (
     <div className="container mx-auto p-4 space-y-8 max-w-5xl py-8">
@@ -268,27 +362,44 @@ export default function UnlistedCompaniesPage() {
             </details>
           )}
 
+          {results.excludedUnderMin && results.excludedUnderMin.length > 0 && (
+            <details className="bg-muted/30 border rounded-md p-4 group">
+              <summary className="text-sm font-medium cursor-pointer flex justify-between items-center text-muted-foreground group-open:mb-4">
+                {results.excludedUnderMin.length} candidates excluded for being below Revenue Min
+                <span className="text-xs border px-2 py-0.5 rounded">Expand</span>
+              </summary>
+              <div className="text-sm text-muted-foreground max-h-48 overflow-y-auto">
+                <ul className="list-disc pl-5 space-y-1">
+                  {results.excludedUnderMin.map(c => (
+                    <li key={c.id}>{c.name} ({c.domain})</li>
+                  ))}
+                </ul>
+              </div>
+            </details>
+          )}
+
           <div>
             <h2 className="text-xl font-heading font-medium text-navy-deep mb-4 border-b pb-2">Tier 1 &mdash; $50M+ (ASIC-verifiable)</h2>
             <div className="border rounded-md overflow-hidden bg-card">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-100 text-gray-600 text-sm font-semibold border-b">
-                    <th className="p-4 w-1/4">Company</th>
-                    <th className="p-4 w-1/5">Est. Revenue</th>
-                    <th className="p-4 w-1/5">Employees</th>
+                    <SortableTh label="Company" sortKey="name" sort={tier1Sort} onSort={onSortTier1} className="w-1/4" />
+                    <SortableTh label="Est. Revenue" sortKey="revenue" sort={tier1Sort} onSort={onSortTier1} className="w-1/5" />
+                    <SortableTh label="Employees" sortKey="employees" sort={tier1Sort} onSort={onSortTier1} className="w-1/5" />
                     <th className="p-4 w-1/5">ASIC Lodgement</th>
                     <th className="p-4 w-1/4">Key Contacts</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {results.tier1.length > 0 ? (
-                    results.tier1.map(c => renderCompanyRow(c, 1))
+                  {tier1PageItems.length > 0 ? (
+                    tier1PageItems.map(c => renderCompanyRow(c, 1))
                   ) : (
                     <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No companies found in this tier.</td></tr>
                   )}
                 </tbody>
               </table>
+              <PaginationFooter page={tier1Page} setPage={setTier1Page} total={tier1Sorted.length} />
             </div>
           </div>
 
@@ -298,21 +409,22 @@ export default function UnlistedCompaniesPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-100 text-gray-600 text-sm font-semibold border-b">
-                    <th className="p-4 w-1/4">Company</th>
-                    <th className="p-4 w-1/5">Est. Revenue</th>
-                    <th className="p-4 w-1/5">Employees</th>
+                    <SortableTh label="Company" sortKey="name" sort={tier2Sort} onSort={onSortTier2} className="w-1/4" />
+                    <SortableTh label="Est. Revenue" sortKey="revenue" sort={tier2Sort} onSort={onSortTier2} className="w-1/5" />
+                    <SortableTh label="Employees" sortKey="employees" sort={tier2Sort} onSort={onSortTier2} className="w-1/5" />
                     <th className="p-4 w-1/5">Confidence</th>
                     <th className="p-4 w-1/4">Key Contacts</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {results.tier2.length > 0 ? (
-                    results.tier2.map(c => renderCompanyRow(c, 2))
+                  {tier2PageItems.length > 0 ? (
+                    tier2PageItems.map(c => renderCompanyRow(c, 2))
                   ) : (
                     <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No companies found in this tier.</td></tr>
                   )}
                 </tbody>
               </table>
+              <PaginationFooter page={tier2Page} setPage={setTier2Page} total={tier2Sorted.length} />
             </div>
           </div>
         </div>

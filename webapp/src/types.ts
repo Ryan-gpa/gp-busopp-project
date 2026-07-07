@@ -163,6 +163,7 @@ export interface UnlistedSearchResult {
   tier2: UnlistedCompany[]
   excludedAsxMatches: UnlistedCompany[]
   excludedOverMax: UnlistedCompany[]
+  excludedUnderMin: UnlistedCompany[]
   pagination: {
     total_entries?: number | null
     total_pages?: number | null
