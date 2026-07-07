@@ -208,18 +208,27 @@ export default function UnlistedCompaniesPage() {
 
       {results && (
         <div className="space-y-8">
+          {results.pagination?.served_from_local_fallback && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md p-4">
+              Apollo's API was unavailable (rate limit), so these are companies previously fetched and stored
+              locally that match your filters — not a fresh search. Coverage may be incomplete; results may be
+              stale as of {formatRecency(results.fetchedAt)}.
+            </div>
+          )}
           {results.pagination && (
             <div className="text-sm text-muted-foreground">
               <div>
                 Found {results.pagination.fetched_entries ?? (results.tier1.length + results.tier2.length)} companies
                 {results.pagination.total_entries != null && ` of ${results.pagination.total_entries} matching in Apollo`}
-                {results.pagination.rate_limited ? (
+                {results.pagination.served_from_local_fallback ? (
+                  <span className="text-amber-600"> — served from local storage, not live Apollo</span>
+                ) : results.pagination.rate_limited ? (
                   <span className="text-amber-600"> — stopped early: Apollo's hourly rate limit was hit mid-search. Try a narrower revenue range next time.</span>
                 ) : results.pagination.truncated && (
                   <span className="text-amber-600"> — capped at {results.pagination.fetched_pages} pages; narrow revenue range to see more</span>
                 )}
               </div>
-              {results.fetchedAt && (
+              {results.fetchedAt && !results.pagination.served_from_local_fallback && (
                 <div className="text-xs mt-0.5">
                   Data fetched {formatRecency(results.fetchedAt)}
                   {results.fromCache ? " (cached — served without calling Apollo)" : " (fresh from Apollo)"}

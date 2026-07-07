@@ -1207,6 +1207,58 @@ def _unlisted_cache_put(query_hash: str, params: dict, result: dict, now: float,
         conn.close()
 
 
+def _estimate_org_revenue(org: dict):
+    rev = org.get("organization_revenue") or org.get("annual_revenue") or org.get("estimated_revenue")
+    if rev is not None:
+        try:
+            return float(rev)
+        except (TypeError, ValueError):
+            pass
+    emp = org.get("estimated_num_employees")
+    if emp is not None:
+        try:
+            return float(emp) * 150000
+        except (TypeError, ValueError):
+            pass
+    return None
+
+
+def _local_companies_matching(revenue_min, revenue_max) -> list:
+    """Fall back to companies persisted from past searches when a live Apollo
+    call fails (e.g. rate limiting). Best-effort only — it only covers
+    companies we've happened to fetch before, not a real search of Apollo."""
+    if not _UNLISTED_CACHE_DB.exists():
+        return []
+    try:
+        r_min = float(revenue_min) if revenue_min is not None else None
+    except (TypeError, ValueError):
+        r_min = None
+    try:
+        r_max = float(revenue_max) if revenue_max is not None else None
+    except (TypeError, ValueError):
+        r_max = None
+
+    conn = _unlisted_cache_conn()
+    try:
+        rows = conn.execute("SELECT data_json, last_seen FROM companies").fetchall()
+    finally:
+        conn.close()
+
+    matches = []
+    for data_json, last_seen in rows:
+        org = json.loads(data_json)
+        rev_val = _estimate_org_revenue(org)
+        if rev_val is None:
+            continue
+        if r_min is not None and rev_val < r_min:
+            continue
+        if r_max is not None and rev_val > r_max:
+            continue
+        org["_locallyCachedAt"] = last_seen
+        matches.append(org)
+    return matches
+
+
 def _unlisted_companies_upsert(organizations: list, now: float):
     conn = _unlisted_cache_conn()
     try:
@@ -1304,6 +1356,7 @@ async def unlisted_search(body: dict):
         total_entries = None
         total_pages = None
         rate_limited = False
+        served_from_local_fallback = False
         page = 1
 
         while True:
@@ -1314,6 +1367,14 @@ async def unlisted_search(body: dict):
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("retry-after")
                     if page == 1:
+                        # Apollo itself is unavailable for a fresh fetch — fall back to
+                        # whatever we've already persisted locally from past searches
+                        # instead of failing outright.
+                        fallback = _local_companies_matching(revenue_min, revenue_max)
+                        if fallback:
+                            organizations = fallback
+                            served_from_local_fallback = True
+                            break
                         wait_msg = f" Retry in {int(retry_after) // 60} min." if retry_after else ""
                         raise HTTPException(429, f"Apollo API rate limit reached (200 calls/hour on this plan).{wait_msg}")
                     rate_limited = True
@@ -1324,6 +1385,11 @@ async def unlisted_search(body: dict):
                 raise
             except Exception as e:
                 if page == 1:
+                    fallback = _local_companies_matching(revenue_min, revenue_max)
+                    if fallback:
+                        organizations = fallback
+                        served_from_local_fallback = True
+                        break
                     raise HTTPException(502, f"Failed to search Apollo API: {str(e)}")
                 break  # keep whatever we already fetched if a later page fails
 
@@ -1351,7 +1417,8 @@ async def unlisted_search(body: dict):
                 "fetched_entries": len(organizations),
                 "fetched_pages": page,
                 "rate_limited": rate_limited,
-                "truncated": bool(rate_limited or (total_pages and page < total_pages)),
+                "served_from_local_fallback": served_from_local_fallback,
+                "truncated": bool(rate_limited or served_from_local_fallback or (total_pages and page < total_pages)),
             },
         }
     
@@ -1479,8 +1546,6 @@ async def unlisted_search(body: dict):
             tier2.append(org)
 
     now = time.time()
-    _unlisted_companies_upsert(organizations, now)
-
     pagination = data.get("pagination") or {}
     result = {
         "tier1": tier1,
@@ -1489,6 +1554,15 @@ async def unlisted_search(body: dict):
         "excludedOverMax": excluded_over_max,
         "pagination": pagination,
     }
+
+    if pagination.get("served_from_local_fallback"):
+        # Nothing new was actually fetched from Apollo — don't upsert (no new
+        # data) and don't cache this degraded result over a potentially
+        # good future fetch's cache slot.
+        oldest = min((o.get("_locallyCachedAt") for o in organizations if o.get("_locallyCachedAt")), default=now)
+        return {**result, "fetchedAt": oldest, "fromCache": True}
+
+    _unlisted_companies_upsert(organizations, now)
     _unlisted_cache_put(
         query_hash,
         {"revenueMin": revenue_min, "revenueMax": revenue_max, "locations": locations},

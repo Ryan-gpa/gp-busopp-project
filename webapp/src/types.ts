@@ -169,6 +169,7 @@ export interface UnlistedSearchResult {
     fetched_entries?: number
     fetched_pages?: number
     rate_limited?: boolean
+    served_from_local_fallback?: boolean
     truncated?: boolean
   } | null
   fetchedAt?: number // unix seconds
