@@ -164,6 +164,8 @@ export interface UnlistedSearchResult {
   excludedAsxMatches: UnlistedCompany[]
   excludedOverMax: UnlistedCompany[]
   excludedUnderMin: UnlistedCompany[]
+  excludedIncompleteData: UnlistedCompany[]
+  thresholds?: { t1Min: number; t2Min: number }
   pagination: {
     total_entries?: number | null
     total_pages?: number | null

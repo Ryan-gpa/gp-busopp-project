@@ -1470,6 +1470,7 @@ async def unlisted_search(body: dict):
     tier2 = []
     excluded_over_max = []
     excluded_under_min = []
+    excluded_incomplete_data = []
     unlisted_thresholds_path = KIT_DIR / "config" / "unlisted_thresholds.json"
     t1_min = 50000000
     t2_min = 20000000
@@ -1515,6 +1516,22 @@ async def unlisted_search(body: dict):
 
         rev = org.get("organization_revenue") or org.get("annual_revenue") or org.get("estimated_revenue")
         emp_count = org.get("estimated_num_employees")
+
+        # A company with no revenue AND no employee estimate has zero signal
+        # for which tier it belongs in. Previously this defaulted such a
+        # company straight into the search's floor value, which meant every
+        # no-data company auto-passed the filter and polluted results with
+        # "Unknown" rows. Report it separately instead of guessing.
+        try:
+            rev_val = float(rev) if rev is not None else (float(emp_count) * 150000 if emp_count is not None else None)
+        except (TypeError, ValueError):
+            rev_val = None
+
+        if rev_val is None:
+            org["_exclusion_reason"] = "incomplete_data"
+            excluded_incomplete_data.append(org)
+            continue
+
         try:
             r_min_val = float(revenue_min) if revenue_min is not None else None
         except (TypeError, ValueError):
@@ -1524,16 +1541,6 @@ async def unlisted_search(body: dict):
         # even when the user's own Revenue Min is blank or set below it, so a
         # sub-$20M company can never land in a table that says otherwise.
         effective_min = max(t2_min, r_min_val) if r_min_val is not None else t2_min
-
-        try:
-            if rev is not None:
-                rev_val = float(rev)
-            elif emp_count is not None:
-                rev_val = float(emp_count) * 150000
-            else:
-                rev_val = effective_min
-        except ValueError:
-            rev_val = 0
 
         # revenueMax narrows the Apollo employee-range query, but that's only
         # a proxy — it doesn't guarantee Apollo (or our own employee*150k
@@ -1568,6 +1575,8 @@ async def unlisted_search(body: dict):
         "excludedAsxMatches": excluded,
         "excludedOverMax": excluded_over_max,
         "excludedUnderMin": excluded_under_min,
+        "excludedIncompleteData": excluded_incomplete_data,
+        "thresholds": {"t1Min": t1_min, "t2Min": t2_min},
         "pagination": pagination,
     }
 

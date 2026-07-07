@@ -47,6 +47,7 @@ export default function UnlistedCompaniesPage() {
   const [tier1Page, setTier1Page] = useState(1)
   const [tier2Sort, setTier2Sort] = useState<SortState>({ key: "revenue", dir: "desc" })
   const [tier2Page, setTier2Page] = useState(1)
+  const [searchedMax, setSearchedMax] = useState<string>("")
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,6 +57,7 @@ export default function UnlistedCompaniesPage() {
     setValidationStatuses({})
     setTier1Page(1)
     setTier2Page(1)
+    setSearchedMax(revenueMax)
 
     try {
       const payload: any = { locations: ["Australia"] }
@@ -250,6 +252,11 @@ export default function UnlistedCompaniesPage() {
   const onSortTier1 = makeSortHandler(setTier1Sort, setTier1Page)
   const onSortTier2 = makeSortHandler(setTier2Sort, setTier2Page)
 
+  const t1Min = results?.thresholds?.t1Min ?? 50000000
+  // Tier 1 requires revenue >= t1Min. If the searched Revenue Max is below
+  // that, Tier 1 can never have results — show why instead of an empty table.
+  const t1Reachable = !searchedMax || Number(searchedMax) >= t1Min
+
   return (
     <div className="container mx-auto p-4 space-y-8 max-w-5xl py-8">
       <div>
@@ -378,29 +385,52 @@ export default function UnlistedCompaniesPage() {
             </details>
           )}
 
+          {results.excludedIncompleteData && results.excludedIncompleteData.length > 0 && (
+            <details className="bg-muted/30 border rounded-md p-4 group">
+              <summary className="text-sm font-medium cursor-pointer flex justify-between items-center text-muted-foreground group-open:mb-4">
+                {results.excludedIncompleteData.length} candidates excluded for having no revenue or employee data at all
+                <span className="text-xs border px-2 py-0.5 rounded">Expand</span>
+              </summary>
+              <div className="text-sm text-muted-foreground max-h-48 overflow-y-auto">
+                <ul className="list-disc pl-5 space-y-1">
+                  {results.excludedIncompleteData.map(c => (
+                    <li key={c.id}>{c.name} ({c.domain})</li>
+                  ))}
+                </ul>
+              </div>
+            </details>
+          )}
+
           <div>
             <h2 className="text-xl font-heading font-medium text-navy-deep mb-4 border-b pb-2">Tier 1 &mdash; $50M+ (ASIC-verifiable)</h2>
-            <div className="border rounded-md overflow-hidden bg-card">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-100 text-gray-600 text-sm font-semibold border-b">
-                    <SortableTh label="Company" sortKey="name" sort={tier1Sort} onSort={onSortTier1} className="w-1/4" />
-                    <SortableTh label="Est. Revenue" sortKey="revenue" sort={tier1Sort} onSort={onSortTier1} className="w-1/5" />
-                    <SortableTh label="Employees" sortKey="employees" sort={tier1Sort} onSort={onSortTier1} className="w-1/5" />
-                    <th className="p-4 w-1/5">ASIC Lodgement</th>
-                    <th className="p-4 w-1/4">Key Contacts</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tier1PageItems.length > 0 ? (
-                    tier1PageItems.map(c => renderCompanyRow(c, 1))
-                  ) : (
-                    <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No companies found in this tier.</td></tr>
-                  )}
-                </tbody>
-              </table>
-              <PaginationFooter page={tier1Page} setPage={setTier1Page} total={tier1Sorted.length} />
-            </div>
+            {!t1Reachable ? (
+              <div className="border rounded-md bg-muted/30 p-4 text-sm text-muted-foreground">
+                Tier 1 requires $50M+ revenue, but your Revenue Max (${Number(searchedMax).toLocaleString()}) rules it out entirely —
+                raise Revenue Max above ${t1Min.toLocaleString()} to see Tier 1 candidates.
+              </div>
+            ) : (
+              <div className="border rounded-md overflow-hidden bg-card">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100 text-gray-600 text-sm font-semibold border-b">
+                      <SortableTh label="Company" sortKey="name" sort={tier1Sort} onSort={onSortTier1} className="w-1/4" />
+                      <SortableTh label="Est. Revenue" sortKey="revenue" sort={tier1Sort} onSort={onSortTier1} className="w-1/5" />
+                      <SortableTh label="Employees" sortKey="employees" sort={tier1Sort} onSort={onSortTier1} className="w-1/5" />
+                      <th className="p-4 w-1/5">ASIC Lodgement</th>
+                      <th className="p-4 w-1/4">Key Contacts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tier1PageItems.length > 0 ? (
+                      tier1PageItems.map(c => renderCompanyRow(c, 1))
+                    ) : (
+                      <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No companies found in this tier.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+                <PaginationFooter page={tier1Page} setPage={setTier1Page} total={tier1Sorted.length} />
+              </div>
+            )}
           </div>
 
           <div>
