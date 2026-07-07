@@ -1204,13 +1204,17 @@ async def unlisted_search(body: dict):
         }
 
         # Page through the full result set instead of returning Apollo's first
-        # page only. Apollo caps page * per_page at 50,000 records, so that's
-        # the hard ceiling regardless of how we paginate.
-        MAX_PAGES = 100  # safety cap = 10,000 orgs per search (avoids runaway credit burn)
+        # page only. Apollo caps page * per_page at 50,000 records, but the
+        # real ceiling in practice is this plan's rate limit: 200 calls/hour
+        # for mixed_companies/search (confirmed via the x-rate-limit-hourly
+        # response header). MAX_PAGES is capped well under that so a single
+        # search can't burn the whole hourly quota by itself.
+        MAX_PAGES = 15  # 1,500 orgs per search = 7.5% of the 200/hour quota
         PER_PAGE = 100
         organizations = []
         total_entries = None
         total_pages = None
+        rate_limited = False
         page = 1
 
         while True:
@@ -1218,8 +1222,17 @@ async def unlisted_search(body: dict):
             payload["per_page"] = PER_PAGE
             try:
                 resp = requests.post("https://api.apollo.io/v1/mixed_companies/search", json=payload, headers=headers, timeout=30)
+                if resp.status_code == 429:
+                    retry_after = resp.headers.get("retry-after")
+                    if page == 1:
+                        wait_msg = f" Retry in {int(retry_after) // 60} min." if retry_after else ""
+                        raise HTTPException(429, f"Apollo API rate limit reached (200 calls/hour on this plan).{wait_msg}")
+                    rate_limited = True
+                    break  # keep whatever we already fetched before hitting the limit
                 resp.raise_for_status()
                 page_data = resp.json()
+            except HTTPException:
+                raise
             except Exception as e:
                 if page == 1:
                     raise HTTPException(502, f"Failed to search Apollo API: {str(e)}")
@@ -1248,7 +1261,8 @@ async def unlisted_search(body: dict):
                 "total_pages": total_pages,
                 "fetched_entries": len(organizations),
                 "fetched_pages": page,
-                "truncated": bool(total_pages and page < total_pages),
+                "rate_limited": rate_limited,
+                "truncated": bool(rate_limited or (total_pages and page < total_pages)),
             },
         }
     

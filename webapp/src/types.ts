@@ -168,6 +168,7 @@ export interface UnlistedSearchResult {
     total_pages?: number | null
     fetched_entries?: number
     fetched_pages?: number
+    rate_limited?: boolean
     truncated?: boolean
   } | null
 }

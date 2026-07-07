@@ -196,7 +196,9 @@ export default function UnlistedCompaniesPage() {
             <div className="text-sm text-muted-foreground">
               Found {results.pagination.fetched_entries ?? (results.tier1.length + results.tier2.length)} companies
               {results.pagination.total_entries != null && ` of ${results.pagination.total_entries} matching in Apollo`}
-              {results.pagination.truncated && (
+              {results.pagination.rate_limited ? (
+                <span className="text-amber-600"> — stopped early: Apollo's hourly rate limit was hit mid-search</span>
+              ) : results.pagination.truncated && (
                 <span className="text-amber-600"> — capped at {results.pagination.fetched_pages} pages; narrow revenue range to see more</span>
               )}
             </div>
