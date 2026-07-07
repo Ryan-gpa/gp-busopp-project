@@ -1027,12 +1027,31 @@ async def unlisted_search(body: dict):
         payload = {
             "organization_locations": locations,
         }
-        if revenue_min is not None or revenue_max is not None:
-            payload["organization_revenue"] = {}
-            if revenue_min is not None:
-                payload["organization_revenue"]["min"] = revenue_min
-            if revenue_max is not None:
-                payload["organization_revenue"]["max"] = revenue_max
+        
+        # Convert revenue filters to employee ranges (proxy)
+        try:
+            r_min = float(revenue_min) if revenue_min is not None else 0
+            r_max = float(revenue_max) if revenue_max is not None else 99999999999
+            
+            emp_min = int(r_min / 150000)
+            emp_max = int(r_max / 150000)
+            
+            ranges = []
+            if emp_min <= 10 and emp_max >= 1: ranges.append("1,10")
+            if emp_min <= 20 and emp_max >= 11: ranges.append("11,20")
+            if emp_min <= 50 and emp_max >= 21: ranges.append("21,50")
+            if emp_min <= 100 and emp_max >= 51: ranges.append("51,100")
+            if emp_min <= 250 and emp_max >= 101: ranges.append("101,250")
+            if emp_min <= 500 and emp_max >= 251: ranges.append("251,500")
+            if emp_min <= 1000 and emp_max >= 501: ranges.append("501,1000")
+            if emp_min <= 5000 and emp_max >= 1001: ranges.append("1001,5000")
+            if emp_min <= 10000 and emp_max >= 5001: ranges.append("5001,10000")
+            if emp_max >= 10001: ranges.append("10001+")
+            
+            if ranges:
+                payload["organization_num_employees_ranges"] = ranges
+        except:
+            pass
                 
         headers = {
             "Content-Type": "application/json",
@@ -1112,8 +1131,21 @@ async def unlisted_search(body: dict):
         org["contacts"] = contacts
 
         rev = org.get("organization_revenue") or org.get("annual_revenue") or org.get("estimated_revenue")
+        emp_count = org.get("estimated_num_employees")
         try:
-            rev_val = float(rev) if rev is not None else 0
+            r_min_val = float(revenue_min) if revenue_min is not None else None
+        except:
+            r_min_val = None
+
+        try:
+            if rev is not None:
+                rev_val = float(rev)
+            elif emp_count is not None:
+                rev_val = float(emp_count) * 150000
+            elif r_min_val is not None:
+                rev_val = r_min_val
+            else:
+                rev_val = 0
         except ValueError:
             rev_val = 0
             
