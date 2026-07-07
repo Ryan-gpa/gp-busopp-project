@@ -48,6 +48,9 @@ webapp/api/asic_register.sqlite3
 webapp/api/asic_register_v2.sqlite3
 webapp/api/*.building.sqlite3
 webapp/api/unlisted_search_cache.sqlite3
+webapp/api/contacts_cache.db
+webapp/api/test.py
+asic_test.html
 
 # IDE Files
 .vscode/

@@ -317,6 +317,17 @@ Current service assignments (GP-confirmed):
 
 ---
 
+## Future Considerations: ASIC Form 388 Validation
+
+Checking if a private company has genuinely lodged a **Form 388 (Financial Report)** is the ultimate test of whether they are a Large Proprietary company (and therefore a prime GP prospect). The current implementation uses a "Deep Link" approach to ASIC Connect. 
+If we need to fully automate this in the future, these are the paths:
+
+- **Approach 1 (Current): Deep Link.** Generates an ASIC Connect search URL using the ACN. Free, safe, but requires the user to manually scroll the document list to spot the "388".
+- **Approach 2 (Paid API):** Integrate a commercial broker API (e.g., InfoTrack, Equifax, CreditorWatch). The backend would query their API for the document index. **Drawback:** Costs ~$2 to $5 AUD per company just to view the index.
+- **Approach 3 (Web Scraper):** Build a Python scraper to navigate ASIC Connect and parse the HTML for "388". **Drawback:** Highly brittle. ASIC uses aggressive Imperva/Incapsula bot protection, making it prone to breaking and risking server IP bans.
+
+---
+
 ## What still needs building
 
 | Item | Notes |

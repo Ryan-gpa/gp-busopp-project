@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, AlertCircle, Rocket, Landmark, ShieldAlert, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
+import { CheckCircle2, AlertCircle, Rocket, Landmark, ShieldAlert, ChevronUp, ChevronDown, ChevronsUpDown, ExternalLink } from "lucide-react"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
 
 // Every field ASIC actually publishes for a matched company (see the
@@ -69,8 +69,7 @@ function sortCompanies(list: UnlistedCompany[], sort: SortState): UnlistedCompan
   })
 }
 
-type FoundContact = { name: string; title: string; email?: string; emailStatus?: string; linkedinUrl?: string }
-type ContactFetchState = { status: "idle" | "loading" | "done" | "error"; contacts?: FoundContact[]; error?: string }
+import type { ContactFetchState } from "@/types"
 
 export default function UnlistedCompaniesPage() {
   const [loading, setLoading] = useState(false)
@@ -80,6 +79,9 @@ export default function UnlistedCompaniesPage() {
   const [expandedAsic, setExpandedAsic] = useState<Record<string, boolean>>({})
   const [expandedInfringements, setExpandedInfringements] = useState<Record<string, boolean>>({})
   const [onlyInfringements, setOnlyInfringements] = useState(false)
+  const [onlyProprietary, setOnlyProprietary] = useState(false)
+  const [onlyWithContacts, setOnlyWithContacts] = useState(false)
+  const [asicStatusFilter, setAsicStatusFilter] = useState("all")
   const [contactFetches, setContactFetches] = useState<Record<string, ContactFetchState>>({})
 
   // Form state
@@ -102,6 +104,9 @@ export default function UnlistedCompaniesPage() {
     setContactFetches({})
     setExpandedInfringements({})
     setOnlyInfringements(false)
+    setOnlyProprietary(false)
+    setOnlyWithContacts(false)
+    setAsicStatusFilter("all")
     setTier1Page(1)
     setTier2Page(1)
     setSearchedMax(revenueMax)
@@ -126,13 +131,23 @@ export default function UnlistedCompaniesPage() {
       const data = await res.json()
       setResults(data)
 
+      const initialContactFetches: Record<string, ContactFetchState> = {}
+      const allCompanies = [...(data.tier1 || []), ...(data.tier2 || [])]
+      allCompanies.forEach((c: UnlistedCompany) => {
+        if (c.prefetched_contact_fetch) {
+          initialContactFetches[c.id] = c.prefetched_contact_fetch
+        }
+      })
+      if (Object.keys(initialContactFetches).length > 0) {
+        setContactFetches(initialContactFetches)
+      }
+
       // Automatically check every company (both tiers) against the ASIC
       // register — it's a free local SQLite lookup, not a paid Apollo call,
       // so there's no cost reason to limit this to Tier 1 only. Tier 1 shows
       // it as the primary badge (large-proprietary lodgement context); Tier 2
       // shows it as a secondary "does this company actually exist" check
       // alongside the revenue "Estimate only" confidence badge.
-      const allCompanies = [...(data.tier1 || []), ...(data.tier2 || [])]
       allCompanies.forEach(async (company: UnlistedCompany) => {
         try {
           const vRes = await fetch(`${API_BASE}/api/unlisted/validate/${company.id}?name=${encodeURIComponent(company.name)}`)
@@ -264,7 +279,7 @@ export default function UnlistedCompaniesPage() {
         throw new Error(err.detail || "Lookup failed")
       }
       const data = await res.json()
-      setContactFetches(prev => ({ ...prev, [companyId]: { status: "done", contacts: data.contacts || [] } }))
+      setContactFetches(prev => ({ ...prev, [companyId]: { status: "done", contacts: data.contacts || [], fetchedAt: data.fetchedAt } }))
     } catch (e: any) {
       setContactFetches(prev => ({ ...prev, [companyId]: { status: "error", error: e.message } }))
     }
@@ -324,14 +339,27 @@ export default function UnlistedCompaniesPage() {
                   {asicExpanded ? "Hide ASIC details" : "Show ASIC details"}
                 </button>
                 {asicExpanded && (
-                  <dl className="mt-2 text-xs space-y-1 border-t pt-2">
-                    {asicDetailFields.map(([key, label]) => (
-                      <div key={key} className="flex justify-between gap-3">
-                        <dt className="text-muted-foreground">{label}</dt>
-                        <dd className="text-gray-900 text-right">{valInfo![key]}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                  <div className="mt-2 border-t pt-2 space-y-3">
+                    <dl className="text-xs space-y-1">
+                      {asicDetailFields.map(([key, label]) => (
+                        <div key={key} className="flex justify-between gap-3">
+                          <dt className="text-muted-foreground">{label}</dt>
+                          <dd className="text-gray-900 text-right">{valInfo![key]}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    {(valInfo?.acn || valInfo?.abn) && (
+                      <a
+                        href={`https://connectonline.asic.gov.au/RegistrySearch/faces/landing/bySearchId.jspx?searchId=${valInfo.acn || valInfo.abn}&searchIdType=${valInfo.acn ? 'ACN' : 'ABN'}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center gap-1.5 w-full text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded transition-colors"
+                        title="Click to search ASIC Connect for this ACN. Look for '388' in the document list to confirm Large Proprietary status."
+                      >
+                        <ExternalLink className="h-3 w-3" /> Check for Form 388
+                      </a>
+                    )}
+                  </div>
                 )}
               </>
             )}
@@ -373,7 +401,7 @@ export default function UnlistedCompaniesPage() {
           </div>
         </td>
         <td className="p-4">
-          {company.contacts && company.contacts.length > 0 ? (
+          {company.contacts && company.contacts.length > 0 && !contactFetches[company.id] ? (
             <div className="flex flex-col gap-1">
               {company.contacts.map((c, i) => (
                 <div key={i} className="text-sm">
@@ -381,6 +409,14 @@ export default function UnlistedCompaniesPage() {
                   <span className="text-gray-500 ml-2">{c.title}</span>
                 </div>
               ))}
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2 w-max text-xs h-7"
+                onClick={() => findContacts(company.id)}
+              >
+                Find Details
+              </Button>
             </div>
           ) : (() => {
             const fetchState = contactFetches[company.id]
@@ -400,22 +436,36 @@ export default function UnlistedCompaniesPage() {
                 return <span className="text-sm text-gray-400">No CEO/CFO found</span>
               }
               return (
-                <div className="flex flex-col gap-1">
-                  {fetchState.contacts.map((c, i) => (
-                    <div key={i} className="text-sm">
-                      <span className="font-medium text-gray-900">{c.name}</span>
-                      <span className="text-gray-500 ml-2">{c.title}</span>
-                      {c.email && (
-                        <div className="text-xs text-gray-500">
-                          <a href={`mailto:${c.email}`} className="hover:underline">{c.email}</a>
-                          {c.emailStatus === "verified" && <CheckCircle2 className="inline h-3 w-3 ml-1 text-green-600" />}
-                        </div>
-                      )}
+                <>
+                  <div className="flex flex-col gap-1">
+                    {fetchState.contacts.map((c, i) => (
+                      <div key={i} className="text-sm">
+                        <span className="font-medium text-gray-900">{c.name}</span>
+                        <span className="text-gray-500 ml-2">{c.title}</span>
+                        {c.email && (
+                          <div className="text-xs text-gray-500">
+                            <a href={`mailto:${c.email}`} className="hover:underline">{c.email}</a>
+                            {c.emailStatus === "verified" && <CheckCircle2 className="inline h-3 w-3 ml-1 text-green-600" />}
+                          </div>
+                        )}
+                        {c.phoneNumbers && c.phoneNumbers.length > 0 && (
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {c.phoneNumbers.map((phone: string, idx: number) => (
+                              <span key={idx} className="block">{phone}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {fetchState.fetchedAt && (
+                    <div className="mt-2 text-[10px] text-muted-foreground italic">
+                      Acquired {formatRecency(fetchState.fetchedAt)}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )
-            }
+          }
             return (
               <Button
                 size="sm"
@@ -432,20 +482,44 @@ export default function UnlistedCompaniesPage() {
     )
   }
 
-  const applyInfringementFilter = (list: UnlistedCompany[]) =>
-    onlyInfringements ? list.filter(c => (c.infringementNotices?.length || 0) > 0) : list
+  const applyFilters = (list: UnlistedCompany[]) => {
+    return list.filter(c => {
+      if (onlyInfringements && !(c.infringementNotices?.length && c.infringementNotices.length > 0)) return false
+      
+      if (onlyWithContacts) {
+        const hasFetched = contactFetches[c.id]?.contacts && contactFetches[c.id]!.contacts!.length > 0
+        const hasLegacy = c.contacts && c.contacts.length > 0
+        if (!hasLegacy && !hasFetched) return false
+      }
+      
+      const v = validationStatuses[c.id]
+      if (onlyProprietary) {
+        if (!v || v.asicType !== "APTY" || v.asicClass !== "LMSH" || v.asicSubClass !== "PROP") return false
+      }
+      
+      if (asicStatusFilter !== "all") {
+        if (!v) {
+          if (asicStatusFilter !== "pending") return false
+        } else {
+          if (v.status !== asicStatusFilter) return false
+        }
+      }
+      
+      return true
+    })
+  }
 
   const tier1Sorted = useMemo(
-    () => results ? sortCompanies(applyInfringementFilter(results.tier1), tier1Sort) : [],
-    [results, tier1Sort, onlyInfringements]
+    () => results ? sortCompanies(applyFilters(results.tier1), tier1Sort) : [],
+    [results, tier1Sort, onlyInfringements, onlyProprietary, onlyWithContacts, asicStatusFilter, validationStatuses, contactFetches]
   )
   const tier1PageItems = useMemo(
     () => tier1Sorted.slice((tier1Page - 1) * PAGE_SIZE, tier1Page * PAGE_SIZE),
     [tier1Sorted, tier1Page]
   )
   const tier2Sorted = useMemo(
-    () => results ? sortCompanies(applyInfringementFilter(results.tier2), tier2Sort) : [],
-    [results, tier2Sort, onlyInfringements]
+    () => results ? sortCompanies(applyFilters(results.tier2), tier2Sort) : [],
+    [results, tier2Sort, onlyInfringements, onlyProprietary, onlyWithContacts, asicStatusFilter, validationStatuses, contactFetches]
   )
   const tier2PageItems = useMemo(
     () => tier2Sorted.slice((tier2Page - 1) * PAGE_SIZE, tier2Page * PAGE_SIZE),
@@ -516,6 +590,81 @@ export default function UnlistedCompaniesPage() {
           upper bound has to page through far more results and burns through that limit much faster than a
           narrow band does.
         </p>
+        {results && (
+          <div className="mt-4 flex flex-wrap items-center gap-6 p-4 bg-muted/20 border rounded-md">
+            <label 
+              className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+              title="APTY = Australian Proprietary Company&#10;LMSH = Limited by Shares&#10;PROP = Proprietary"
+            >
+              <input
+                type="checkbox"
+                checked={onlyProprietary}
+                onChange={e => {
+                  setOnlyProprietary(e.target.checked)
+                  setTier1Page(1)
+                  setTier2Page(1)
+                }}
+                className="rounded border-gray-300"
+              />
+              Large Proprietary (APTY / LMSH / PROP)
+            </label>
+
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={onlyWithContacts}
+                onChange={e => {
+                  setOnlyWithContacts(e.target.checked)
+                  setTier1Page(1)
+                  setTier2Page(1)
+                }}
+                className="rounded border-gray-300"
+              />
+              Has known contacts
+            </label>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700 font-medium">ASIC Status:</label>
+              <select
+                className="border rounded px-2 py-1 text-sm bg-white"
+                value={asicStatusFilter}
+                onChange={e => {
+                  setAsicStatusFilter(e.target.value)
+                  setTier1Page(1)
+                  setTier2Page(1)
+                }}
+              >
+                <option value="all">All Statuses</option>
+                <option value="verified">Verified (Active)</option>
+                <option value="deregistered">Deregistered</option>
+                <option value="not_found">Not on Register</option>
+                <option value="pending">Checking...</option>
+              </select>
+            </div>
+
+            {(() => {
+              const infringedCount = [...results.tier1, ...results.tier2].filter(c => (c.infringementNotices?.length || 0) > 0).length
+              if (infringedCount > 0) {
+                return (
+                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={onlyInfringements}
+                      onChange={e => {
+                        setOnlyInfringements(e.target.checked)
+                        setTier1Page(1)
+                        setTier2Page(1)
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                    Only show companies with ASIC infringement notices ({infringedCount})
+                  </label>
+                )
+              }
+              return null
+            })()}
+          </div>
+        )}
         {error && <div className="mt-4 text-destructive text-sm">{error}</div>}
       </div>
 
@@ -556,23 +705,7 @@ export default function UnlistedCompaniesPage() {
               </div>
             </div>
           )}
-          {(() => {
-            const infringedCount = [...results.tier1, ...results.tier2].filter(c => (c.infringementNotices?.length || 0) > 0).length
-            return infringedCount > 0 ? (
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={onlyInfringements}
-                  onChange={e => {
-                    setOnlyInfringements(e.target.checked)
-                    setTier1Page(1)
-                    setTier2Page(1)
-                  }}
-                />
-                Only show companies with ASIC infringement notices ({infringedCount})
-              </label>
-            ) : null
-          })()}
+
           <div className="bg-blue-50 border border-blue-200 text-blue-900 text-sm rounded-md p-4">
             <strong>Key Contacts costs real money.</strong> Clicking "Find Contacts" on a row spends actual Apollo
             credits to reveal a verified email (up to 2 people per company) — it does not run automatically for

@@ -1366,6 +1366,27 @@ async def unlisted_search(body: dict):
     cached = _unlisted_cache_get(query_hash)
     if cached:
         cached_result, fetched_at = cached
+        # Annotate cached search results with up-to-date contacts_cache flags
+        org_ids = [org.get("id") for org in cached_result.get("tier1", []) + cached_result.get("tier2", []) if org.get("id")]
+        if org_ids:
+            conn = _unlisted_cache_conn()
+            try:
+                placeholders = ",".join("?" for _ in org_ids)
+                rows = conn.execute(f"SELECT org_id, contacts_json, fetched_at FROM contacts_cache WHERE org_id IN ({placeholders}) AND contacts_json != '[]'", org_ids).fetchall()
+                cached_contact_orgs = {row[0]: (row[1], row[2]) for row in rows}
+                for org in cached_result.get("tier1", []) + cached_result.get("tier2", []):
+                    if org.get("id") in cached_contact_orgs:
+                        c_json, f_at = cached_contact_orgs[org.get("id")]
+                        org["prefetched_contact_fetch"] = {
+                            "status": "done",
+                            "contacts": json.loads(c_json),
+                            "fetchedAt": f_at
+                        }
+            except Exception:
+                pass
+            finally:
+                conn.close()
+        
         return {**cached_result, "fetchedAt": fetched_at, "fromCache": True}
 
     api_key = os.environ.get("APOLLO_API_KEY")
@@ -1654,6 +1675,27 @@ async def unlisted_search(body: dict):
         else:
             tier2.append(org)
 
+    # Bulk annotate which companies already have known contacts
+    org_ids = [org.get("id") for org in tier1 + tier2 if org.get("id")]
+    if org_ids:
+        conn = _unlisted_cache_conn()
+        try:
+            placeholders = ",".join("?" for _ in org_ids)
+            rows = conn.execute(f"SELECT org_id, contacts_json, fetched_at FROM contacts_cache WHERE org_id IN ({placeholders}) AND contacts_json != '[]'", org_ids).fetchall()
+            cached_contact_orgs = {row[0]: (row[1], row[2]) for row in rows}
+            for org in tier1 + tier2:
+                if org.get("id") in cached_contact_orgs:
+                    c_json, f_at = cached_contact_orgs[org.get("id")]
+                    org["prefetched_contact_fetch"] = {
+                        "status": "done",
+                        "contacts": json.loads(c_json),
+                        "fetchedAt": f_at
+                    }
+        except Exception:
+            pass
+        finally:
+            conn.close()
+
     now = time.time()
     pagination = data.get("pagination") or {}
     result = {
@@ -1731,7 +1773,15 @@ def validate_unlisted(company_id: str, name: str = ""):
     return {"status": "verified", "reason": "Active on ASIC company register", **fields}
 
 
-_CONTACT_TITLES = ["Chief Executive Officer", "CEO", "Chief Financial Officer", "CFO", "Managing Director"]
+_CONTACT_TITLES = [
+    "Chief Executive Officer", "CEO", 
+    "Managing Director", "President",
+    "Founder", "Co-Founder",
+    "Chief Financial Officer", "CFO", 
+    "Chief Operating Officer", "COO",
+    "Chief Technology Officer", "CTO",
+    "General Manager"
+]
 _CONTACTS_CACHE_TTL = 30 * 86400  # contact/title changes are rare — 30 days is fine
 
 
@@ -1749,13 +1799,30 @@ def _is_decision_maker_title(title: str) -> bool:
 
 def _contact_title_rank(title: str) -> int:
     t = (title or "").lower()
+    
+    # 1. CEO / Chief Executive
     if "chief executive" in t or t.strip() == "ceo":
         return 0
-    if "chief financial" in t or t.strip() == "cfo":
+    # 2. Managing Director / President
+    if "managing director" in t or "president" in t:
         return 1
-    if "managing director" in t:
+    # 3. Founder / Co-Founder
+    if "founder" in t:
         return 2
-    return 3
+    # 4. CFO / Chief Financial
+    if "chief financial" in t or t.strip() == "cfo":
+        return 3
+    # 5. COO / Chief Operating
+    if "chief operating" in t or t.strip() == "coo":
+        return 4
+    # 6. CTO / Chief Technology
+    if "chief technology" in t or t.strip() == "cto":
+        return 5
+    # 7. General Manager
+    if "general manager" in t or t.strip() == "gm":
+        return 6
+        
+    return 99
 
 
 @app.get("/api/unlisted/contacts/{org_id}")
@@ -1779,7 +1846,7 @@ def find_contacts(org_id: str):
     finally:
         conn.close()
     if row and (time.time() - row[1]) < _CONTACTS_CACHE_TTL:
-        return {"contacts": json.loads(row[0]), "fromCache": True}
+        return {"contacts": json.loads(row[0]), "fromCache": True, "fetchedAt": row[1]}
 
     headers = {"X-Api-Key": api_key, "Cache-Control": "no-cache"}
     try:
@@ -1811,7 +1878,7 @@ def find_contacts(org_id: str):
             conn.commit()
         finally:
             conn.close()
-        return {"contacts": [], "fromCache": False}
+        return {"contacts": [], "fromCache": False, "fetchedAt": now}
 
     contacts = []
     enrich_failed = False
@@ -1839,12 +1906,20 @@ def find_contacts(org_id: str):
             continue
         if not person.get("name"):
             continue
+            
+        phones = []
+        for phone in person.get("phone_numbers", []):
+            num = phone.get("sanitized_number") or phone.get("raw_number")
+            if num and num not in phones:
+                phones.append(num)
+                
         contacts.append({
             "name": person["name"],
             "title": c.get("title") or person.get("title") or "",
             "email": person.get("email"),
             "emailStatus": person.get("email_status"),
             "linkedinUrl": person.get("linkedin_url"),
+            "phoneNumbers": phones,
         })
 
     if not contacts and enrich_failed:
@@ -1867,7 +1942,7 @@ def find_contacts(org_id: str):
     finally:
         conn.close()
 
-    return {"contacts": contacts, "fromCache": False}
+    return {"contacts": contacts, "fromCache": False, "fetchedAt": now}
 
 
 

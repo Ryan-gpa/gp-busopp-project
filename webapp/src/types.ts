@@ -144,6 +144,13 @@ export const RENDER_STATUS_ORDER: RenderStatus[] = [
   "Unverified"
 ]
 
+export type ContactFetchState = {
+  status: "loading" | "done" | "error"
+  contacts?: any[]
+  error?: string
+  fetchedAt?: number
+}
+
 export interface UnlistedCompany {
   id: string;
   name: string;
@@ -156,6 +163,8 @@ export interface UnlistedCompany {
   employeeCountSource?: 'manual_research' | 'apollo_estimate';
   dataSource?: 'apollo' | 'linkedin' | 'web' | 'other';
   contacts?: { name: string; title: string; linkedin_url?: string }[];
+  has_cached_contacts?: boolean;
+  prefetched_contact_fetch?: ContactFetchState;
   _asx_exclusion_reason?: string
   infringementNotices?: InfringementNotice[];
 }
