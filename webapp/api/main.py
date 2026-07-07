@@ -1149,18 +1149,8 @@ async def unlisted_search(body: dict):
         except ValueError:
             rev_val = 0
             
-        # Apply local filtering to respect UI inputs (since Apollo ignores them)
-        try:
-            r_min = float(revenue_min) if revenue_min is not None else None
-            r_max = float(revenue_max) if revenue_max is not None else None
-        except ValueError:
-            r_min, r_max = None, None
-            
-        if r_min is not None and rev_val < r_min:
-            continue
-        if r_max is not None and rev_val > r_max:
-            continue
-            
+        # Do not strictly skip anything based on local values anymore, 
+        # just place them in the correct tier based on estimated revenue
         if rev_val >= t1_min:
             tier1.append(org)
         elif rev_val >= t2_min:
