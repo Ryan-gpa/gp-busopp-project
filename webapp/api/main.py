@@ -1647,7 +1647,7 @@ async def unlisted_search(body: dict):
         else:
             query += " AND status = 'REGD'" if asic_status_filter == "verified" else " AND status != 'REGD'"
 
-    query += " LIMIT 500"
+    query += " LIMIT 5000"
     
     import sqlite3
     conn = sqlite3.connect(str(db_path))
@@ -2340,6 +2340,18 @@ def system_status():
 # ── Serve built Vite frontend (production only) ──────────────────────────────
 # In development, Vite's dev server handles the frontend.
 # In production (Docker / Railway), the built files live at webapp/dist.
+
+from fastapi.responses import FileResponse
+import os
+
+@app.get("/api/admin/download-db")
+def download_unified_db():
+    """Download the raw unified database."""
+    db_path = DATA_DIR / "unified_companies.db"
+    if not db_path.exists():
+        from fastapi import HTTPException
+        raise HTTPException(404, "Database not found or still building.")
+    return FileResponse(db_path, filename="unified_companies.db")
 
 _FRONTEND_DIR = (HERE / "../dist").resolve()
 
