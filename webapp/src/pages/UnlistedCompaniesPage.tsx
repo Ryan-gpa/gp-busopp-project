@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, AlertCircle, Rocket, Landmark, ShieldAlert, ChevronUp, ChevronDown, ChevronsUpDown, ExternalLink } from "lucide-react"
+import { CheckCircle2, AlertCircle, Rocket, Landmark, ShieldAlert, Telescope, ChevronUp, ChevronDown, ChevronsUpDown, ExternalLink } from "lucide-react"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
 
 // Every field ASIC actually publishes for a matched company (see the
@@ -271,6 +271,30 @@ export default function UnlistedCompaniesPage() {
       </div>
     ) : null
 
+  const renderRocketReachIcon = () => (
+    <div title="Contact data sourced from RocketReach" className="inline-flex items-center justify-center p-1 bg-teal-50 text-teal-700 rounded-full mr-1">
+      <Telescope className="h-3 w-3" />
+    </div>
+  )
+
+  // Small per-contact source markers: Apollo rocket, RocketReach telescope,
+  // or both for a merged record (e.g. name from Apollo, email filled by
+  // RocketReach). Contacts saved before source-tagging existed default to
+  // Apollo — everything predating RocketReach came from there.
+  const renderContactSourceIcons = (source?: string) => {
+    const s = source || "apollo"
+    return (
+      <span className="inline-flex items-center gap-0.5 ml-1.5 align-middle">
+        {s.includes("apollo") && (
+          <Rocket className="h-3 w-3 text-indigo-500" aria-label="Sourced from Apollo" />
+        )}
+        {s.includes("rocketreach") && (
+          <Telescope className="h-3 w-3 text-teal-600" aria-label="Sourced from RocketReach" />
+        )}
+      </span>
+    )
+  }
+
   const renderValidationBadge = (status?: string) => {
     switch (status) {
       case 'verified':
@@ -312,6 +336,9 @@ export default function UnlistedCompaniesPage() {
     const valInfo = validationStatuses[company.id]
     const asicExpanded = !!expandedAsic[company.id]
     const asicDetailFields = valInfo ? ASIC_FIELD_LABELS.filter(([key]) => valInfo[key]) : []
+    const hasRocketReachData = (contactFetches[company.id]?.contacts || []).some(
+      (c: any) => (c.source || "").includes("rocketreach")
+    )
 
     const employeeDisplay = company.linkedin_employee_count
       ? (
@@ -329,6 +356,7 @@ export default function UnlistedCompaniesPage() {
         <td className="p-4">
           <div className="font-medium text-gray-900 flex items-center">
             {renderSourceIcon()}
+            {hasRocketReachData && renderRocketReachIcon()}
             {renderAsicIcon(valInfo?.status)}
             {renderInfringementIcon(company.infringementNotices?.length || 0)}
             {company.name}
@@ -463,6 +491,7 @@ export default function UnlistedCompaniesPage() {
                     {fetchState.contacts.map((c, i) => (
                       <div key={i} className="text-sm">
                         <span className="font-medium text-gray-900">{c.name}</span>
+                        {renderContactSourceIcons(c.source)}
                         <span className="text-gray-500 ml-2">{c.title}</span>
                         {c.email && (
                           <div className="text-xs text-gray-500">

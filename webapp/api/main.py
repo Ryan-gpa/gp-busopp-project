@@ -1956,6 +1956,125 @@ def _contact_title_rank(title: str) -> int:
     return 99
 
 
+# ── RocketReach (secondary contact source) ──────────────────────────────────
+# Used only when Apollo comes up dry or nameless-emailless, and only if a
+# ROCKETREACH_API_KEY env var is configured. Same two-step model as Apollo:
+# person/search returns candidates without contact info (free), person/lookup
+# reveals emails/phones and consumes RocketReach export credits. All failures
+# here are soft — this is a supplement, never a blocker.
+# NOTE: response-shape handling below is built from RocketReach's docs
+# (docs.rocketreach.co) but has NOT been verified against a live key yet —
+# treat the first real run as the integration test.
+_ROCKETREACH_API_KEY_ENV = "ROCKETREACH_API_KEY"
+
+
+def _company_identity_for_org(org_id: str):
+    conn = _unlisted_cache_conn()
+    try:
+        row = conn.execute("SELECT name, domain FROM companies WHERE apollo_id = ?", (org_id,)).fetchone()
+    finally:
+        conn.close()
+    return (row[0], row[1]) if row else (None, None)
+
+
+def _rocketreach_find_contacts(company_name: str) -> list:
+    """Best-effort CEO/CFO lookup via RocketReach. Returns [] on any failure,
+    missing key, or no match — never raises."""
+    rr_key = os.environ.get(_ROCKETREACH_API_KEY_ENV)
+    if not rr_key or not company_name:
+        return []
+    try:
+        sr = requests.post(
+            "https://api.rocketreach.co/api/v2/person/search",
+            headers={"Api-Key": rr_key, "Content-Type": "application/json"},
+            timeout=20,
+            json={"query": {"current_employer": [f'"{company_name}"'], "current_title": _CONTACT_TITLES}, "page_size": 10},
+        )
+        sr.raise_for_status()
+        profiles = sr.json().get("profiles", [])
+    except Exception as e:
+        print(f"[rocketreach] search failed for {company_name!r}: {e}", file=sys.stderr)
+        return []
+
+    profiles = [p for p in profiles if _is_decision_maker_title(p.get("current_title"))]
+    profiles.sort(key=lambda p: _contact_title_rank(p.get("current_title")))
+
+    contacts = []
+    for p in profiles[:2]:  # same credit cap as the Apollo path
+        pid = p.get("id")
+        if not pid:
+            continue
+        try:
+            lr = requests.get(
+                "https://api.rocketreach.co/api/v2/person/lookup",
+                headers={"Api-Key": rr_key},
+                params={"id": pid},
+                timeout=30,
+            )
+            lr.raise_for_status()
+            person = lr.json()
+        except Exception as e:
+            print(f"[rocketreach] lookup failed for profile {pid}: {e}", file=sys.stderr)
+            continue
+        # Lookups can complete asynchronously; skip ones still resolving
+        # rather than caching a half-empty record.
+        status = (person.get("status") or "").lower()
+        if status and status not in ("complete", "completed", "done"):
+            continue
+        best_email, email_status = None, None
+        for e_ in person.get("emails") or []:
+            if isinstance(e_, dict):
+                if best_email is None or e_.get("type") == "professional":
+                    best_email = e_.get("email") or best_email
+                    email_status = e_.get("smtp_valid") or email_status
+            elif isinstance(e_, str) and best_email is None:
+                best_email = e_
+        phones = []
+        for ph in person.get("phones") or []:
+            num = ph.get("number") if isinstance(ph, dict) else ph
+            if num and num not in phones:
+                phones.append(num)
+        name = person.get("name") or p.get("name")
+        if not name:
+            continue
+        contacts.append({
+            "name": name,
+            "title": p.get("current_title") or person.get("current_title") or "",
+            "email": best_email,
+            "emailStatus": email_status,
+            "linkedinUrl": person.get("linkedin_url") or p.get("linkedin_url"),
+            "phoneNumbers": phones,
+            "source": "rocketreach",
+        })
+    return contacts
+
+
+def _merge_contact_sources(apollo_contacts: list, rr_contacts: list) -> list:
+    """Merge RocketReach results into Apollo's: same-name entries are combined
+    (RocketReach fills missing email/phones, source becomes both), new names
+    are appended."""
+    merged = list(apollo_contacts)
+    by_name = {(c.get("name") or "").strip().lower(): c for c in merged}
+    for rc in rr_contacts:
+        key = (rc.get("name") or "").strip().lower()
+        existing = by_name.get(key)
+        if existing:
+            filled = False
+            if not existing.get("email") and rc.get("email"):
+                existing["email"] = rc["email"]
+                existing["emailStatus"] = rc.get("emailStatus")
+                filled = True
+            if not existing.get("phoneNumbers") and rc.get("phoneNumbers"):
+                existing["phoneNumbers"] = rc["phoneNumbers"]
+                filled = True
+            if filled:
+                existing["source"] = "apollo+rocketreach"
+        else:
+            merged.append(rc)
+            by_name[key] = rc
+    return merged
+
+
 @app.get("/api/unlisted/contacts/{org_id}")
 def find_contacts(org_id: str):
     """Find CEO/CFO contacts for a company by Apollo organization id.
@@ -2001,16 +2120,20 @@ def find_contacts(org_id: str):
     candidates.sort(key=lambda p: _contact_title_rank(p.get("title")))
     top_candidates = candidates[:2]  # cap real credit spend: at most 2 reveals per company
 
-    # Genuinely no candidates at all — a real, cacheable "nobody found" result.
+    company_name, _company_domain = _company_identity_for_org(org_id)
+
+    # No Apollo candidates at all — try RocketReach before concluding
+    # "nobody found"; whatever the answer, it's cacheable.
     if not top_candidates:
+        rr_contacts = _rocketreach_find_contacts(company_name)
         now = time.time()
         conn = _unlisted_cache_conn()
         try:
-            conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, "[]", now))
+            conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, json.dumps(rr_contacts), now))
             conn.commit()
         finally:
             conn.close()
-        return {"contacts": [], "fromCache": False, "fetchedAt": now}
+        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now}
 
     contacts = []
     enrich_failed = False
@@ -2053,16 +2176,35 @@ def find_contacts(org_id: str):
             "emailStatus": person.get("email_status"),
             "linkedinUrl": person.get("linkedin_url"),
             "phoneNumbers": phones,
+            "source": "apollo",
         })
 
     if not contacts and enrich_failed:
-        # Real candidates existed but every reveal call failed — do not cache
-        # this as "no contacts found." Surface it as an actual error instead.
+        # Every Apollo reveal failed (usually exhausted lead credits) —
+        # RocketReach can still save the request if it's configured.
+        rr_contacts = _rocketreach_find_contacts(company_name)
+        if rr_contacts:
+            now = time.time()
+            conn = _unlisted_cache_conn()
+            try:
+                conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, json.dumps(rr_contacts), now))
+                conn.commit()
+            finally:
+                conn.close()
+            return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now}
+        # Do not cache the failure as "no contacts found." Surface it.
         raise HTTPException(
             502,
             f"Found {len(top_candidates)} candidate(s) but couldn't reveal them "
             "(Apollo lead credits may be exhausted — check Settings > Plans/Billing).",
         )
+
+    # Apollo found people but no usable contact info (the "names but no
+    # email or phone" case) — let RocketReach fill the gaps or add people.
+    if contacts and not any(c.get("email") or c.get("phoneNumbers") for c in contacts):
+        rr_contacts = _rocketreach_find_contacts(company_name)
+        if rr_contacts:
+            contacts = _merge_contact_sources(contacts, rr_contacts)
 
     now = time.time()
     conn = _unlisted_cache_conn()
@@ -2115,7 +2257,7 @@ def export_contacts_csv():
                 "; ".join(c.get("phoneNumbers") or []),
                 c.get("linkedinUrl") or "",
                 c.get("emailStatus") or "",
-                "Apollo via Unlisted Companies tool",
+                f"{(c.get('source') or 'apollo').replace('+', ' + ').title()} via Unlisted Companies tool",
                 acquired,
             ])
 
