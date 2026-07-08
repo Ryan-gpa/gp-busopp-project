@@ -62,8 +62,6 @@ export default function StatusPage() {
 
   const udbEmoji = udb?.building ? "🟡" : (udb?.exists ? "🟢" : "🔴")
   const infEmoji = inf?.exists ? "🟢" : "🟡"
-  const apolloRateOk = apollo?.configured && !apollo.rate_limited
-  const apolloCreditsOk = apollo?.configured && !apollo.credits_exhausted
   const apolloEmoji = !apollo?.configured ? "🔴" : apollo.credits_exhausted ? "🟡" : apollo.rate_limited ? "🟡" : "🟢"
   const rrEmoji = rr?.configured ? "🟢" : "🟡"
 
