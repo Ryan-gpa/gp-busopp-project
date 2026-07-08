@@ -56,21 +56,52 @@ export default function StatusPage() {
   const apolloEmoji = !apollo?.configured ? "🔴" : (apollo.rate_limited || apollo.credits_exhausted ? "🟡" : "🟢")
   const rrEmoji = rr?.configured ? "🟢" : "🟡"
 
+  let pulseMessage = "All systems operational. Ready to search."
+  let pulseColor = "text-emerald-700"
+
+  if (error) {
+    pulseMessage = `Backend is unreachable (${error}). Please check if the Railway server is running or deploying.`
+    pulseColor = "text-red-700 font-bold"
+  } else if (udb?.building || asic?.building) {
+    pulseMessage = "Database is building in the background. Searches may fail or return blank pages. Please wait 2-5 minutes."
+    pulseColor = "text-amber-700 font-bold"
+  } else if (!udb?.exists || !asic?.exists) {
+    pulseMessage = "Core databases are missing. Try restarting the server to trigger a background build."
+    pulseColor = "text-red-700 font-bold"
+  } else if (!apollo?.configured) {
+    pulseMessage = "Apollo API is not configured. Searches will fail. Add APOLLO_API_KEY to your environment."
+    pulseColor = "text-red-700 font-bold"
+  } else if (apollo?.credits_exhausted) {
+    pulseMessage = "Apollo lead credits exhausted. Fresh searches will fail until balance is topped up."
+    pulseColor = "text-red-700 font-bold"
+  } else if (apollo?.rate_limited) {
+    pulseMessage = "Apollo hourly rate limit reached. Searches will serve from local cache until the hour resets."
+    pulseColor = "text-amber-700 font-bold"
+  } else if (!rr?.configured) {
+    pulseMessage = "All primary systems operational. (Note: RocketReach fallback is disabled)."
+    pulseColor = "text-emerald-700"
+  }
+
   return (
-    <div className="flex flex-wrap items-center gap-6 text-sm font-medium mb-6 bg-gray-50 p-3 rounded-lg border">
-      <div>Unified DB {udbEmoji}</div>
-      <div>Raw ASIC {asicEmoji}</div>
-      <div>Infringements {infEmoji}</div>
-      <div className="flex items-center gap-2">
-        Apollo API {apolloEmoji}
-        {apollo?.configured && apollo.hourly_left != null && (
-          <span className="text-xs text-gray-500 font-normal">
-            ({apollo.hourly_left}/{apollo.hourly_limit} calls left)
-          </span>
-        )}
+    <div className="flex flex-col gap-2 mb-6 bg-gray-50 p-4 rounded-lg border">
+      <div className="flex flex-wrap items-center gap-6 text-sm font-medium">
+        <div>Unified DB {udbEmoji}</div>
+        <div>Raw ASIC {asicEmoji}</div>
+        <div>Infringements {infEmoji}</div>
+        <div className="flex items-center gap-2">
+          Apollo API {apolloEmoji}
+          {apollo?.configured && apollo.hourly_left != null && (
+            <span className="text-xs text-gray-500 font-normal">
+              ({apollo.hourly_left}/{apollo.hourly_limit} calls left)
+            </span>
+          )}
+        </div>
+        <div>RocketReach {rrEmoji}</div>
+        {error && <div className="text-red-600 ml-auto flex items-center gap-1">Backend Error 🔴</div>}
       </div>
-      <div>RocketReach {rrEmoji}</div>
-      {error && <div className="text-red-600 ml-auto flex items-center gap-1">Backend Error 🔴</div>}
+      <div className={`text-sm mt-1 ${pulseColor}`}>
+        <span className="font-semibold mr-1">Pulse Check:</span> {pulseMessage}
+      </div>
     </div>
   )
 }
