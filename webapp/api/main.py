@@ -1148,7 +1148,7 @@ _ASIC_DATASET_API = "https://data.gov.au/data/api/3/action/package_show?id=asic-
 # dates, ABN, previous state, etc.), not just name/acn/type/status. New
 # filename so any pre-existing v1 file (fewer columns) is never queried
 # against the new SELECT — it's just orphaned and a fresh build replaces it.
-_ASIC_DB_PATH = DATA_DIR / "asic_register_v2.sqlite3"
+_ASIC_DB_PATH = DATA_DIR / "unified_companies.db"
 _ASIC_REFRESH_TTL = 7 * 86400  # ASIC republishes the snapshot weekly
 _asic_build_lock = threading.Lock()
 _asic_building = False
@@ -1157,105 +1157,6 @@ _asic_building = False
 def _asic_db_is_fresh() -> bool:
     return _ASIC_DB_PATH.exists() and (time.time() - _ASIC_DB_PATH.stat().st_mtime) < _ASIC_REFRESH_TTL
 
-
-def _resolve_asic_zip_url() -> str:
-    """Ask data.gov.au's CKAN API for this week's company register download link (filename changes monthly)."""
-    req = urllib.request.Request(_ASIC_DATASET_API, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        meta = json.loads(r.read().decode("utf-8"))
-    zips = [res for res in meta["result"]["resources"] if (res.get("format") or "").upper() == "ZIP"]
-    if not zips:
-        raise RuntimeError("No ZIP resource found in ASIC company dataset metadata")
-    return zips[0]["url"]
-
-
-# Every field ASIC actually publishes in the bulk extract (see the dataset's
-# own help file: https://data.gov.au/data/dataset/asic-companies). Order here
-# is the CSV's real column order — kept in sync deliberately.
-_ASIC_CSV_COLUMNS = [
-    "Company Name", "ACN", "Type", "Class", "Sub Class", "Status",
-    "Date of Registration", "Date of Deregistration",
-    "Previous State of Registration", "State Registration number",
-    "Modified since last report", "Current Name Indicator", "ABN",
-    "Current Name", "Current Name Start Date",
-]
-_ASIC_DB_COLUMNS = [
-    "name_norm", "name", "acn", "type", "class", "sub_class", "status",
-    "date_of_registration", "date_of_deregistration", "previous_state",
-    "state_registration_number", "modified_since_last_report",
-    "current_name_indicator", "abn", "current_name", "current_name_start_date",
-]
-
-
-def _build_asic_register_db():
-    """Download the current ASIC company register snapshot and index every published field in SQLite."""
-    global _asic_building
-    _asic_building = True
-    
-    lock_path = DATA_DIR / ".building.lock"
-    if lock_path.exists():
-        # Another worker is already building
-        return
-    lock_path.touch()
-    
-    try:
-        print("[asic] Refreshing company register index (~1-2 min, ~3M rows)...", file=sys.stderr)
-        url = _resolve_asic_zip_url()
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            zip_bytes = io.BytesIO(resp.read())
-
-        tmp_path = _ASIC_DB_PATH.with_suffix(".building.sqlite3")
-        if tmp_path.exists():
-            tmp_path.unlink()
-        
-        # CRITICAL: Also delete the journal file, or SQLite will try to recover the deleted database and crash!
-        journal_path = _ASIC_DB_PATH.with_suffix(".building.sqlite3-journal")
-        if journal_path.exists():
-            journal_path.unlink()
-
-        conn = sqlite3.connect(str(tmp_path))
-        conn.execute(f"CREATE TABLE companies ({', '.join(c + ' TEXT' for c in _ASIC_DB_COLUMNS)})")
-        placeholders = ",".join("?" * len(_ASIC_DB_COLUMNS))
-
-        row_count = 0
-        with zipfile.ZipFile(zip_bytes) as zf:
-            csv_name = next(n for n in zf.namelist() if n.lower().endswith(".csv"))
-            with zf.open(csv_name) as raw:
-                text = io.TextIOWrapper(raw, encoding="utf-8-sig", errors="replace")
-                reader = csv.reader(text, delimiter="\t")
-                header = next(reader)
-                idx = {h.strip(): i for i, h in enumerate(header)}
-                col_indices = [idx[c] for c in _ASIC_CSV_COLUMNS]
-                need = max(col_indices)
-                batch = []
-                for row in reader:
-                    if len(row) <= need:
-                        continue
-                    name = row[idx["Company Name"]].strip()
-                    if not name:
-                        continue
-                    norm = normalize_company_name(name)
-                    if not norm:
-                        continue
-                    values = tuple(row[i].strip() for i in col_indices)
-                    batch.append((norm,) + values)
-                    row_count += 1
-                    if len(batch) >= 20000:
-                        conn.executemany(f"INSERT INTO companies VALUES ({placeholders})", batch)
-                        batch = []
-                if batch:
-                    conn.executemany(f"INSERT INTO companies VALUES ({placeholders})", batch)
-
-        conn.execute("CREATE INDEX idx_name_norm ON companies(name_norm)")
-        conn.commit()
-        conn.close()
-        tmp_path.replace(_ASIC_DB_PATH)
-        print(f"[asic] Register index built: {row_count} rows", file=sys.stderr)
-    finally:
-        if lock_path.exists():
-            lock_path.unlink()
-        _asic_building = False
 
 
 def _ensure_asic_register_async():
@@ -1278,10 +1179,6 @@ def _ensure_asic_register_async():
     def _run():
         global _asic_building
         try:
-            if not _asic_db_is_fresh():
-                _build_asic_register_db()
-            
-            # Always ensure unified DB is built if it's missing or we just rebuilt the ASIC register
             print("[asic] Building unified companies DB...")
             import subprocess
             import sys
@@ -1303,13 +1200,13 @@ def _ensure_asic_register_async():
 
 
 def _asic_lookup(name: str) -> dict | None:
-    """Look up a company name against the ASIC register. Returns every published field, or None if no match / index not built yet."""
+    """Look up a company name against the ASIC register."""
     if not _ASIC_DB_PATH.exists():
         return None
     norm = normalize_company_name(name or "")
     if not norm:
         return None
-    fields = _ASIC_DB_COLUMNS[1:]  # everything except name_norm
+    fields = ["name", "acn", "type", "class", "subclass", "status", "state"]
     conn = sqlite3.connect(str(_ASIC_DB_PATH))
     try:
         cur = conn.execute(
@@ -1325,13 +1222,10 @@ def _asic_lookup(name: str) -> dict | None:
 
 
 def _asic_lookup_many(names: list) -> dict:
-    """Batched register lookup: normalized name -> record dict, one connection
-    for the whole result set instead of one per company. Empty dict when the
-    index isn't built yet — callers must treat that as 'join unavailable',
-    not 'nothing matched'."""
+    """Batched register lookup."""
     if not _ASIC_DB_PATH.exists():
         return {}
-    fields = _ASIC_DB_COLUMNS[1:]
+    fields = ["name", "acn", "type", "class", "subclass", "status", "state"]
     sql = f"SELECT {', '.join(fields)} FROM companies WHERE name_norm = ? ORDER BY (status = 'REGD') DESC LIMIT 1"
     out = {}
     conn = sqlite3.connect(str(_ASIC_DB_PATH))
@@ -1350,24 +1244,14 @@ def _asic_lookup_many(names: list) -> dict:
 
 
 def _asic_fields_to_api(match: dict) -> dict:
-    """ASIC register record -> the camelCased shape the frontend's
-    AsicValidation type expects (blank fields dropped), including the
-    verified/deregistered status the badges key off."""
+    """ASIC register record -> the camelCased shape the frontend's AsicValidation type expects."""
     fields = {
-        "matchedName": match["name"],
-        "acn": match["acn"],
-        "abn": match["abn"],
-        "asicType": match["type"],
-        "asicClass": match["class"],
-        "asicSubClass": match["sub_class"],
-        "dateOfRegistration": match["date_of_registration"],
-        "dateOfDeregistration": match["date_of_deregistration"],
-        "previousStateOfRegistration": match["previous_state"],
-        "stateRegistrationNumber": match["state_registration_number"],
-        "modifiedSinceLastReport": match["modified_since_last_report"],
-        "currentNameIndicator": match["current_name_indicator"],
-        "currentName": match["current_name"],
-        "currentNameStartDate": match["current_name_start_date"],
+        "matchedName": match.get("name"),
+        "acn": match.get("acn"),
+        "asicType": match.get("type"),
+        "asicClass": match.get("class"),
+        "asicSubClass": match.get("subclass"),
+        "stateRegistrationNumber": match.get("state"),
     }
     fields = {k: v for k, v in fields.items() if v}
     if match["status"] != "REGD":
