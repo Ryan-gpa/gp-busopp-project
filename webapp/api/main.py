@@ -1584,7 +1584,14 @@ async def unlisted_search(body: dict):
         organizations = [
             {"id": "mock1", "name": "Canva", "domain": "canva.com", "annual_revenue": 100000000, "estimated_num_employees": 3000},
             {"id": "mock2", "name": "Airwallex", "domain": "airwallex.com", "annual_revenue": 75000000, "estimated_num_employees": 1200},
-            {"id": "mock3", "name": "SafetyCulture", "domain": "safetyculture.com", "annual_reve        # --- NEW LOCAL ASIC DB SEARCH ---
+            {"id": "mock3", "name": "SafetyCulture", "domain": "safetyculture.com", "annual_revenue": 35000000, "estimated_num_employees": 600},
+            {"id": "mock4", "name": "Employment Hero", "domain": "employmenthero.com", "annual_revenue": 25000000, "estimated_num_employees": 800},
+            # This should be caught by the ASX exclusion filter (Commonwealth Bank of Australia)
+            {"id": "mock5", "name": "Commonwealth Bank of Australia", "domain": "commbank.com.au", "annual_revenue": 25000000000, "estimated_num_employees": 45000}
+        ]
+        data = {"organizations": organizations, "pagination": {"total_entries": 5, "total_pages": 1}}
+    else:
+        # --- NEW LOCAL ASIC DB SEARCH ---
         db_path = HERE / ".." / "companies.db"
         organizations = []
         discovery_source = "asic_db"
