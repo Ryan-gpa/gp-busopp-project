@@ -2214,6 +2214,25 @@ def export_contacts_csv():
     )
 
 
+@app.get("/api/admin/debug")
+def debug_info():
+    import os
+    env_vars = {
+        "DATA_DIR_env": os.environ.get("DATA_DIR"),
+        "RAILWAY_VOLUME_MOUNT_PATH_env": os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+    }
+    
+    try:
+        contents = os.listdir(DATA_DIR)
+    except Exception as e:
+        contents = str(e)
+        
+    return {
+        "resolved_DATA_DIR": str(DATA_DIR),
+        "env": env_vars,
+        "contents": contents
+    }
+
 @app.get("/api/admin/system-status")
 def system_status():
     status = {}
