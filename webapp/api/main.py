@@ -90,7 +90,7 @@ app.add_middleware(
 
 # Paths
 HERE = Path(__file__).parent
-DATA_DIR = Path(os.environ.get("DATA_DIR", HERE.parent))
+DATA_DIR = Path(os.environ.get("DATA_DIR", os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", HERE.parent)))
 KIT_DIR = (DATA_DIR / "disclosure-review-kit").resolve()
 OUTPUT_DIR = KIT_DIR / "output"
 

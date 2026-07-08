@@ -19,7 +19,7 @@ def normalize_company_name(name: str) -> str:
     return re.sub(r"\s+", " ", name).strip()
 
 def build_unified():
-    DATA_DIR = Path(os.environ.get("DATA_DIR", HERE.parent))
+    DATA_DIR = Path(os.environ.get("DATA_DIR", os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", HERE.parent)))
     asic_db_path = DATA_DIR / "asic_register_v2.sqlite3"
     cache_db_path = DATA_DIR / "unlisted_search_cache.sqlite3"
     infringements_path = DATA_DIR / "asic_infringement_notices.json"
