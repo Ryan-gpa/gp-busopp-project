@@ -2242,6 +2242,26 @@ def export_contacts_csv():
     )
 
 
+@app.post("/api/admin/rebuild-unified")
+def admin_rebuild_unified():
+    """Manually force a rebuild of the unified database."""
+    db_path = DATA_DIR / "unified_companies.db"
+    if db_path.exists():
+        db_path.unlink()
+    journal = db_path.with_suffix(".db-journal")
+    if journal.exists():
+        journal.unlink()
+    
+    lock_path = DATA_DIR / ".building.lock"
+    if lock_path.exists():
+        lock_path.unlink()
+        
+    global _asic_building
+    _asic_building = False
+    
+    _ensure_asic_register_async()
+    return {"status": "rebuilding", "message": "Unified DB deleted and rebuild triggered"}
+
 @app.get("/api/admin/debug")
 def debug_info():
     import os
