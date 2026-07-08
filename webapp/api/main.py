@@ -89,9 +89,11 @@ app.add_middleware(
 )
 
 # Paths
-HERE = Path(__file__).parent
-DATA_DIR = Path(os.environ.get("DATA_DIR", os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", HERE.parent)))
-KIT_DIR = (DATA_DIR / "disclosure-review-kit").resolve()
+_in_prod = os.environ.get("ENVIRONMENT") == "production"
+HERE = Path(__file__).parent.resolve()
+APP_ROOT = Path("/app") if _in_prod else (HERE / "../../").resolve()
+DATA_DIR = Path("/data") if _in_prod else (APP_ROOT / "data").resolve()
+KIT_DIR = (APP_ROOT / "disclosure-review-kit").resolve()
 OUTPUT_DIR = KIT_DIR / "output"
 
 # ASX public token (same one asx.com.au uses)
