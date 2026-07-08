@@ -344,11 +344,12 @@ export default function UnlistedCompaniesPage() {
   }
 
   const findContacts = async (companyId: string, source?: string) => {
+    const isRetry = contactFetches[companyId]?.status === "done"
     setContactFetches(prev => ({ ...prev, [companyId]: { status: "loading", source: source || "apollo" } }))
     try {
       const url = source
-        ? `${API_BASE}/api/unlisted/contacts/${companyId}?source=${source}`
-        : `${API_BASE}/api/unlisted/contacts/${companyId}`
+        ? `${API_BASE}/api/unlisted/contacts/${companyId}?source=${source}${isRetry ? '&force=true' : ''}`
+        : `${API_BASE}/api/unlisted/contacts/${companyId}${isRetry ? '?force=true' : ''}`
       const res = await fetch(url)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))

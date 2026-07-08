@@ -1977,7 +1977,7 @@ def _merge_contact_sources(apollo_contacts: list, rr_contacts: list) -> list:
 
 
 @app.get("/api/unlisted/contacts/{org_id}")
-def find_contacts(org_id: str, source: str = "auto"):
+def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     """Find CEO/CFO contacts for a company by Apollo organization id.
 
     Two Apollo calls, on demand only (never automatic for a whole result
@@ -1992,7 +1992,8 @@ def find_contacts(org_id: str, source: str = "auto"):
         ).fetchone()
     finally:
         conn.close()
-    if row and (time.time() - row[1]) < _CONTACTS_CACHE_TTL:
+    
+    if row and (time.time() - row[1]) < _CONTACTS_CACHE_TTL and not force:
         cached_data = json.loads(row[0])
         if cached_data:  # Ignore empty cached results ([]) to force re-fetch with new fuzzy logic
             return {"contacts": cached_data, "fromCache": True, "fetchedAt": row[1]}
