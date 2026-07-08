@@ -75,8 +75,8 @@ export default function StatusPage() {
     pulseMessage = "Apollo API is not configured. Searches will fail. Add APOLLO_API_KEY to your environment."
     pulseColor = "text-red-700 font-bold"
   } else if (apollo?.credits_exhausted) {
-    pulseMessage = "Apollo LEAD CREDITS are exhausted. (Note: This is your account export quota, not your hourly API rate limit). You must upgrade your Apollo plan to continue."
-    pulseColor = "text-red-700 font-bold"
+    pulseMessage = "Apollo LEAD CREDITS are exhausted. You can still search the local ASIC database, but fetching new CEO/CFO contacts will fail until you upgrade your plan."
+    pulseColor = "text-amber-600 font-bold"
   } else if (apollo?.rate_limited) {
     pulseMessage = "Apollo hourly API rate limit reached. Searches will serve from local cache until the hour resets."
     pulseColor = "text-amber-700 font-bold"
