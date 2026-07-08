@@ -805,11 +805,11 @@ export default function UnlistedCompaniesPage() {
               )}
               <div className="text-xs mt-1">
                 &rarr; {results.tier1.length} in Tier 1, {results.tier2.length} in Tier 2
-                {results.excludedUnderMin.length > 0 && ` · ${results.excludedUnderMin.length} below Revenue Min`}
-                {results.excludedOverMax.length > 0 && ` · ${results.excludedOverMax.length} above Revenue Max`}
-                {results.excludedIncompleteData.length > 0 && ` · ${results.excludedIncompleteData.length} no revenue/employee data`}
+                {(results.excludedUnderMin?.length || 0) > 0 && ` · ${results.excludedUnderMin.length} below Revenue Min`}
+                {(results.excludedOverMax?.length || 0) > 0 && ` · ${results.excludedOverMax.length} above Revenue Max`}
+                {(results.excludedIncompleteData?.length || 0) > 0 && ` · ${results.excludedIncompleteData.length} no revenue/employee data`}
                 {(results.excludedNotOnAsic?.length || 0) > 0 && ` · ${results.excludedNotOnAsic!.length} not on ASIC register`}
-                {results.excludedAsxMatches.length > 0 && ` · ${results.excludedAsxMatches.length} ASX-listed`}
+                {(results.excludedAsxMatches?.length || 0) > 0 && ` · ${results.excludedAsxMatches!.length} ASX-listed`}
               </div>
             </div>
           )}
