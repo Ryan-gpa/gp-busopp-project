@@ -34,6 +34,8 @@ def build_unified():
         
     conn = sqlite3.connect(str(unified_db_path))
     c = conn.cursor()
+    c.execute("PRAGMA temp_store = FILE")
+    c.execute("PRAGMA cache_size = -10000") # 10MB cache max
     
     c.execute("""
         CREATE TABLE companies (
@@ -60,20 +62,35 @@ def build_unified():
     # 1. Attach ASIC DB
     c.execute(f"ATTACH DATABASE '{asic_db_path}' AS asic")
     
-    print("Importing ASIC companies...")
-    c.execute("""
-        INSERT OR IGNORE INTO companies (
-            acn, name, name_norm, status, type, class, subclass, state, 
-            is_large_prop, has_infringement, revenue, employees, has_contacts
-        )
-        SELECT 
-            acn, name, name_norm, status, type, class, sub_class, state_registration_number,
-            CASE WHEN class IN ('APTY', 'LMSH', 'PROP') THEN 1 ELSE 0 END,
-            0, NULL, NULL, 0
-        FROM asic.companies
-    """)
+    print("Importing ASIC companies in chunks...")
     
-    conn.commit()
+    offset = 0
+    chunk_size = 200000
+    while True:
+        c.execute(f"""
+            INSERT OR IGNORE INTO companies (
+                acn, name, name_norm, status, type, class, subclass, state, 
+                is_large_prop, has_infringement, revenue, employees, has_contacts
+            )
+            SELECT 
+                acn, name, name_norm, status, type, class, sub_class, state_registration_number,
+                CASE WHEN class IN ('APTY', 'LMSH', 'PROP') THEN 1 ELSE 0 END,
+                0, NULL, NULL, 0
+            FROM asic.companies
+            LIMIT {chunk_size} OFFSET {offset}
+        """)
+        
+        # We can't rely on rowcount for INSERT ... SELECT in all SQLite versions to indicate end,
+        # but since we're selecting from a table with a fixed size, we could check if rowcount < chunk_size.
+        # Even safer: just query the chunk size directly.
+        c.execute(f"SELECT count(*) FROM (SELECT 1 FROM asic.companies LIMIT {chunk_size} OFFSET {offset})")
+        found = c.fetchone()[0]
+        
+        conn.commit()
+        
+        if found < chunk_size:
+            break
+        offset += chunk_size
     
     # 2. Add Infringements
     print("Applying infringements...")
