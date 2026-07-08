@@ -102,10 +102,6 @@ export default function UnlistedCompaniesPage() {
     setValidationStatuses({})
     setContactFetches({})
     setExpandedInfringements({})
-    setOnlyInfringements(false)
-    setOnlyProprietary(false)
-    setOnlyWithContacts(false)
-    setAsicStatusFilter("all")
     setTier1Page(1)
     setTier2Page(1)
   }
