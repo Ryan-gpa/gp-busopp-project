@@ -2359,7 +2359,7 @@ def purge_old_dbs():
     """Delete legacy DB files to free disk space before a fresh build."""
     deleted = []
     freed_mb = 0
-    for old_name in ["asic_register_v2.sqlite3", "asic_register.sqlite3", "asic_register_v2.building.sqlite3"]:
+    for old_name in ["asic_register_v2.sqlite3", "asic_register.sqlite3", "asic_register_v2.building.sqlite3", "unified_companies.building.sqlite3"]:
         p = DATA_DIR / old_name
         if p.exists():
             size_mb = round(p.stat().st_size / (1024*1024), 1)

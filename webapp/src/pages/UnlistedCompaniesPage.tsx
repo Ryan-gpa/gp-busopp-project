@@ -700,15 +700,32 @@ export default function UnlistedCompaniesPage() {
             >
               <Landmark className="h-3.5 w-3.5 mr-1.5" /> ASIC Infringement List (118)
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(`${API_BASE}/api/admin/download-db`, "_blank")}
-              title="Download the entire 4.4M row SQLite database for local analysis"
-            >
-              <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Download Full DB
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open(`${API_BASE}/api/admin/download-db`, "_blank")}
+                title="Download the entire 4.4M row SQLite database for local analysis"
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Download DB
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${API_BASE}/api/admin/purge-old-dbs`, { method: "POST" });
+                    const data = await res.json();
+                    alert(`Purged ${data.freed_mb}MB from disk.\nDeleted: ${data.deleted.join(', ')}`);
+                  } catch (e) {
+                    alert('Purge failed');
+                  }
+                }}
+                title="Purge temporary building databases to free up disk space"
+              >
+                Purge Old DBs
+              </Button>
+            </div>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-6 p-4 bg-muted/20 border rounded-md">
