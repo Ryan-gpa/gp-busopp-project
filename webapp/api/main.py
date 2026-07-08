@@ -1981,7 +1981,9 @@ def find_contacts(org_id: str, source: str = "auto"):
     finally:
         conn.close()
     if row and (time.time() - row[1]) < _CONTACTS_CACHE_TTL:
-        return {"contacts": json.loads(row[0]), "fromCache": True, "fetchedAt": row[1]}
+        cached_data = json.loads(row[0])
+        if cached_data:  # Ignore empty cached results ([]) to force re-fetch with new fuzzy logic
+            return {"contacts": cached_data, "fromCache": True, "fetchedAt": row[1]}
 
     # If user explicitly requested RocketReach — go straight there regardless of org_id prefix
     if source == "rocketreach":
