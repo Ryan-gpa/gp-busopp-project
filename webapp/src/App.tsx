@@ -5,6 +5,7 @@ import ResultsPage from "@/pages/ResultsPage"
 import VotesPage from "@/pages/VotesPage"
 import AuditPage from "@/pages/AuditPage"
 import UnlistedCompaniesPage from "@/pages/UnlistedCompaniesPage"
+import StatusPage from "@/pages/StatusPage"
 import UserIdentityModal from "@/components/app/UserIdentityModal"
 import { getCurrentUser, saveCurrentUser } from "@/lib/identity"
 import type { CurrentUser } from "@/types"
@@ -19,15 +20,21 @@ function AppNavigation() {
   if (location.pathname === "/votes" || location.pathname === "/audit") return null
   
   const isUnlisted = location.pathname.startsWith("/unlisted")
-  const value = isUnlisted ? "unlisted" : "disclosure"
+  const isStatus = location.pathname.startsWith("/status")
+  const value = isStatus ? "status" : (isUnlisted ? "unlisted" : "disclosure")
   
   return (
     <div className="bg-white border-b border-border pt-4">
       <div className="container mx-auto px-4">
-        <Tabs value={value} onValueChange={(val) => navigate(val === "unlisted" ? "/unlisted" : "/")}>
+        <Tabs value={value} onValueChange={(val) => {
+          if (val === "status") navigate("/status")
+          else if (val === "unlisted") navigate("/unlisted")
+          else navigate("/")
+        }}>
           <TabsList className="bg-transparent space-x-6 border-b-0">
             <TabsTrigger value="disclosure" className="text-base pb-3">Disclosure Review</TabsTrigger>
             <TabsTrigger value="unlisted" className="text-base pb-3">Unlisted Companies</TabsTrigger>
+            <TabsTrigger value="status" className="text-base pb-3">System Status</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -61,6 +68,7 @@ export default function App() {
         <Route path="/votes" element={<VotesPage />} />
         <Route path="/audit" element={<AuditPage />} />
         <Route path="/unlisted" element={<UnlistedCompaniesPage />} />
+        <Route path="/status" element={<StatusPage />} />
       </Routes>
     </BrowserRouter>
   )
