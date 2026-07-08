@@ -1551,34 +1551,16 @@ async def unlisted_search(body: dict):
     company_name = body.get("companyName")
 
     query_hash = _unlisted_query_hash(revenue_min, revenue_max, locations, company_name)
-    cached = _unlisted_cache_get(query_hash)
-    if cached:
-        cached_result, fetched_at = cached
-        # Annotate cached search results with up-to-date contacts_cache flags
-        org_ids = [org.get("id") for org in cached_result.get("tier1", []) + cached_result.get("tier2", []) if org.get("id")]
-        if org_ids:
-            conn = _unlisted_cache_conn()
-            try:
-                placeholders = ",".join("?" for _ in org_ids)
-                rows = conn.execute(f"SELECT org_id, contacts_json, fetched_at FROM contacts_cache WHERE org_id IN ({placeholders}) AND contacts_json != '[]'", org_ids).fetchall()
-                cached_contact_orgs = {row[0]: (row[1], row[2]) for row in rows}
-                for org in cached_result.get("tier1", []) + cached_result.get("tier2", []):
-                    if org.get("id") in cached_contact_orgs:
-                        c_json, f_at = cached_contact_orgs[org.get("id")]
-                        org["prefetched_contact_fetch"] = {
-                            "status": "done",
-                            "contacts": json.loads(c_json),
-                            "fetchedAt": f_at
-                        }
-            except Exception:
-                pass
-            finally:
-                conn.close()
-        
-        return {**cached_result, "fetchedAt": fetched_at, "fromCache": True}
-
-    api_key = os.environ.get("APOLLO_API_KEY")
     
+    # [HOTFIX] Disable Apollo search caching. We are now querying the local 
+    # SQLite ASIC database which is instant, so we don't need to cache the results.
+    # This also prevents stale Apollo results from ruining the UX.
+    cached = None
+    
+    if cached:
+        pass
+        
+    api_key = os.environ.get("APOLLO_API_KEY")
     if not api_key:
         # Mock payload so the UI can be tested without an API key
         organizations = [
