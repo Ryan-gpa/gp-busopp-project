@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, AlertCircle, Rocket, Landmark, ShieldAlert, Telescope, ChevronUp, ChevronDown, ChevronsUpDown, ExternalLink } from "lucide-react"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
+import StatusPage from "@/pages/StatusPage"
 
 // Every field ASIC actually publishes for a matched company (see the
 // dataset's help file on data.gov.au) — blank ones are omitted by the backend.
@@ -637,6 +638,17 @@ export default function UnlistedCompaniesPage() {
       <div>
         <h1 className="text-3xl font-heading font-semibold text-navy-deep">Unlisted Companies</h1>
         <p className="text-muted-foreground mt-2">Find large Australian proprietary companies as GP business-development prospects.</p>
+      </div>
+
+      <div className="bg-gray-50 border rounded-xl p-4 shadow-sm mb-8">
+        <details>
+          <summary className="cursor-pointer font-medium text-gray-700 flex items-center gap-2">
+            System Status Indicators
+          </summary>
+          <div className="mt-4 bg-white border rounded-lg p-4 max-h-96 overflow-y-auto">
+            <StatusPage />
+          </div>
+        </details>
       </div>
 
       {apolloStatus?.configured && apolloStatus.creditsExhausted && (

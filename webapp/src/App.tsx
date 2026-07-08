@@ -20,21 +20,15 @@ function AppNavigation() {
   if (location.pathname === "/votes" || location.pathname === "/audit") return null
   
   const isUnlisted = location.pathname.startsWith("/unlisted")
-  const isStatus = location.pathname.startsWith("/status")
-  const value = isStatus ? "status" : (isUnlisted ? "unlisted" : "disclosure")
+  const value = isUnlisted ? "unlisted" : "disclosure"
   
   return (
     <div className="bg-white border-b border-border pt-4">
       <div className="container mx-auto px-4">
-        <Tabs value={value} onValueChange={(val) => {
-          if (val === "status") navigate("/status")
-          else if (val === "unlisted") navigate("/unlisted")
-          else navigate("/")
-        }}>
+        <Tabs value={value} onValueChange={(val) => navigate(val === "unlisted" ? "/unlisted" : "/")}>
           <TabsList className="bg-transparent space-x-6 border-b-0">
             <TabsTrigger value="disclosure" className="text-base pb-3">Disclosure Review</TabsTrigger>
             <TabsTrigger value="unlisted" className="text-base pb-3">Unlisted Companies</TabsTrigger>
-            <TabsTrigger value="status" className="text-base pb-3">System Status</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
