@@ -75,10 +75,10 @@ export default function StatusPage() {
     pulseMessage = "Apollo API is not configured. Searches will fail. Add APOLLO_API_KEY to your environment."
     pulseColor = "text-red-700 font-bold"
   } else if (apollo?.credits_exhausted) {
-    pulseMessage = "Apollo lead credits exhausted. Fresh searches will fail until balance is topped up."
+    pulseMessage = "Apollo LEAD CREDITS are exhausted. (Note: This is your account export quota, not your hourly API rate limit). You must upgrade your Apollo plan to continue."
     pulseColor = "text-red-700 font-bold"
   } else if (apollo?.rate_limited) {
-    pulseMessage = "Apollo hourly rate limit reached. Searches will serve from local cache until the hour resets."
+    pulseMessage = "Apollo hourly API rate limit reached. Searches will serve from local cache until the hour resets."
     pulseColor = "text-amber-700 font-bold"
   } else if (!rr?.configured) {
     pulseMessage = "All primary systems operational. (Note: RocketReach fallback is disabled)."
@@ -95,7 +95,7 @@ export default function StatusPage() {
           Apollo API {apolloEmoji}
           {apollo?.configured && apollo.hourly_left != null && (
             <span className="text-xs text-gray-500 font-normal">
-              ({apollo.hourly_left}/{apollo.hourly_limit} calls left)
+              ({apollo.hourly_left}/{apollo.hourly_limit} API requests/hr)
             </span>
           )}
         </div>

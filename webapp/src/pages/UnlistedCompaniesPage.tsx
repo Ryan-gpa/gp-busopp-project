@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, AlertCircle, Rocket, Landmark, ShieldAlert, Telescope, ChevronUp, ChevronDown, ChevronsUpDown, ExternalLink } from "lucide-react"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
@@ -72,20 +72,10 @@ function sortCompanies(list: UnlistedCompany[], sort: SortState): UnlistedCompan
 
 import type { ContactFetchState } from "@/types"
 
-type ApolloStatus = {
-  configured: boolean
-  checkedAt?: number | null
-  creditsExhausted?: boolean
-  rateLimited?: boolean
-  hourlyLeft?: number | null
-  hourlyLimit?: number | null
-}
-
 export default function UnlistedCompaniesPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [results, setResults] = useState<UnlistedSearchResult | null>(null)
-  const [apolloStatus, setApolloStatus] = useState<ApolloStatus | null>(null)
   const [validationStatuses, setValidationStatuses] = useState<Record<string, AsicValidation>>({})
   const [expandedAsic, setExpandedAsic] = useState<Record<string, boolean>>({})
   const [expandedInfringements, setExpandedInfringements] = useState<Record<string, boolean>>({})
@@ -105,15 +95,6 @@ export default function UnlistedCompaniesPage() {
   const [tier2Sort, setTier2Sort] = useState<SortState>({ key: "revenue", dir: "desc" })
   const [tier2Page, setTier2Page] = useState(1)
   const [searchedMax, setSearchedMax] = useState<string>("")
-
-  const refreshApolloStatus = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/unlisted/apollo-status`)
-      if (res.ok) setApolloStatus(await res.json())
-    } catch { /* banner just stays hidden */ }
-  }
-
-  useEffect(() => { refreshApolloStatus() }, [])
 
   const resetResultState = () => {
     setError("")
@@ -204,7 +185,6 @@ export default function UnlistedCompaniesPage() {
       setError(err.message)
     } finally {
       setLoading(false)
-      refreshApolloStatus()
     }
   }
 
@@ -374,7 +354,7 @@ export default function UnlistedCompaniesPage() {
     } catch (e: any) {
       setContactFetches(prev => ({ ...prev, [companyId]: { status: "error", error: e.message } }))
     } finally {
-      refreshApolloStatus()
+      // done
     }
   }
 
@@ -643,25 +623,6 @@ export default function UnlistedCompaniesPage() {
       <div className="mb-4">
         <StatusPage />
       </div>
-
-      {apolloStatus?.configured && apolloStatus.creditsExhausted && (
-        <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-md p-4">
-          <strong>Apollo lead credits are exhausted.</strong> Fresh searches and "Find Contacts" will fail until the
-          balance is topped up in Apollo (Settings &rarr; Plans &amp; Billing). Previously fetched results still work
-          from local cache.
-        </div>
-      )}
-      {apolloStatus?.configured && !apolloStatus.creditsExhausted && apolloStatus.rateLimited && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md p-4">
-          Apollo's hourly rate limit is currently exhausted — searches will serve from local cache until it resets
-          (within the hour).
-        </div>
-      )}
-      {apolloStatus?.configured && !apolloStatus.creditsExhausted && !apolloStatus.rateLimited && apolloStatus.hourlyLeft != null && (
-        <p className="text-xs text-muted-foreground">
-          Apollo OK &middot; {apolloStatus.hourlyLeft}{apolloStatus.hourlyLimit ? `/${apolloStatus.hourlyLimit}` : ""} search calls left this hour
-        </p>
-      )}
 
       <div className="bg-card border rounded-md p-6">
         <form onSubmit={handleSearch} className="flex items-end gap-4">
