@@ -2289,7 +2289,7 @@ if _FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(_FRONTEND_DIR / "assets")), name="assets")
 
     @app.get("/{full_path:path}", include_in_schema=False)
-    def serve_spa(_full_path: str):
+    def serve_spa(full_path: str = ""):
         """Catch-all: serve index.html for any non-API path (SPA client-side routing)."""
         index = _FRONTEND_DIR / "index.html"
         if index.exists():
