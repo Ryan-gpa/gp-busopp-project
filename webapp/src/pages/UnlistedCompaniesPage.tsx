@@ -397,9 +397,7 @@ export default function UnlistedCompaniesPage() {
           </div>
         </td>
         <td className="p-4 text-gray-700">
-          {rev ? `$${rev.toLocaleString()}` : company.revenueBand ? (
-            <span title="RocketReach has no point estimate — the company matched this revenue band in the search filter">{company.revenueBand}</span>
-          ) : 'Unknown'}
+          {rev ? `$${rev.toLocaleString()}` : <span className="text-gray-400">—</span>}
         </td>
         <td className="p-4 text-gray-700">
           {employeeDisplay}

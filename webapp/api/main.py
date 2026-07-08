@@ -1661,7 +1661,8 @@ def asic_prospects():
             "name": rec["name"],
             "domain": None,
             "dataSource": "asic",
-            "revenueBand": "Large proprietary (lodgement obligation)",
+            "annual_revenue": None,
+            "estimated_num_employees": None,
             "infringementNotices": records,
             "asic": _asic_fields_to_api(asic_match) if asic_match else None,
         }
