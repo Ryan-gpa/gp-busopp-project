@@ -679,18 +679,29 @@ export default function UnlistedCompaniesPage() {
           <p className="text-xs text-muted-foreground">
             Tip: set a Revenue Max, not just a Min. This API is rate-limited to 200 calls/hour — a search with no
             upper bound has to page through far more results and burns through that limit much faster than a
-            narrow band does.
+            narrow band does. (Web UI results are capped at 5,000 for performance).
           </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={loading}
-            onClick={loadAsicProspects}
-            title="Start from ASIC's own signals: every company on the infringement notices register had a financial-report lodgement obligation, making it a large proprietary company by legal definition"
-          >
-            <Landmark className="h-3.5 w-3.5 mr-1.5" /> ASIC-first prospects
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={loading}
+              onClick={loadAsicProspects}
+              title="Start from ASIC's own signals: every company on the infringement notices register had a financial-report lodgement obligation, making it a large proprietary company by legal definition"
+            >
+              <Landmark className="h-3.5 w-3.5 mr-1.5" /> ASIC-first prospects
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`${API_BASE}/api/admin/download-db`, "_blank")}
+              title="Download the entire 3.5 million row SQLite database for local analysis"
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Download Full DB
+            </Button>
+          </div>
         </div>
         {results && (
           <div className="mt-4 flex flex-wrap items-center gap-6 p-4 bg-muted/20 border rounded-md">
