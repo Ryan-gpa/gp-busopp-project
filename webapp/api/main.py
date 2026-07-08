@@ -1610,6 +1610,24 @@ async def unlisted_search(body: dict):
                         raise HTTPException(429, f"Apollo API rate limit reached (200 calls/hour on this plan).{wait_msg}")
                     rate_limited = True
                     break  # keep whatever we already fetched before hitting the limit
+                if resp.status_code == 422 and "credit" in resp.text.lower():
+                    # Exhausted lead credits block company search too, not just
+                    # contact reveals. Same treatment as a rate limit: serve
+                    # local data if any exists, otherwise say what's actually
+                    # wrong instead of leaking a raw HTTP error string.
+                    if page == 1:
+                        fallback = _local_companies_matching(revenue_min, revenue_max, company_name)
+                        if fallback:
+                            organizations = fallback
+                            served_from_local_fallback = True
+                            break
+                        raise HTTPException(
+                            402,
+                            "Apollo lead credits are exhausted, and no previously fetched companies "
+                            "match this search yet. Top up credits in Apollo (Settings → Plans & "
+                            "Billing), or repeat a search that worked before to use cached data.",
+                        )
+                    break  # keep whatever we already fetched before credits ran out
                 resp.raise_for_status()
                 page_data = resp.json()
             except HTTPException:
