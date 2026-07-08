@@ -1263,7 +1263,7 @@ def _ensure_asic_register_async():
     global _asic_building
     
     db_path = DATA_DIR / "unified_companies.db"
-    needs_unified = not db_path.exists()
+    needs_unified = not db_path.exists() or db_path.stat().st_size < 1000000
     
     lock_path = DATA_DIR / ".building.lock"
     is_building = _asic_building or lock_path.exists()
