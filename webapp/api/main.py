@@ -1531,23 +1531,31 @@ async def unlisted_search(body: dict):
         else:
             query += " AND status = 'REGD'" if asic_status_filter == "verified" else " AND status != 'REGD'"
 
-    # Get total count matching the filters (without LIMIT) so UI can show "5,000 of 423,891"
-    count_query = query.replace("SELECT \n              acn, name, name_norm, status, type, class, subclass, state, \n              is_large_prop, has_infringement, revenue, employees, has_contacts\n          FROM companies", "SELECT COUNT(*) FROM companies")
-    query += " ORDER BY has_infringement DESC, acn DESC LIMIT 5000"
-    
+    # Build count + data queries from the already-built WHERE conditions in `query`
+    # Extract just the WHERE portion (everything after FROM companies)
+    where_portion = query[query.index("WHERE"):]
+    count_query = f"SELECT COUNT(*) FROM companies {where_portion}"
+    data_query = f"""
+        SELECT acn, name, name_norm, status, type, class, subclass, state,
+               is_large_prop, has_infringement, revenue, employees, has_contacts
+        FROM companies {where_portion}
+        ORDER BY has_infringement DESC, acn DESC
+        LIMIT 5000
+    """
+
     import sqlite3
     conn = sqlite3.connect(str(db_path))
     try:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
-        # Count total matching rows
+        # Count total matching rows (fast on indexed columns)
         try:
             total_matched = c.execute(count_query, params).fetchone()[0]
         except Exception:
             total_matched = None
 
-        rows = c.execute(query, params).fetchall()
+        rows = c.execute(data_query, params).fetchall()
         
         results = []
         for row in rows:
