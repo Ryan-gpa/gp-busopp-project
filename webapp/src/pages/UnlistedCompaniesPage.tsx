@@ -540,8 +540,15 @@ export default function UnlistedCompaniesPage() {
                     ))}
                   </div>
                   {fetchState.fetchedAt && (
-                    <div className="mt-2 text-[10px] text-muted-foreground italic">
-                      Acquired {formatRecency(fetchState.fetchedAt)}
+                    <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground italic">
+                      <span>Acquired {formatRecency(fetchState.fetchedAt)}</span>
+                      <button 
+                        onClick={() => findContacts(company.id, "rocketreach")}
+                        className="text-blue-500 hover:text-blue-700 underline cursor-pointer"
+                        title="Force refresh from RocketReach"
+                      >
+                        (Force Refresh)
+                      </button>
                     </div>
                   )}
                 </>
