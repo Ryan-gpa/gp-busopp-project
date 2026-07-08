@@ -27,6 +27,10 @@ def build_unified():
     
     if unified_db_path.exists():
         os.remove(unified_db_path)
+    
+    journal_path = unified_db_path.with_suffix(".db-journal")
+    if journal_path.exists():
+        os.remove(journal_path)
         
     conn = sqlite3.connect(str(unified_db_path))
     c = conn.cursor()

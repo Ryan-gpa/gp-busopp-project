@@ -1198,6 +1198,11 @@ def _build_asic_register_db():
     tmp_path = _ASIC_DB_PATH.with_suffix(".building.sqlite3")
     if tmp_path.exists():
         tmp_path.unlink()
+    
+    # CRITICAL: Also delete the journal file, or SQLite will try to recover the deleted database and crash!
+    journal_path = _ASIC_DB_PATH.with_suffix(".building.sqlite3-journal")
+    if journal_path.exists():
+        journal_path.unlink()
 
     conn = sqlite3.connect(str(tmp_path))
     conn.execute(f"CREATE TABLE companies ({', '.join(c + ' TEXT' for c in _ASIC_DB_COLUMNS)})")
@@ -1267,7 +1272,10 @@ def _ensure_asic_register_async():
             subprocess.run([sys.executable, str(script_path)], check=True)
             
         except Exception as e:
-            print(f"[asic] Could not refresh register: {e}", file=sys.stderr)
+            err_msg = f"[asic] Could not refresh register: {e}"
+            print(err_msg, file=sys.stderr)
+            with open(DATA_DIR / "build_error.log", "w") as f:
+                f.write(err_msg)
         finally:
             _asic_building = False
 
