@@ -38,11 +38,9 @@ export default function StatusPage() {
     return () => clearInterval(interval)
   }, [])
 
-  if (error) {
-    return <div className="text-red-600 text-sm mb-4">Backend Status: 🔴 {error}</div>
-  }
+  const isLoading = !data && !error;
 
-  if (!data) {
+  if (isLoading) {
     return <div className="text-gray-500 text-sm mb-4">Loading system status...</div>
   }
 
@@ -72,6 +70,7 @@ export default function StatusPage() {
         )}
       </div>
       <div>RocketReach {rrEmoji}</div>
+      {error && <div className="text-red-600 ml-auto flex items-center gap-1">Backend Error 🔴</div>}
     </div>
   )
 }
