@@ -1259,7 +1259,7 @@ def _ensure_asic_register_async():
                 _build_asic_register_db()
             
             # Always ensure unified DB is built if it's missing or we just rebuilt the ASIC register
-            import scripts.build_unified_db as bdb
+            import api.scripts.build_unified_db as bdb
             print("[asic] Building unified companies DB...")
             bdb.build_unified()
             
@@ -1566,7 +1566,8 @@ async def unlisted_search(body: dict):
 
     db_path = HERE / ".." / "unified_companies.db"
     if not db_path.exists():
-        return {"error": "Database not found. Please trigger the ASIC data load first."}
+        from fastapi import HTTPException
+        raise HTTPException(400, detail="Database not found. Please wait 1-2 minutes for the background data load to finish, then try again.")
         
     query = """
         SELECT 
