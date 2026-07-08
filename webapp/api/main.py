@@ -2016,19 +2016,24 @@ def _rocketreach_find_contacts(company_name: str) -> list:
         except Exception as e:
             print(f"[rocketreach] lookup failed for profile {pid}: {e}", file=sys.stderr)
             continue
-        # Lookups can complete asynchronously; skip ones still resolving
-        # rather than caching a half-empty record.
-        status = (person.get("status") or "").lower()
-        if status and status not in ("complete", "completed", "done"):
-            continue
-        best_email, email_status = None, None
+        # Don't gate on person["status"]: verified live that RocketReach
+        # returns status "progress" with complete, grade-A data already in
+        # the payload (the field tracks ongoing enrichment of remaining
+        # attributes, not usability of what's returned). Gate on whether
+        # usable data actually exists instead.
+        best_email, email_status, best_rank = None, None, -1
         for e_ in person.get("emails") or []:
-            if isinstance(e_, dict):
-                if best_email is None or e_.get("type") == "professional":
-                    best_email = e_.get("email") or best_email
-                    email_status = e_.get("smtp_valid") or email_status
-            elif isinstance(e_, str) and best_email is None:
-                best_email = e_
+            cand = e_ if isinstance(e_, dict) else {"email": e_}
+            addr = cand.get("email")
+            if not addr:
+                continue
+            # Prefer valid > unknown > invalid, professional > personal —
+            # otherwise an invalid professional address listed later can
+            # clobber a verified one (seen live on the first keyed run).
+            rank = (2 if cand.get("smtp_valid") == "valid" else 0) + (1 if cand.get("type") == "professional" else 0)
+            if rank > best_rank:
+                best_email, best_rank = addr, rank
+                email_status = "verified" if cand.get("smtp_valid") == "valid" else cand.get("smtp_valid")
         phones = []
         for ph in person.get("phones") or []:
             num = ph.get("number") if isinstance(ph, dict) else ph
@@ -2037,6 +2042,8 @@ def _rocketreach_find_contacts(company_name: str) -> list:
         name = person.get("name") or p.get("name")
         if not name:
             continue
+        if not (best_email or phones or person.get("linkedin_url") or p.get("linkedin_url")):
+            continue  # genuinely nothing usable yet
         contacts.append({
             "name": name,
             "title": p.get("current_title") or person.get("current_title") or "",
