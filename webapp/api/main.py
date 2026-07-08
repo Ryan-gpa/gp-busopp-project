@@ -1595,7 +1595,7 @@ async def unlisted_search(body: dict):
     only_with_contacts = body.get("onlyWithContacts", False)
     asic_status_filter = body.get("asicStatusFilter", "all")
 
-    db_path = HERE / ".." / "unified_companies.db"
+    db_path = DATA_DIR / "unified_companies.db"
     if not db_path.exists():
         from fastapi import HTTPException
         raise HTTPException(400, detail="Database not found. Please wait 1-2 minutes for the background data load to finish, then try again.")
