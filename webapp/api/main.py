@@ -1828,6 +1828,18 @@ def _rocketreach_company_search(revenue_min, revenue_max, company_name=None) -> 
 
 
 def _company_identity_for_org(org_id: str):
+    if org_id.startswith("asic_"):
+        acn = org_id.split("_")[1]
+        db_path = DATA_DIR / "unified_companies.db"
+        if db_path.exists():
+            conn = sqlite3.connect(db_path)
+            try:
+                row = conn.execute("SELECT name FROM companies WHERE acn = ?", (acn,)).fetchone()
+                if row:
+                    return (row[0], None)
+            finally:
+                conn.close()
+            
     conn = _unlisted_cache_conn()
     try:
         row = conn.execute("SELECT name, domain FROM companies WHERE apollo_id = ?", (org_id,)).fetchone()
