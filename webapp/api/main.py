@@ -2145,58 +2145,7 @@ def find_contacts(org_id: str):
         )
 
     # Apollo found people but no usable contact info (the "names but no
-    @app.get("/api/admin/system-status")
-def system_status():
-    status = {}
-    
-    # 1. Unified DB
-    unified_db_path = HERE / ".." / "unified_companies.db"
-    status["unified_db"] = {
-        "exists": unified_db_path.exists(),
-        "building": _asic_building,
-        "last_modified": unified_db_path.stat().st_mtime if unified_db_path.exists() else None,
-        "size_mb": round(unified_db_path.stat().st_size / (1024 * 1024), 2) if unified_db_path.exists() else 0
-    }
-    
-    # 2. ASIC Register DB
-    asic_db_path = HERE / "asic_register_v2.sqlite3"
-    status["asic_register"] = {
-        "exists": asic_db_path.exists(),
-        "building": _asic_building,
-        "last_modified": asic_db_path.stat().st_mtime if asic_db_path.exists() else None,
-        "size_mb": round(asic_db_path.stat().st_size / (1024 * 1024), 2) if asic_db_path.exists() else 0
-    }
-    
-    # 3. ASIC Infringements
-    inf_path = HERE / "asic_infringement_notices.json"
-    status["infringements"] = {
-        "exists": inf_path.exists(),
-        "last_modified": inf_path.stat().st_mtime if inf_path.exists() else None,
-        "size_kb": round(inf_path.stat().st_size / 1024, 2) if inf_path.exists() else 0
-    }
-    
-    # 4. Apollo
-    api_key = os.environ.get("APOLLO_API_KEY")
-    apollo_status_dict = apollo_status()
-    status["apollo"] = {
-        "configured": bool(api_key),
-        "rate_limited": apollo_status_dict.get("rateLimited", False),
-        "credits_exhausted": apollo_status_dict.get("creditsExhausted", False),
-        "hourly_left": apollo_status_dict.get("hourlyLeft"),
-        "hourly_limit": apollo_status_dict.get("hourlyLimit"),
-        "last_checked": apollo_status_dict.get("checkedAt")
-    }
-    
-    # 5. RocketReach
-    rr_key = os.environ.get(_ROCKETREACH_API_KEY_ENV)
-    status["rocketreach"] = {
-        "configured": bool(rr_key)
-    }
-    
-    return status
-
-
-# email or phone" case) — let RocketReach fill the gaps or add people.
+    # email or phone" case) — let RocketReach fill the gaps or add people.
     if contacts and not any(c.get("email") or c.get("phoneNumbers") for c in contacts):
         rr_contacts = _rocketreach_find_contacts(company_name)
         if rr_contacts:
@@ -2263,6 +2212,56 @@ def export_contacts_csv():
         headers={"Content-Disposition": 'attachment; filename="unlisted_contacts_hubspot.csv"'},
     )
 
+
+@app.get("/api/admin/system-status")
+def system_status():
+    status = {}
+    
+    # 1. Unified DB
+    unified_db_path = HERE / ".." / "unified_companies.db"
+    status["unified_db"] = {
+        "exists": unified_db_path.exists(),
+        "building": _asic_building,
+        "last_modified": unified_db_path.stat().st_mtime if unified_db_path.exists() else None,
+        "size_mb": round(unified_db_path.stat().st_size / (1024 * 1024), 2) if unified_db_path.exists() else 0
+    }
+    
+    # 2. ASIC Register DB
+    asic_db_path = HERE / "asic_register_v2.sqlite3"
+    status["asic_register"] = {
+        "exists": asic_db_path.exists(),
+        "building": _asic_building,
+        "last_modified": asic_db_path.stat().st_mtime if asic_db_path.exists() else None,
+        "size_mb": round(asic_db_path.stat().st_size / (1024 * 1024), 2) if asic_db_path.exists() else 0
+    }
+    
+    # 3. ASIC Infringements
+    inf_path = HERE / "asic_infringement_notices.json"
+    status["infringements"] = {
+        "exists": inf_path.exists(),
+        "last_modified": inf_path.stat().st_mtime if inf_path.exists() else None,
+        "size_kb": round(inf_path.stat().st_size / 1024, 2) if inf_path.exists() else 0
+    }
+    
+    # 4. Apollo
+    api_key = os.environ.get("APOLLO_API_KEY")
+    apollo_status_dict = apollo_status()
+    status["apollo"] = {
+        "configured": bool(api_key),
+        "rate_limited": apollo_status_dict.get("rateLimited", False),
+        "credits_exhausted": apollo_status_dict.get("creditsExhausted", False),
+        "hourly_left": apollo_status_dict.get("hourlyLeft"),
+        "hourly_limit": apollo_status_dict.get("hourlyLimit"),
+        "last_checked": apollo_status_dict.get("checkedAt")
+    }
+    
+    # 5. RocketReach
+    rr_key = os.environ.get(_ROCKETREACH_API_KEY_ENV)
+    status["rocketreach"] = {
+        "configured": bool(rr_key)
+    }
+    
+    return status
 
 # ── Serve built Vite frontend (production only) ──────────────────────────────
 # In development, Vite's dev server handles the frontend.
