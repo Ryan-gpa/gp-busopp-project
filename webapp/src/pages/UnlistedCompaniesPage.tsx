@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, AlertCircle, Rocket, Landmark, ShieldAlert, Telescope, ChevronUp, ChevronDown, ChevronsUpDown, ExternalLink } from "lucide-react"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
@@ -151,8 +151,8 @@ export default function UnlistedCompaniesPage() {
     })
   }
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setLoading(true)
     resetResultState()
     setSearchedMax(revenueMax)
@@ -187,6 +187,12 @@ export default function UnlistedCompaniesPage() {
       setLoading(false)
     }
   }
+
+  // Automatically run search on first page load
+  useEffect(() => {
+    handleSearch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const loadAsicProspects = async () => {
     setLoading(true)
