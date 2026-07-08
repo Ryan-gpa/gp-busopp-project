@@ -7,7 +7,7 @@ from pathlib import Path
 _in_prod = os.environ.get("RAILWAY_ENVIRONMENT") is not None
 HERE = Path(__file__).parent.resolve()
 APP_ROOT = Path("/app") if _in_prod else (HERE / "../../").resolve()
-DATA_DIR = Path("/data") if _in_prod else (APP_ROOT / "data").resolve()
+DATA_DIR = Path(os.environ.get("DATA_DIR", os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", APP_ROOT / "data"))).resolve()
 
 UNLISTED_DB_PATH = DATA_DIR / "unlisted_search_cache.sqlite3"
 UNIFIED_DB_PATH = DATA_DIR / "unified_companies.db"
