@@ -751,7 +751,14 @@ export default function UnlistedCompaniesPage() {
             <strong>Key Contacts costs real money.</strong> Clicking "Find Contacts" on a row spends actual Apollo
             credits to reveal a verified email (up to 2 people per company) — it does not run automatically for
             the whole list. Only click it for companies you've actually decided to pursue. Results are saved for
-            30 days, so re-clicking the same company later is free.
+            30 days, so re-clicking the same company later is free.{" "}
+            <a
+              href={`${API_BASE}/api/unlisted/export/contacts.csv`}
+              className="font-medium underline hover:no-underline"
+              download
+            >
+              Export all saved contacts (HubSpot-ready CSV)
+            </a>
           </div>
           {results.excludedAsxMatches && results.excludedAsxMatches.length > 0 && (
             <details className="bg-muted/30 border rounded-md p-4 group">

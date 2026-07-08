@@ -2078,6 +2078,53 @@ def find_contacts(org_id: str):
     return {"contacts": contacts, "fromCache": False, "fetchedAt": now}
 
 
+@app.get("/api/unlisted/export/contacts.csv")
+def export_contacts_csv():
+    """Every contact ever revealed, joined with its company, as a CSV whose
+    headers match HubSpot's default import mapping. Stopgap until a real
+    HubSpot API sync exists (needs a HUBSPOT_API_KEY private-app token) — see
+    the HubSpot TODO above _unlisted_companies_upsert."""
+    conn = _unlisted_cache_conn()
+    try:
+        rows = conn.execute(
+            "SELECT cc.org_id, cc.contacts_json, cc.fetched_at, c.name, c.domain "
+            "FROM contacts_cache cc LEFT JOIN companies c ON c.apollo_id = cc.org_id "
+            "WHERE cc.contacts_json != '[]'"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "First Name", "Last Name", "Email", "Job Title",
+        "Company Name", "Website URL", "Phone Number", "LinkedIn URL",
+        "Email Status", "Source", "Acquired At",
+    ])
+    for org_id, contacts_json, fetched_at, company_name, domain in rows:
+        for c in json.loads(contacts_json):
+            name_parts = (c.get("name") or "").split(" ", 1)
+            acquired = datetime.fromtimestamp(fetched_at, tz=timezone.utc).strftime("%Y-%m-%d") if fetched_at else ""
+            writer.writerow([
+                name_parts[0],
+                name_parts[1] if len(name_parts) > 1 else "",
+                c.get("email") or "",
+                c.get("title") or "",
+                company_name or "",
+                domain or "",
+                "; ".join(c.get("phoneNumbers") or []),
+                c.get("linkedinUrl") or "",
+                c.get("emailStatus") or "",
+                "Apollo via Unlisted Companies tool",
+                acquired,
+            ])
+
+    return Response(
+        content=buf.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="unlisted_contacts_hubspot.csv"'},
+    )
+
 
 # ── Serve built Vite frontend (production only) ──────────────────────────────
 # In development, Vite's dev server handles the frontend.
