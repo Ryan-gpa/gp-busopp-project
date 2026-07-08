@@ -1259,9 +1259,11 @@ def _ensure_asic_register_async():
                 _build_asic_register_db()
             
             # Always ensure unified DB is built if it's missing or we just rebuilt the ASIC register
-            import api.scripts.build_unified_db as bdb
             print("[asic] Building unified companies DB...")
-            bdb.build_unified()
+            import subprocess
+            import sys
+            script_path = HERE / "scripts" / "build_unified_db.py"
+            subprocess.run([sys.executable, str(script_path)], check=True)
             
         except Exception as e:
             print(f"[asic] Could not refresh register: {e}", file=sys.stderr)
