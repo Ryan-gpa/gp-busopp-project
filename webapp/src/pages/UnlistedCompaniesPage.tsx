@@ -513,10 +513,7 @@ export default function UnlistedCompaniesPage() {
                 </div>
               )
             }
-            if (fetchState?.status === "done") {
-              if (!fetchState.contacts || fetchState.contacts.length === 0) {
-                return <span className="text-sm text-gray-400">No CEO/CFO found</span>
-              }
+            if (fetchState?.status === "done" && fetchState.contacts && fetchState.contacts.length > 0) {
               return (
                 <>
                   <div className="flex flex-col gap-1">
@@ -548,13 +545,16 @@ export default function UnlistedCompaniesPage() {
                   )}
                 </>
               )
-          }
-            // Show source-choice buttons when not yet fetched
-            // Apollo costs credits; RocketReach is the free-ish fallback
+            }
+            
+            // Show source-choice buttons when not yet fetched OR when 0 results found (allows retry with different source/bypassing cache)
             const apolloAvailable = !company.id.startsWith("rr_")
             const rrAvailable = true
+            const isEmpty = fetchState?.status === "done" && (!fetchState.contacts || fetchState.contacts.length === 0)
+            
             return (
               <div className="flex flex-col gap-1.5">
+                {isEmpty && <span className="text-sm text-gray-400 mb-1">No CEO/CFO found</span>}
                 {apolloAvailable && (
                   <Button
                     size="sm"
