@@ -1584,164 +1584,68 @@ async def unlisted_search(body: dict):
         organizations = [
             {"id": "mock1", "name": "Canva", "domain": "canva.com", "annual_revenue": 100000000, "estimated_num_employees": 3000},
             {"id": "mock2", "name": "Airwallex", "domain": "airwallex.com", "annual_revenue": 75000000, "estimated_num_employees": 1200},
-            {"id": "mock3", "name": "SafetyCulture", "domain": "safetyculture.com", "annual_revenue": 35000000, "estimated_num_employees": 600},
-            {"id": "mock4", "name": "Employment Hero", "domain": "employmenthero.com", "annual_revenue": 25000000, "estimated_num_employees": 800},
-            # This should be caught by the ASX exclusion filter (Commonwealth Bank of Australia)
-            {"id": "mock5", "name": "Commonwealth Bank of Australia", "domain": "commbank.com.au", "annual_revenue": 25000000000, "estimated_num_employees": 45000}
-        ]
-        data = {"organizations": organizations, "pagination": {"total_entries": 5, "total_pages": 1}}
-    else:
-        payload = {
-            "organization_locations": locations,
-        }
-        if company_name and company_name.strip():
-            payload["q_organization_name"] = company_name.strip()
-
-        # Convert revenue filters to employee ranges (proxy)
-        try:
-            r_min = float(revenue_min) if revenue_min is not None else 0
-            r_max = float(revenue_max) if revenue_max is not None else 99999999999
-            
-            emp_min = int(r_min / 150000)
-            emp_max = int(r_max / 150000)
-            
-            ranges = []
-            if emp_min <= 10 and emp_max >= 1: ranges.append("1,10")
-            if emp_min <= 20 and emp_max >= 11: ranges.append("11,20")
-            if emp_min <= 50 and emp_max >= 21: ranges.append("21,50")
-            if emp_min <= 100 and emp_max >= 51: ranges.append("51,100")
-            if emp_min <= 250 and emp_max >= 101: ranges.append("101,250")
-            if emp_min <= 500 and emp_max >= 251: ranges.append("251,500")
-            if emp_min <= 1000 and emp_max >= 501: ranges.append("501,1000")
-            if emp_min <= 5000 and emp_max >= 1001: ranges.append("1001,5000")
-            if emp_min <= 10000 and emp_max >= 5001: ranges.append("5001,10000")
-            if emp_max >= 10001: ranges.append("10001+")
-            if ranges:
-                payload["organization_num_employees_ranges"] = ranges
-                
-            # Always sort ascending by employee count so that entering small minimums 
-            # returns companies near that minimum instead of defaulting to Canva every time.
-            payload["sort_by"] = "organization_num_employees"
-            payload["sort_ascending"] = True
-        except:
-            pass
-                
-        headers = {
-            "Content-Type": "application/json",
-            "X-Api-Key": api_key,
-            "Cache-Control": "no-cache"
-        }
-
-        # Page through the full result set instead of returning Apollo's first
-        # page only. Apollo caps page * per_page at 50,000 records, but the
-        # real ceiling in practice is this plan's rate limit: 200 calls/hour
-        # for mixed_companies/search (confirmed via the x-rate-limit-hourly
-        # response header). MAX_PAGES is capped well under that so a single
-        # search can't burn the whole hourly quota by itself.
-        MAX_PAGES = 15  # 1,500 orgs per search = 7.5% of the 200/hour quota
-        PER_PAGE = 100
+            {"id": "mock3", "name": "SafetyCulture", "domain": "safetyculture.com", "annual_reve        # --- NEW LOCAL ASIC DB SEARCH ---
+        db_path = HERE / ".." / "companies.db"
         organizations = []
-        total_entries = None
-        total_pages = None
-        rate_limited = False
-        served_from_local_fallback = False
-        discovery_source = "apollo"
-        page = 1
-
-        while True:
-            payload["page"] = page
-            payload["per_page"] = PER_PAGE
+        discovery_source = "asic_db"
+        total_entries = 0
+        
+        if db_path.exists():
+            import sqlite3
+            conn = sqlite3.connect(db_path)
             try:
-                resp = requests.post("https://api.apollo.io/v1/mixed_companies/search", json=payload, headers=headers, timeout=30)
-                _record_apollo_status(resp)
-                if resp.status_code == 429:
-                    retry_after = resp.headers.get("retry-after")
-                    if page == 1:
-                        # Apollo unavailable — try RocketReach's own company
-                        # search (native revenue filter), then locally
-                        # persisted data, before failing outright.
-                        rr_orgs = _rocketreach_company_search(revenue_min, revenue_max, company_name)
-                        if rr_orgs:
-                            organizations = rr_orgs
-                            discovery_source = "rocketreach"
-                            break
-                        fallback = _local_companies_matching(revenue_min, revenue_max, company_name)
-                        if fallback:
-                            organizations = fallback
-                            served_from_local_fallback = True
-                            break
-                        wait_msg = f" Retry in {int(retry_after) // 60} min." if retry_after else ""
-                        raise HTTPException(429, f"Apollo API rate limit reached (200 calls/hour on this plan).{wait_msg}")
-                    rate_limited = True
-                    break  # keep whatever we already fetched before hitting the limit
-                if resp.status_code == 422 and "credit" in resp.text.lower():
-                    # Exhausted lead credits block company search too, not just
-                    # contact reveals. Same ladder: RocketReach discovery, then
-                    # local data, then say what's actually wrong.
-                    if page == 1:
-                        rr_orgs = _rocketreach_company_search(revenue_min, revenue_max, company_name)
-                        if rr_orgs:
-                            organizations = rr_orgs
-                            discovery_source = "rocketreach"
-                            break
-                        fallback = _local_companies_matching(revenue_min, revenue_max, company_name)
-                        if fallback:
-                            organizations = fallback
-                            served_from_local_fallback = True
-                            break
-                        raise HTTPException(
-                            402,
-                            "Apollo lead credits are exhausted, and no previously fetched companies "
-                            "match this search yet. Top up credits in Apollo (Settings → Plans & "
-                            "Billing), or repeat a search that worked before to use cached data.",
-                        )
-                    break  # keep whatever we already fetched before credits ran out
-                resp.raise_for_status()
-                page_data = resp.json()
-            except HTTPException:
-                raise
-            except Exception as e:
-                if page == 1:
-                    rr_orgs = _rocketreach_company_search(revenue_min, revenue_max, company_name)
-                    if rr_orgs:
-                        organizations = rr_orgs
-                        discovery_source = "rocketreach"
-                        break
-                    fallback = _local_companies_matching(revenue_min, revenue_max, company_name)
-                    if fallback:
-                        organizations = fallback
-                        served_from_local_fallback = True
-                        break
-                    raise HTTPException(502, f"Failed to search Apollo API: {str(e)}")
-                break  # keep whatever we already fetched if a later page fails
-
-            page_orgs = page_data.get("organizations", [])
-            organizations.extend(page_orgs)
-
-            pagination = page_data.get("pagination", {})
-            total_entries = pagination.get("total_entries", total_entries)
-            total_pages = pagination.get("total_pages", total_pages)
-
-            if not page_orgs:
-                break
-            if total_pages is not None and page >= total_pages:
-                break
-            if page >= MAX_PAGES:
-                break
-            page += 1
-            time.sleep(0.2)  # stay polite to Apollo's rate limiter
-
+                c = conn.cursor()
+                query = """
+                    SELECT a.acn, a.company_name, a.status, a.state,
+                           e.revenue, e.employees, e.contacts_json
+                    FROM asic_companies a
+                    LEFT JOIN enriched_data e ON a.acn = e.acn
+                    WHERE 1=1
+                """
+                params = []
+                
+                if company_name and company_name.strip():
+                    query += " AND a.company_name LIKE ?"
+                    params.append(f"%{company_name.strip()}%")
+                    
+                if revenue_min is not None:
+                    query += " AND e.revenue >= ?"
+                    params.append(float(revenue_min))
+                    
+                if revenue_max is not None:
+                    query += " AND e.revenue <= ?"
+                    params.append(float(revenue_max))
+                    
+                query += " LIMIT 500"
+                
+                rows = c.execute(query, params).fetchall()
+                for row in rows:
+                    acn, name, status, state, revenue, employees, contacts_json = row
+                    org = {
+                        "id": f"asic_{acn}",
+                        "name": name,
+                        "domain": "",
+                        "annual_revenue": revenue,
+                        "estimated_num_employees": employees,
+                        "dataSource": "asic_db",
+                        "contacts": json.loads(contacts_json) if contacts_json else []
+                    }
+                    organizations.append(org)
+                total_entries = len(organizations)
+            finally:
+                conn.close()
+                
         data = {
             "organizations": organizations,
             "pagination": {
                 "total_entries": total_entries,
-                "total_pages": total_pages,
+                "total_pages": 1,
                 "fetched_entries": len(organizations),
-                "fetched_pages": page,
-                "rate_limited": rate_limited,
-                "served_from_local_fallback": served_from_local_fallback,
+                "fetched_pages": 1,
+                "rate_limited": False,
+                "served_from_local_fallback": True,
                 "discovery_source": discovery_source,
-                "truncated": bool(rate_limited or served_from_local_fallback or (total_pages and page < total_pages)),
+                "truncated": False,
             },
         }
     
