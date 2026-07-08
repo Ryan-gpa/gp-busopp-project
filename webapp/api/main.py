@@ -1024,12 +1024,17 @@ def normalize_company_name(name: str) -> str:
 
 
 # ── ASIC infringement notices register ───────────────────────────────────────
-# Bundled snapshot, not a live-refreshed dataset: ASIC publishes this only as
-# a browsable HTML table (asic.gov.au/online-services/search-asic-registers/
-# infringement-notices-register/), no bulk CSV/API exists. Fetched and parsed
-# once; re-scrape periodically to keep it current (see CLAUDE.md).
+# ASIC publishes this only as a browsable HTML table (no bulk CSV/API), so we
+# scrape it ourselves: a bundled snapshot ships in the repo so the feature
+# always works offline, and a background re-scrape refreshes it weekly (same
+# pattern as the ASIC company register below). On any scrape failure the
+# existing snapshot stays in place untouched.
 _INFRINGEMENT_NOTICES_PATH = HERE / "asic_infringement_notices.json"
+_INFRINGEMENT_NOTICES_URL = "https://www.asic.gov.au/online-services/search-asic-registers/infringement-notices-register/"
+_INFRINGEMENT_REFRESH_TTL = 7 * 86400
 _infringement_by_norm_name: dict = {}
+_infringement_refresh_lock = threading.Lock()
+_infringement_refreshing = False
 
 
 def _load_infringement_notices():
@@ -1049,7 +1054,84 @@ def _load_infringement_notices():
         print(f"[asic] Could not load infringement notices: {e}", file=sys.stderr)
 
 
+def _scrape_infringement_notices() -> list:
+    """Fetch and parse ASIC's infringement notices register page into records.
+    Raises on any failure — callers keep the existing snapshot on error."""
+    from bs4 import BeautifulSoup
+
+    resp = requests.get(_INFRINGEMENT_NOTICES_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=60)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    records = []
+    for heading in soup.find_all(["h2", "h3"]):
+        year = heading.get_text(strip=True)
+        if not re.fullmatch(r"20\d\d", year):
+            continue
+        table = heading.find_next("table")
+        if not table:
+            continue
+        rows = table.find("tbody").find_all("tr") if table.find("tbody") else table.find_all("tr")[1:]
+        for tr in rows:
+            cells = tr.find_all("td")
+            if len(cells) < 6:
+                continue
+            name = cells[0].get_text(strip=True)
+            if not name:
+                continue
+            notice_link = cells[3].find("a")
+            media_link = cells[4].find("a")
+            media_href = media_link["href"] if media_link and media_link.has_attr("href") else None
+            records.append({
+                "year": year,
+                "name": name,
+                "licenceOrAcn": cells[1].get_text(strip=True),
+                "datePaid": cells[2].get_text(strip=True),
+                "noticeId": notice_link.get_text(strip=True) if notice_link else None,
+                "noticePdfUrl": notice_link["href"] if notice_link and notice_link.has_attr("href") else None,
+                "mediaReleaseId": media_link.get_text(strip=True) if media_link else None,
+                "mediaReleaseTitle": media_link["title"] if media_link and media_link.has_attr("title") else None,
+                "mediaReleaseUrl": ("https://www.asic.gov.au" + media_href) if media_href and media_href.startswith("/") else media_href,
+                "legislation": cells[5].get_text(strip=True),
+            })
+
+    # A structural page change would surface here as a tiny/empty parse —
+    # refuse to overwrite a known-good snapshot with that.
+    if len(records) < 50:
+        raise RuntimeError(f"Parse produced only {len(records)} records — page structure likely changed, keeping existing snapshot")
+    return records
+
+
+def _ensure_infringement_notices_async():
+    """Re-scrape in the background if the snapshot is older than a week. Never blocks, never clobbers on failure."""
+    global _infringement_refreshing
+    fresh = _INFRINGEMENT_NOTICES_PATH.exists() and (time.time() - _INFRINGEMENT_NOTICES_PATH.stat().st_mtime) < _INFRINGEMENT_REFRESH_TTL
+    if fresh or _infringement_refreshing:
+        return
+    with _infringement_refresh_lock:
+        if _infringement_refreshing:
+            return
+        _infringement_refreshing = True
+
+    def _run():
+        global _infringement_refreshing
+        try:
+            records = _scrape_infringement_notices()
+            tmp = _INFRINGEMENT_NOTICES_PATH.with_suffix(".building.json")
+            tmp.write_text(json.dumps(records, indent=2, ensure_ascii=False), encoding="utf-8")
+            tmp.replace(_INFRINGEMENT_NOTICES_PATH)
+            _load_infringement_notices()
+            print(f"[asic] Infringement notices refreshed: {len(records)} records", file=sys.stderr)
+        except Exception as e:
+            print(f"[asic] Infringement notices refresh failed (keeping existing snapshot): {e}", file=sys.stderr)
+        finally:
+            _infringement_refreshing = False
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 _load_infringement_notices()
+_ensure_infringement_notices_async()
 
 
 def _infringement_lookup(name: str) -> list:

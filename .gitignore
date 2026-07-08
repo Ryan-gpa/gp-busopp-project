@@ -49,6 +49,7 @@ webapp/api/asic_register_v2.sqlite3
 webapp/api/*.building.sqlite3
 webapp/api/unlisted_search_cache.sqlite3
 webapp/api/contacts_cache.db
+webapp/api/asic_infringement_notices.building.json
 webapp/api/test.py
 asic_test.html
 
