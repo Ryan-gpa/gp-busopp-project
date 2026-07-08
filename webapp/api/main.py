@@ -90,7 +90,8 @@ app.add_middleware(
 
 # Paths
 HERE = Path(__file__).parent
-KIT_DIR = (HERE / "../../disclosure-review-kit").resolve()
+DATA_DIR = Path(os.environ.get("DATA_DIR", HERE.parent))
+KIT_DIR = (DATA_DIR / "disclosure-review-kit").resolve()
 OUTPUT_DIR = KIT_DIR / "output"
 
 # ASX public token (same one asx.com.au uses)
@@ -1029,7 +1030,7 @@ def normalize_company_name(name: str) -> str:
 # always works offline, and a background re-scrape refreshes it weekly (same
 # pattern as the ASIC company register below). On any scrape failure the
 # existing snapshot stays in place untouched.
-_INFRINGEMENT_NOTICES_PATH = HERE / "asic_infringement_notices.json"
+_INFRINGEMENT_NOTICES_PATH = DATA_DIR / "asic_infringement_notices.json"
 _INFRINGEMENT_NOTICES_URL = "https://www.asic.gov.au/online-services/search-asic-registers/infringement-notices-register/"
 _INFRINGEMENT_REFRESH_TTL = 7 * 86400
 _infringement_by_norm_name: dict = {}
@@ -1147,7 +1148,7 @@ _ASIC_DATASET_API = "https://data.gov.au/data/api/3/action/package_show?id=asic-
 # dates, ABN, previous state, etc.), not just name/acn/type/status. New
 # filename so any pre-existing v1 file (fewer columns) is never queried
 # against the new SELECT — it's just orphaned and a fresh build replaces it.
-_ASIC_DB_PATH = HERE / "asic_register_v2.sqlite3"
+_ASIC_DB_PATH = DATA_DIR / "asic_register_v2.sqlite3"
 _ASIC_REFRESH_TTL = 7 * 86400  # ASIC republishes the snapshot weekly
 _asic_build_lock = threading.Lock()
 _asic_building = False
@@ -1242,7 +1243,7 @@ def _ensure_asic_register_async():
     """Kick off a background refresh if the local index is missing or stale. Never blocks the caller."""
     global _asic_building
     
-    db_path = HERE / "unified_companies.db"
+    db_path = DATA_DIR / "unified_companies.db"
     needs_unified = not db_path.exists()
     
     if (_asic_db_is_fresh() and not needs_unified) or _asic_building:
@@ -1356,7 +1357,7 @@ _ensure_asic_register_async()
 # Apollo calls, and every company we've ever fetched is persisted so a future
 # CEO/CFO contact-enrichment pass can run against this table directly instead
 # of re-querying Apollo's organization search to rediscover the same companies.
-_UNLISTED_CACHE_DB = HERE / "unlisted_search_cache.sqlite3"
+_UNLISTED_CACHE_DB = DATA_DIR / "unlisted_search_cache.sqlite3"
 _UNLISTED_CACHE_TTL = 86400  # 24h for a complete result
 _UNLISTED_CACHE_TTL_PARTIAL = 900  # 15 min for a result cut short by rate limiting
 
@@ -2218,7 +2219,7 @@ def system_status():
     status = {}
     
     # 1. Unified DB
-    unified_db_path = HERE / ".." / "unified_companies.db"
+    unified_db_path = DATA_DIR / "unified_companies.db"
     status["unified_db"] = {
         "exists": unified_db_path.exists(),
         "building": _asic_building,
@@ -2227,7 +2228,7 @@ def system_status():
     }
     
     # 2. ASIC Register DB
-    asic_db_path = HERE / "asic_register_v2.sqlite3"
+    asic_db_path = DATA_DIR / "asic_register_v2.sqlite3"
     status["asic_register"] = {
         "exists": asic_db_path.exists(),
         "building": _asic_building,
@@ -2236,7 +2237,7 @@ def system_status():
     }
     
     # 3. ASIC Infringements
-    inf_path = HERE / "asic_infringement_notices.json"
+    inf_path = DATA_DIR / "asic_infringement_notices.json"
     status["infringements"] = {
         "exists": inf_path.exists(),
         "last_modified": inf_path.stat().st_mtime if inf_path.exists() else None,
