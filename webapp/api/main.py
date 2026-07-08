@@ -1241,7 +1241,11 @@ def _build_asic_register_db():
 def _ensure_asic_register_async():
     """Kick off a background refresh if the local index is missing or stale. Never blocks the caller."""
     global _asic_building
-    if _asic_db_is_fresh() or _asic_building:
+    
+    db_path = HERE / "unified_companies.db"
+    needs_unified = not db_path.exists()
+    
+    if (_asic_db_is_fresh() and not needs_unified) or _asic_building:
         return
     with _asic_build_lock:
         if _asic_building:
@@ -1251,7 +1255,14 @@ def _ensure_asic_register_async():
     def _run():
         global _asic_building
         try:
-            _build_asic_register_db()
+            if not _asic_db_is_fresh():
+                _build_asic_register_db()
+            
+            # Always ensure unified DB is built if it's missing or we just rebuilt the ASIC register
+            import scripts.build_unified_db as bdb
+            print("[asic] Building unified companies DB...")
+            bdb.build_unified()
+            
         except Exception as e:
             print(f"[asic] Could not refresh register: {e}", file=sys.stderr)
         finally:
@@ -1547,332 +1558,109 @@ def _unlisted_companies_upsert(organizations: list, now: float):
 async def unlisted_search(body: dict):
     revenue_min = body.get("revenueMin")
     revenue_max = body.get("revenueMax")
-    locations = body.get("locations", ["Australia"])
     company_name = body.get("companyName")
+    only_proprietary = body.get("onlyProprietary", False)
+    only_infringements = body.get("onlyInfringements", False)
+    only_with_contacts = body.get("onlyWithContacts", False)
+    asic_status_filter = body.get("asicStatusFilter", "all")
 
-    query_hash = _unlisted_query_hash(revenue_min, revenue_max, locations, company_name)
-    
-    # [HOTFIX] Disable Apollo search caching. We are now querying the local 
-    # SQLite ASIC database which is instant, so we don't need to cache the results.
-    # This also prevents stale Apollo results from ruining the UX.
-    cached = None
-    
-    if cached:
-        pass
+    db_path = HERE / ".." / "unified_companies.db"
+    if not db_path.exists():
+        return {"error": "Database not found. Please trigger the ASIC data load first."}
         
-    api_key = os.environ.get("APOLLO_API_KEY")
-    if not api_key:
-        # Mock payload so the UI can be tested without an API key
-        organizations = [
-            {"id": "mock1", "name": "Canva", "domain": "canva.com", "annual_revenue": 100000000, "estimated_num_employees": 3000},
-            {"id": "mock2", "name": "Airwallex", "domain": "airwallex.com", "annual_revenue": 75000000, "estimated_num_employees": 1200},
-            {"id": "mock3", "name": "SafetyCulture", "domain": "safetyculture.com", "annual_revenue": 35000000, "estimated_num_employees": 600},
-            {"id": "mock4", "name": "Employment Hero", "domain": "employmenthero.com", "annual_revenue": 25000000, "estimated_num_employees": 800},
-            # This should be caught by the ASX exclusion filter (Commonwealth Bank of Australia)
-            {"id": "mock5", "name": "Commonwealth Bank of Australia", "domain": "commbank.com.au", "annual_revenue": 25000000000, "estimated_num_employees": 45000}
-        ]
-        data = {"organizations": organizations, "pagination": {"total_entries": 5, "total_pages": 1}}
-    else:
-        # --- NEW LOCAL ASIC DB SEARCH ---
-        db_path = HERE / ".." / "companies.db"
-        organizations = []
-        discovery_source = "asic_db"
-        total_entries = 0
-        
-        if db_path.exists():
-            import sqlite3
-            conn = sqlite3.connect(db_path)
-            try:
-                c = conn.cursor()
-                query = """
-                    SELECT a.acn, a.company_name, a.status, a.state,
-                           e.revenue, e.employees, e.contacts_json
-                    FROM asic_companies a
-                    LEFT JOIN enriched_data e ON a.acn = e.acn
-                    WHERE 1=1
-                """
-                params = []
-                
-                if company_name and company_name.strip():
-                    query += " AND a.company_name LIKE ?"
-                    params.append(f"%{company_name.strip()}%")
-                    
-                if revenue_min is not None:
-                    query += " AND e.revenue >= ?"
-                    params.append(float(revenue_min))
-                    
-                if revenue_max is not None:
-                    query += " AND e.revenue <= ?"
-                    params.append(float(revenue_max))
-                    
-                query += " LIMIT 500"
-                
-                rows = c.execute(query, params).fetchall()
-                for row in rows:
-                    acn, name, status, state, revenue, employees, contacts_json = row
-                    org = {
-                        "id": f"asic_{acn}",
-                        "name": name,
-                        "domain": "",
-                        "annual_revenue": revenue,
-                        "estimated_num_employees": employees,
-                        "dataSource": "asic_db",
-                        "contacts": json.loads(contacts_json) if contacts_json else []
-                    }
-                    organizations.append(org)
-                total_entries = len(organizations)
-            finally:
-                conn.close()
-                
-        data = {
-            "organizations": organizations,
-            "pagination": {
-                "total_entries": total_entries,
-                "total_pages": 1,
-                "fetched_entries": len(organizations),
-                "fetched_pages": 1,
-                "rate_limited": False,
-                "served_from_local_fallback": True,
-                "discovery_source": discovery_source,
-                "truncated": False,
-            },
-        }
+    query = """
+        SELECT 
+            acn, name, name_norm, status, type, class, subclass, state, 
+            is_large_prop, has_infringement, revenue, employees, has_contacts
+        FROM companies
+        WHERE 1=1
+    """
+    params = []
     
-    # Snapshot raw org data before anything below mutates these dicts in
-    # place (adding dataSource/contacts/_exclusion_reason etc.) — the
-    # companies cache should hold clean data reusable by any future query,
-    # not this query's derived, query-specific fields.
-    _raw_organizations_snapshot = [dict(o) for o in organizations]
-
-    # ASX Exclusion Filter — token-prefix match, not just exact string equality.
-    # Apollo frequently returns a shortened trading name ("Commonwealth Bank")
-    # while ASX's register holds the full legal name ("Commonwealth Bank of
-    # Australia"); an exact-string check misses that and lets ASX-listed
-    # companies leak into the "unlisted prospects" list.
-    global _companies_cache
-    asx_by_first_token: dict = {}
-    for c in _companies_cache:
-        toks = tuple(normalize_company_name(c["name"]).split())
-        if toks:
-            asx_by_first_token.setdefault(toks[0], []).append(toks)
-
-    def _asx_match_reason(org_name: str):
-        org_toks = tuple(normalize_company_name(org_name).split())
-        if not org_toks:
-            return None
-        for asx_toks in asx_by_first_token.get(org_toks[0], []):
-            if org_toks == asx_toks:
-                return "exact_normalized_name_match"
-            shorter, longer = (org_toks, asx_toks) if len(org_toks) <= len(asx_toks) else (asx_toks, org_toks)
-            # Require at least 2 shared leading words so a single generic
-            # word (e.g. "Australian") can't trigger a false-positive exclusion.
-            if len(shorter) >= 2 and longer[: len(shorter)] == shorter:
-                return "prefix_token_match"
-        return None
-
-    kept = []
-    excluded = []
-
-    for org in organizations:
-        reason = _asx_match_reason(org.get("name") or "")
-        if reason:
-            org["_asx_exclusion_reason"] = reason
-            excluded.append(org)
-        else:
-            kept.append(org)
+    if company_name and company_name.strip():
+        query += " AND name_norm LIKE ?"
+        # Note: normalize_company_name must be defined above
+        norm = normalize_company_name(company_name.strip())
+        params.append(f"%{norm}%")
+        
+    if revenue_min is not None:
+        try:
+            rmin = float(revenue_min)
+            # Show companies that meet revenue OR haven't been enriched yet
+            query += " AND (revenue >= ? OR revenue IS NULL)"
+            params.append(rmin)
+        except (ValueError, TypeError):
+            pass
             
-    # Load thresholds
-    tier1 = []
-    tier2 = []
-    excluded_over_max = []
-    excluded_under_min = []
-    excluded_incomplete_data = []
-    excluded_not_on_asic = []
-    unlisted_thresholds_path = KIT_DIR / "config" / "unlisted_thresholds.json"
-    t1_min = 50000000
-    t2_min = 20000000
-    if unlisted_thresholds_path.exists():
+    if revenue_max is not None:
         try:
-            with open(unlisted_thresholds_path, encoding="utf-8") as f:
-                thresholds = json.load(f)
-                t1_min = thresholds["tiers"][0].get("revenue_min", 50000000)
-                t2_min = thresholds["tiers"][1].get("revenue_min", 20000000)
-        except Exception:
+            rmax = float(revenue_max)
+            query += " AND (revenue <= ? OR revenue IS NULL)"
+            params.append(rmax)
+        except (ValueError, TypeError):
             pass
-
-    # ASIC is the spine: every candidate is joined against the register
-    # server-side (batched, one connection), and anything that can't be
-    # resolved to a registered Australian entity is quarantined rather than
-    # shown as a prospect. Commercial sources (Apollo/RocketReach) provide
-    # discovery and size/contact enrichment; ASIC decides what's real.
-    # If the register index hasn't finished building, the join is reported
-    # unavailable and nothing is quarantined on its account.
-    asic_map = _asic_lookup_many([o.get("name") for o in kept])
-    asic_join_available = bool(asic_map) or _ASIC_DB_PATH.exists()
-
-    for org in kept:
-        org["dataSource"] = org.get("dataSource") or "apollo"
-        org["infringementNotices"] = _infringement_lookup(org.get("name") or "")
-
-        asic_match = asic_map.get(normalize_company_name(org.get("name") or ""))
-        if asic_match:
-            org["asic"] = _asic_fields_to_api(asic_match)
-        elif asic_join_available:
-            org["_exclusion_reason"] = "not_on_asic_register"
-            excluded_not_on_asic.append(org)
-            continue
-
-        # Hardcode researched data (collected locally via Agent-Reach)
-        researched_data = {
-            "Canva": {"ceo": "Abigail Stewart", "cfo": "Kelly Steckelberg", "emp": 8066},
-            "Atlassian": {"ceo": "Mike Cannon-Brookes & Scott Farquhar", "cfo": "Joe Binz", "emp": 11000},
-            "Fujitsu Australia": {"ceo": "Simon Denney", "cfo": "Ryo Nagano", "emp": 28210},
-            "Fujitsu": {"ceo": "Simon Denney", "cfo": "Ryo Nagano", "emp": 28210},
-            "Commonwealth Bank": {"ceo": "Matt Comyn", "cfo": "Alan Docherty", "emp": 49000},
-            "Commonwealth Bank of Australia": {"ceo": "Matt Comyn", "cfo": "Alan Docherty", "emp": 49000},
-            "Freelancer": {"ceo": "Matt Barrie", "cfo": "Neil Katz", "emp": 30630},
-            "Freelancer.com": {"ceo": "Matt Barrie", "cfo": "Neil Katz", "emp": 30630},
-            "Australian Financial Review": {"ceo": "Peter Kerr", "cfo": "N/A", "emp": 168},
-            "The Australian Financial Review": {"ceo": "Peter Kerr", "cfo": "N/A", "emp": 168}
-        }
+            
+    if only_proprietary:
+        query += " AND is_large_prop = 1"
         
-        matched_data = researched_data.get(org.get("name"), {})
-        org["linkedin_employee_count"] = matched_data.get("emp", org.get("estimated_num_employees"))
-        # This field name is misleading: for the ~10 hardcoded companies above
-        # it really was manually researched (via Agent-Reach) at some point;
-        # for everyone else it's just org["estimated_num_employees"] copied
-        # over from Apollo, not independently checked against anything. Flag
-        # which one actually happened so the frontend doesn't claim "verified"
-        # for a plain Apollo estimate.
-        org["employeeCountSource"] = "manual_research" if matched_data else "apollo_estimate"
-
-        ceo_name = matched_data.get("ceo")
-        cfo_name = matched_data.get("cfo")
+    if only_infringements:
+        query += " AND has_infringement = 1"
         
-        contacts = []
-        if ceo_name:
-            contacts.append({"name": ceo_name, "title": "CEO", "url": "#"})
-        if cfo_name and cfo_name != "N/A":
-            contacts.append({"name": cfo_name, "title": "CFO", "url": "#"})
+    if only_with_contacts:
+        query += " AND has_contacts = 1"
         
-        org["contacts"] = contacts
-
-        rev = org.get("organization_revenue") or org.get("annual_revenue") or org.get("estimated_revenue")
-        emp_count = org.get("estimated_num_employees")
-
-        # A company with no revenue AND no employee estimate has zero signal
-        # for which tier it belongs in. Previously this defaulted such a
-        # company straight into the search's floor value, which meant every
-        # no-data company auto-passed the filter and polluted results with
-        # "Unknown" rows. Report it separately instead of guessing.
-        try:
-            rev_val = float(rev) if rev is not None else (float(emp_count) * 150000 if emp_count is not None else None)
-        except (TypeError, ValueError):
-            rev_val = None
-
-        if rev_val is None and org.get("_revenueBandFloor") is not None:
-            # RocketReach-discovered company: the search itself filtered by
-            # revenue band, so being in-band is guaranteed by the source even
-            # though no point value exists. Tier by the band floor — this is
-            # NOT the old fake-default trap, because the floor came from a
-            # filter the company actually matched, not from our search box.
-            rev_val = float(org["_revenueBandFloor"])
-
-        if rev_val is None:
-            org["_exclusion_reason"] = "incomplete_data"
-            excluded_incomplete_data.append(org)
-            continue
-
-        try:
-            r_min_val = float(revenue_min) if revenue_min is not None else None
-        except (TypeError, ValueError):
-            r_min_val = None
-
-        # Tier 2's own label promises "$20-50M" (t2_min) — enforce that floor
-        # even when the user's own Revenue Min is blank or set below it, so a
-        # sub-$20M company can never land in a table that says otherwise.
-        effective_min = max(t2_min, r_min_val) if r_min_val is not None else t2_min
-
-        # revenueMax narrows the Apollo employee-range query, but that's only
-        # a proxy — it doesn't guarantee Apollo (or our own employee*150k
-        # estimate) stays under the cap. Enforce it for real here so setting
-        # a max actually excludes companies bigger than it, instead of a
-        # megacap slipping through into "Tier 1" just because rev_val >= t1_min.
-        try:
-            r_max_val = float(revenue_max) if revenue_max is not None else None
-        except (TypeError, ValueError):
-            r_max_val = None
-
-        if rev_val < effective_min:
-            org["_exclusion_reason"] = "below_revenue_min"
-            excluded_under_min.append(org)
-            continue
-
-        if r_max_val is not None and rev_val > r_max_val:
-            org["_exclusion_reason"] = "exceeds_revenue_max"
-            excluded_over_max.append(org)
-            continue
-
-        if rev_val >= t1_min:
-            tier1.append(org)
+    if asic_status_filter != "all":
+        if asic_status_filter == "pending":
+            query += " AND status NOT IN ('REGD', 'DRGD')"
         else:
-            tier2.append(org)
+            query += " AND status = 'REGD'" if asic_status_filter == "verified" else " AND status != 'REGD'"
 
-    # Bulk annotate which companies already have known contacts
-    org_ids = [org.get("id") for org in tier1 + tier2 if org.get("id")]
-    if org_ids:
-        conn = _unlisted_cache_conn()
-        try:
-            placeholders = ",".join("?" for _ in org_ids)
-            rows = conn.execute(f"SELECT org_id, contacts_json, fetched_at FROM contacts_cache WHERE org_id IN ({placeholders}) AND contacts_json != '[]'", org_ids).fetchall()
-            cached_contact_orgs = {row[0]: (row[1], row[2]) for row in rows}
-            for org in tier1 + tier2:
-                if org.get("id") in cached_contact_orgs:
-                    c_json, f_at = cached_contact_orgs[org.get("id")]
-                    org["prefetched_contact_fetch"] = {
-                        "status": "done",
-                        "contacts": json.loads(c_json),
-                        "fetchedAt": f_at
-                    }
-        except Exception:
-            pass
-        finally:
-            conn.close()
-
-    now = time.time()
-    pagination = data.get("pagination") or {}
-    result = {
-        "tier1": tier1,
-        "tier2": tier2,
-        "excludedAsxMatches": excluded,
-        "excludedOverMax": excluded_over_max,
-        "excludedUnderMin": excluded_under_min,
-        "excludedIncompleteData": excluded_incomplete_data,
-        "excludedNotOnAsic": excluded_not_on_asic,
-        "asicJoinAvailable": asic_join_available,
-        "thresholds": {"t1Min": t1_min, "t2Min": t2_min},
-        "pagination": pagination,
-    }
-
-    if pagination.get("served_from_local_fallback"):
-        # Nothing new was actually fetched from Apollo — don't upsert (no new
-        # data) and don't cache this degraded result over a potentially
-        # good future fetch's cache slot.
-        oldest = min((o.get("_locallyCachedAt") for o in organizations if o.get("_locallyCachedAt")), default=now)
-        return {**result, "fetchedAt": oldest, "fromCache": True}
-
-    _unlisted_companies_upsert(_raw_organizations_snapshot, now)
-    _unlisted_cache_put(
-        query_hash,
-        {"revenueMin": revenue_min, "revenueMax": revenue_max, "locations": locations, "companyName": company_name},
-        result,
-        now,
-        # Only a real rate-limit cutoff gets a short TTL — hitting our own
-        # MAX_PAGES safety cap is an expected, complete-enough result and
-        # should get the full 24h TTL like any other successful search.
-        partial=bool(pagination.get("rate_limited")),
-    )
-    return {**result, "fetchedAt": now, "fromCache": False}
+    query += " LIMIT 500"
+    
+    import sqlite3
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        rows = c.execute(query, params).fetchall()
+        
+        results = []
+        for row in rows:
+            org = {
+                "id": f"asic_{row['acn']}",
+                "name": row['name'],
+                "annual_revenue": row['revenue'],
+                "estimated_num_employees": row['employees'],
+                "domain": "",
+                "dataSource": "asic",
+                "has_contacts": bool(row['has_contacts'])
+            }
+            _validation_statuses[org['id']] = {
+                "status": "verified" if row['status'] == 'REGD' else "deregistered",
+                "reason": f"ASIC Status: {row['status']}",
+                "acn": row['acn'],
+                "type": row['type'],
+                "class": row['class'],
+                "subclass": row['subclass'],
+                "state": row['state']
+            }
+            if row['has_infringement']:
+                org["infringementNotices"] = [{"title": "Infringement Notice"}]
+                
+            results.append(org)
+            
+        return {
+            "tier1": results,
+            "tier2": [],
+            "excludedUnderMin": [],
+            "excludedOverMax": [],
+            "excludedIncompleteData": [],
+            "pagination": {"total_pages": 1, "fetched_pages": 1, "rate_limited": False},
+            "fetchedAt": time.time(),
+            "fromCache": True
+        }
+    finally:
+        conn.close()
 
 
 @app.get("/api/unlisted/validate/{company_id}")

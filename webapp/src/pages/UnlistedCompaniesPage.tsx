@@ -176,7 +176,13 @@ export default function UnlistedCompaniesPage() {
     setSearchedMax(revenueMax)
 
     try {
-      const payload: any = { locations: ["Australia"] }
+      const payload: any = { 
+        locations: ["Australia"],
+        onlyProprietary,
+        onlyInfringements,
+        onlyWithContacts,
+        asicStatusFilter
+      }
       if (revenueMin) payload.revenueMin = Number(revenueMin)
       if (revenueMax) payload.revenueMax = Number(revenueMax)
       if (companyName.trim()) payload.companyName = companyName.trim()
