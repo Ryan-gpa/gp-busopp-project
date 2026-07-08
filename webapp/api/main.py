@@ -1531,13 +1531,22 @@ async def unlisted_search(body: dict):
         else:
             query += " AND status = 'REGD'" if asic_status_filter == "verified" else " AND status != 'REGD'"
 
-    query += " LIMIT 5000"
+    # Get total count matching the filters (without LIMIT) so UI can show "5,000 of 423,891"
+    count_query = query.replace("SELECT \n              acn, name, name_norm, status, type, class, subclass, state, \n              is_large_prop, has_infringement, revenue, employees, has_contacts\n          FROM companies", "SELECT COUNT(*) FROM companies")
+    query += " ORDER BY has_infringement DESC, acn DESC LIMIT 5000"
     
     import sqlite3
     conn = sqlite3.connect(str(db_path))
     try:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
+
+        # Count total matching rows
+        try:
+            total_matched = c.execute(count_query, params).fetchone()[0]
+        except Exception:
+            total_matched = None
+
         rows = c.execute(query, params).fetchall()
         
         results = []
@@ -1571,7 +1580,14 @@ async def unlisted_search(body: dict):
             "excludedUnderMin": [],
             "excludedOverMax": [],
             "excludedIncompleteData": [],
-            "pagination": {"total_pages": 1, "fetched_pages": 1, "rate_limited": False},
+            "pagination": {
+                "total_pages": 1,
+                "fetched_pages": 1,
+                "rate_limited": False,
+                "fetched_entries": len(results),
+                "total_entries": total_matched,
+                "truncated": total_matched is not None and total_matched > len(results)
+            },
             "fetchedAt": time.time(),
             "fromCache": True
         }

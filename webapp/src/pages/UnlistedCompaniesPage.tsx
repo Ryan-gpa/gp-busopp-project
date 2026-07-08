@@ -783,18 +783,21 @@ export default function UnlistedCompaniesPage() {
           {results.pagination && (
             <div className="text-sm text-muted-foreground">
               <div>
-                Found {results.pagination.fetched_entries ?? (results.tier1.length + results.tier2.length)} companies
-                {results.pagination.total_entries != null && ` of ${results.pagination.total_entries} matching in Apollo`}
-                {results.pagination.discovery_source === "asic" ? (
-                  <span className="text-violet-700"> — ASIC-first: companies penalised for failing to lodge financial reports (large proprietary by legal definition)</span>
-                ) : results.pagination.discovery_source === "rocketreach" ? (
-                  <span className="text-teal-700"> — discovered via RocketReach (Apollo unavailable); revenue shown as the searched band</span>
-                ) : results.pagination.served_from_local_fallback ? (
-                  <span className="text-amber-600"> — served from local storage, not live Apollo</span>
-                ) : results.pagination.rate_limited ? (
-                  <span className="text-amber-600"> — stopped early: Apollo's hourly rate limit was hit mid-search. Try a narrower revenue range next time.</span>
-                ) : results.pagination.truncated && (
-                  <span className="text-amber-600"> — capped at {results.pagination.fetched_pages} pages; narrow revenue range to see more</span>
+                {results.pagination.truncated ? (
+                  <>
+                    <span className="font-semibold text-amber-700">
+                      Showing {(results.pagination.fetched_entries ?? results.tier1.length).toLocaleString()} of {results.pagination.total_entries?.toLocaleString()} matching companies
+                    </span>
+                    {" — "}
+                    <span className="text-amber-600">results capped at 5,000. Search by company name or add more filters to narrow down.</span>
+                  </>
+                ) : (
+                  <>
+                    Found <span className="font-semibold">{(results.pagination.fetched_entries ?? (results.tier1.length + results.tier2.length)).toLocaleString()}</span> companies
+                    {results.pagination.discovery_source === "asic" && (
+                      <span className="text-violet-700"> — ASIC-first: companies penalised for failing to lodge financial reports</span>
+                    )}
+                  </>
                 )}
               </div>
               {results.fetchedAt && !results.pagination.served_from_local_fallback && (
