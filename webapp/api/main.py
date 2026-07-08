@@ -89,7 +89,7 @@ app.add_middleware(
 )
 
 # Paths
-_in_prod = os.environ.get("ENVIRONMENT") == "production"
+_in_prod = os.environ.get("RAILWAY_ENVIRONMENT") is not None
 HERE = Path(__file__).parent.resolve()
 APP_ROOT = Path("/app") if _in_prod else (HERE / "../../").resolve()
 DATA_DIR = Path("/data") if _in_prod else (APP_ROOT / "data").resolve()
