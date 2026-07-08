@@ -397,7 +397,7 @@ export default function UnlistedCompaniesPage() {
           <div className="font-medium text-gray-900 flex items-center">
             {renderSourceIcon(company.dataSource)}
             {hasRocketReachData && company.dataSource !== "rocketreach" && renderRocketReachIcon()}
-            {renderAsicIcon(valInfo?.status)}
+            {company.dataSource !== "asic" && renderAsicIcon(valInfo?.status)}
             {renderInfringementIcon(company.infringementNotices?.length || 0)}
             {company.name}
           </div>
@@ -794,6 +794,15 @@ export default function UnlistedCompaniesPage() {
 
       {results && (
         <div className="space-y-8">
+          {results.pagination?.discovery_source === "asic" && (
+            <div className="bg-violet-50 border border-violet-200 text-violet-900 text-sm rounded-md p-4">
+              <strong>ASIC-first seed list — this is the complete register, not a search.</strong> These{" "}
+              {results.tier1.length} companies are every entity ASIC has penalised for failing to lodge financial
+              reports (2012–present). A lodgement obligation makes each one a large proprietary company by legal
+              definition, so they all sit in Tier 1 and there is no Tier 2. The revenue filters above don't apply
+              here — use Search for revenue-based discovery.
+            </div>
+          )}
           {results.pagination?.served_from_local_fallback && (
             <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md p-4">
               Apollo's API was unavailable (rate limit), so these are companies previously fetched and stored
@@ -960,6 +969,7 @@ export default function UnlistedCompaniesPage() {
             )}
           </div>
 
+          {results.pagination?.discovery_source !== "asic" && (
           <div>
             <h2 className="text-xl font-heading font-medium text-navy-deep border-b pb-2">Tier 2 &mdash; Unverified leads (est. $20&ndash;50M)</h2>
             <p className="text-xs text-muted-foreground mt-2 mb-4 max-w-3xl">
@@ -990,6 +1000,7 @@ export default function UnlistedCompaniesPage() {
               <PaginationFooter page={tier2Page} setPage={setTier2Page} total={tier2Sorted.length} />
             </div>
           </div>
+          )}
         </div>
       )}
     </div>
