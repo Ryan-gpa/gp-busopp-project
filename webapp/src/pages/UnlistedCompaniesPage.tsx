@@ -188,11 +188,11 @@ export default function UnlistedCompaniesPage() {
     }
   }
 
-  // Automatically run search on first page load
+  // Automatically run search on first page load or when filters change
   useEffect(() => {
     handleSearch()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [onlyInfringements, onlyProprietary, onlyWithContacts, asicStatusFilter])
 
   const loadAsicProspects = async () => {
     setLoading(true)
@@ -570,34 +570,19 @@ export default function UnlistedCompaniesPage() {
 
   const applyFilters = (list: UnlistedCompany[]) => {
     return list.filter(c => {
-      if (onlyInfringements && !(c.infringementNotices?.length && c.infringementNotices.length > 0)) return false
-      
+      // onlyWithContacts relies on client-side state (contactFetches)
       if (onlyWithContacts) {
         const hasFetched = contactFetches[c.id]?.contacts && contactFetches[c.id]!.contacts!.length > 0
         const hasLegacy = c.contacts && c.contacts.length > 0
         if (!hasLegacy && !hasFetched) return false
       }
-      
-      const v = validationStatuses[c.id]
-      if (onlyProprietary) {
-        if (!v || v.asicType !== "APTY" || v.asicClass !== "LMSH" || v.asicSubClass !== "PROP") return false
-      }
-      
-      if (asicStatusFilter !== "all") {
-        if (!v) {
-          if (asicStatusFilter !== "pending") return false
-        } else {
-          if (v.status !== asicStatusFilter) return false
-        }
-      }
-      
       return true
     })
   }
 
   const tier1Sorted = useMemo(
     () => results ? sortCompanies(applyFilters(results.tier1), tier1Sort) : [],
-    [results, tier1Sort, onlyInfringements, onlyProprietary, onlyWithContacts, asicStatusFilter, validationStatuses, contactFetches]
+    [results, tier1Sort, onlyWithContacts, contactFetches]
   )
   const tier1PageItems = useMemo(
     () => tier1Sorted.slice((tier1Page - 1) * PAGE_SIZE, tier1Page * PAGE_SIZE),
@@ -605,7 +590,7 @@ export default function UnlistedCompaniesPage() {
   )
   const tier2Sorted = useMemo(
     () => results ? sortCompanies(applyFilters(results.tier2), tier2Sort) : [],
-    [results, tier2Sort, onlyInfringements, onlyProprietary, onlyWithContacts, asicStatusFilter, validationStatuses, contactFetches]
+    [results, tier2Sort, onlyWithContacts, contactFetches]
   )
   const tier2PageItems = useMemo(
     () => tier2Sorted.slice((tier2Page - 1) * PAGE_SIZE, tier2Page * PAGE_SIZE),

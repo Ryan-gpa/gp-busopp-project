@@ -1633,7 +1633,7 @@ async def unlisted_search(body: dict):
             pass
             
     if only_proprietary:
-        query += " AND is_large_prop = 1"
+        query += " AND type = 'APTY' AND class = 'LMSH' AND subclass = 'PROP'"
         
     if only_infringements:
         query += " AND has_infringement = 1"
