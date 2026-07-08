@@ -66,7 +66,7 @@ export default function StatusPage() {
     pulseMessage = `Backend is unreachable (${error}). Please check if the Railway server is running or deploying.`
     pulseColor = "text-red-700 font-bold"
   } else if (udb?.building || asic?.building) {
-    pulseMessage = "Database is building in the background. Searches may fail or return blank pages. Please wait 2-5 minutes."
+    pulseMessage = "Database is building in the background. Please wait ~2 minutes. (This page will automatically update when finished)"
     pulseColor = "text-amber-700 font-bold"
   } else if (!udb?.exists || !asic?.exists) {
     pulseMessage = "Core databases are missing. Try restarting the server to trigger a background build."
@@ -107,8 +107,11 @@ export default function StatusPage() {
           </div>
         )}
       </div>
-      <div className={`text-sm mt-1 ${pulseColor}`}>
-        <span className="font-semibold mr-1">Pulse Check:</span> {pulseMessage}
+      <div className={`text-sm mt-1 flex items-center gap-2 ${pulseColor}`}>
+        <div><span className="font-semibold mr-1">Pulse Check:</span> {pulseMessage}</div>
+        {(udb?.building || asic?.building) && (
+          <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" title="Building..."></div>
+        )}
       </div>
     </div>
   )
