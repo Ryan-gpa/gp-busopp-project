@@ -1189,59 +1189,73 @@ _ASIC_DB_COLUMNS = [
 
 def _build_asic_register_db():
     """Download the current ASIC company register snapshot and index every published field in SQLite."""
-    print("[asic] Refreshing company register index (~1-2 min, ~3M rows)...", file=sys.stderr)
-    url = _resolve_asic_zip_url()
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=180) as resp:
-        zip_bytes = io.BytesIO(resp.read())
-
-    tmp_path = _ASIC_DB_PATH.with_suffix(".building.sqlite3")
-    if tmp_path.exists():
-        tmp_path.unlink()
+    global _asic_building
+    _asic_building = True
     
-    # CRITICAL: Also delete the journal file, or SQLite will try to recover the deleted database and crash!
-    journal_path = _ASIC_DB_PATH.with_suffix(".building.sqlite3-journal")
-    if journal_path.exists():
-        journal_path.unlink()
+    lock_path = DATA_DIR / ".building.lock"
+    if lock_path.exists():
+        # Another worker is already building
+        return
+    lock_path.touch()
+    
+    try:
+        print("[asic] Refreshing company register index (~1-2 min, ~3M rows)...", file=sys.stderr)
+        url = _resolve_asic_zip_url()
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            zip_bytes = io.BytesIO(resp.read())
 
-    conn = sqlite3.connect(str(tmp_path))
-    conn.execute(f"CREATE TABLE companies ({', '.join(c + ' TEXT' for c in _ASIC_DB_COLUMNS)})")
-    placeholders = ",".join("?" * len(_ASIC_DB_COLUMNS))
+        tmp_path = _ASIC_DB_PATH.with_suffix(".building.sqlite3")
+        if tmp_path.exists():
+            tmp_path.unlink()
+        
+        # CRITICAL: Also delete the journal file, or SQLite will try to recover the deleted database and crash!
+        journal_path = _ASIC_DB_PATH.with_suffix(".building.sqlite3-journal")
+        if journal_path.exists():
+            journal_path.unlink()
 
-    row_count = 0
-    with zipfile.ZipFile(zip_bytes) as zf:
-        csv_name = next(n for n in zf.namelist() if n.lower().endswith(".csv"))
-        with zf.open(csv_name) as raw:
-            text = io.TextIOWrapper(raw, encoding="utf-8-sig", errors="replace")
-            reader = csv.reader(text, delimiter="\t")
-            header = next(reader)
-            idx = {h.strip(): i for i, h in enumerate(header)}
-            col_indices = [idx[c] for c in _ASIC_CSV_COLUMNS]
-            need = max(col_indices)
-            batch = []
-            for row in reader:
-                if len(row) <= need:
-                    continue
-                name = row[idx["Company Name"]].strip()
-                if not name:
-                    continue
-                norm = normalize_company_name(name)
-                if not norm:
-                    continue
-                values = tuple(row[i].strip() for i in col_indices)
-                batch.append((norm,) + values)
-                row_count += 1
-                if len(batch) >= 20000:
+        conn = sqlite3.connect(str(tmp_path))
+        conn.execute(f"CREATE TABLE companies ({', '.join(c + ' TEXT' for c in _ASIC_DB_COLUMNS)})")
+        placeholders = ",".join("?" * len(_ASIC_DB_COLUMNS))
+
+        row_count = 0
+        with zipfile.ZipFile(zip_bytes) as zf:
+            csv_name = next(n for n in zf.namelist() if n.lower().endswith(".csv"))
+            with zf.open(csv_name) as raw:
+                text = io.TextIOWrapper(raw, encoding="utf-8-sig", errors="replace")
+                reader = csv.reader(text, delimiter="\t")
+                header = next(reader)
+                idx = {h.strip(): i for i, h in enumerate(header)}
+                col_indices = [idx[c] for c in _ASIC_CSV_COLUMNS]
+                need = max(col_indices)
+                batch = []
+                for row in reader:
+                    if len(row) <= need:
+                        continue
+                    name = row[idx["Company Name"]].strip()
+                    if not name:
+                        continue
+                    norm = normalize_company_name(name)
+                    if not norm:
+                        continue
+                    values = tuple(row[i].strip() for i in col_indices)
+                    batch.append((norm,) + values)
+                    row_count += 1
+                    if len(batch) >= 20000:
+                        conn.executemany(f"INSERT INTO companies VALUES ({placeholders})", batch)
+                        batch = []
+                if batch:
                     conn.executemany(f"INSERT INTO companies VALUES ({placeholders})", batch)
-                    batch = []
-            if batch:
-                conn.executemany(f"INSERT INTO companies VALUES ({placeholders})", batch)
 
-    conn.execute("CREATE INDEX idx_name_norm ON companies(name_norm)")
-    conn.commit()
-    conn.close()
-    tmp_path.replace(_ASIC_DB_PATH)
-    print(f"[asic] Register index built: {row_count} rows", file=sys.stderr)
+        conn.execute("CREATE INDEX idx_name_norm ON companies(name_norm)")
+        conn.commit()
+        conn.close()
+        tmp_path.replace(_ASIC_DB_PATH)
+        print(f"[asic] Register index built: {row_count} rows", file=sys.stderr)
+    finally:
+        if lock_path.exists():
+            lock_path.unlink()
+        _asic_building = False
 
 
 def _ensure_asic_register_async():
@@ -1251,7 +1265,10 @@ def _ensure_asic_register_async():
     db_path = DATA_DIR / "unified_companies.db"
     needs_unified = not db_path.exists()
     
-    if (_asic_db_is_fresh() and not needs_unified) or _asic_building:
+    lock_path = DATA_DIR / ".building.lock"
+    is_building = _asic_building or lock_path.exists()
+    
+    if (_asic_db_is_fresh() and not needs_unified) or is_building:
         return
     with _asic_build_lock:
         if _asic_building:
@@ -1278,6 +1295,9 @@ def _ensure_asic_register_async():
                 f.write(err_msg)
         finally:
             _asic_building = False
+            lock_path = DATA_DIR / ".building.lock"
+            if lock_path.exists():
+                lock_path.unlink()
 
     threading.Thread(target=_run, daemon=True).start()
 
@@ -2231,7 +2251,10 @@ def debug_info():
     }
     
     try:
-        contents = os.listdir(DATA_DIR)
+        contents = {}
+        for f in os.listdir(DATA_DIR):
+            p = DATA_DIR / f
+            contents[f] = p.stat().st_size
     except Exception as e:
         contents = str(e)
         
@@ -2247,9 +2270,12 @@ def system_status():
     
     # 1. Unified DB
     unified_db_path = DATA_DIR / "unified_companies.db"
+    lock_path = DATA_DIR / ".building.lock"
+    is_building = _asic_building or lock_path.exists()
+    
     status["unified_db"] = {
         "exists": unified_db_path.exists(),
-        "building": _asic_building,
+        "building": is_building,
         "last_modified": unified_db_path.stat().st_mtime if unified_db_path.exists() else None,
         "size_mb": round(unified_db_path.stat().st_size / (1024 * 1024), 2) if unified_db_path.exists() else 0
     }
@@ -2258,7 +2284,7 @@ def system_status():
     asic_db_path = DATA_DIR / "asic_register_v2.sqlite3"
     status["asic_register"] = {
         "exists": asic_db_path.exists(),
-        "building": _asic_building,
+        "building": is_building,
         "last_modified": asic_db_path.stat().st_mtime if asic_db_path.exists() else None,
         "size_mb": round(asic_db_path.stat().st_size / (1024 * 1024), 2) if asic_db_path.exists() else 0
     }
