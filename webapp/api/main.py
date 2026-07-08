@@ -1282,6 +1282,57 @@ def _asic_lookup(name: str) -> dict | None:
     return dict(zip(fields, row))
 
 
+def _asic_lookup_many(names: list) -> dict:
+    """Batched register lookup: normalized name -> record dict, one connection
+    for the whole result set instead of one per company. Empty dict when the
+    index isn't built yet — callers must treat that as 'join unavailable',
+    not 'nothing matched'."""
+    if not _ASIC_DB_PATH.exists():
+        return {}
+    fields = _ASIC_DB_COLUMNS[1:]
+    sql = f"SELECT {', '.join(fields)} FROM companies WHERE name_norm = ? ORDER BY (status = 'REGD') DESC LIMIT 1"
+    out = {}
+    conn = sqlite3.connect(str(_ASIC_DB_PATH))
+    try:
+        cur = conn.cursor()
+        for name in names:
+            norm = normalize_company_name(name or "")
+            if not norm or norm in out:
+                continue
+            row = cur.execute(sql, (norm,)).fetchone()
+            if row:
+                out[norm] = dict(zip(fields, row))
+    finally:
+        conn.close()
+    return out
+
+
+def _asic_fields_to_api(match: dict) -> dict:
+    """ASIC register record -> the camelCased shape the frontend's
+    AsicValidation type expects (blank fields dropped), including the
+    verified/deregistered status the badges key off."""
+    fields = {
+        "matchedName": match["name"],
+        "acn": match["acn"],
+        "abn": match["abn"],
+        "asicType": match["type"],
+        "asicClass": match["class"],
+        "asicSubClass": match["sub_class"],
+        "dateOfRegistration": match["date_of_registration"],
+        "dateOfDeregistration": match["date_of_deregistration"],
+        "previousStateOfRegistration": match["previous_state"],
+        "stateRegistrationNumber": match["state_registration_number"],
+        "modifiedSinceLastReport": match["modified_since_last_report"],
+        "currentNameIndicator": match["current_name_indicator"],
+        "currentName": match["current_name"],
+        "currentNameStartDate": match["current_name_start_date"],
+    }
+    fields = {k: v for k, v in fields.items() if v}
+    if match["status"] != "REGD":
+        return {"status": "deregistered", "reason": f"ASIC status: {match['status']}", **fields}
+    return {"status": "verified", "reason": "Active on ASIC company register", **fields}
+
+
 _ensure_asic_register_async()
 
 
@@ -1743,6 +1794,7 @@ async def unlisted_search(body: dict):
     excluded_over_max = []
     excluded_under_min = []
     excluded_incomplete_data = []
+    excluded_not_on_asic = []
     unlisted_thresholds_path = KIT_DIR / "config" / "unlisted_thresholds.json"
     t1_min = 50000000
     t2_min = 20000000
@@ -1754,10 +1806,28 @@ async def unlisted_search(body: dict):
                 t2_min = thresholds["tiers"][1].get("revenue_min", 20000000)
         except Exception:
             pass
-        
+
+    # ASIC is the spine: every candidate is joined against the register
+    # server-side (batched, one connection), and anything that can't be
+    # resolved to a registered Australian entity is quarantined rather than
+    # shown as a prospect. Commercial sources (Apollo/RocketReach) provide
+    # discovery and size/contact enrichment; ASIC decides what's real.
+    # If the register index hasn't finished building, the join is reported
+    # unavailable and nothing is quarantined on its account.
+    asic_map = _asic_lookup_many([o.get("name") for o in kept])
+    asic_join_available = bool(asic_map) or _ASIC_DB_PATH.exists()
+
     for org in kept:
         org["dataSource"] = org.get("dataSource") or "apollo"
         org["infringementNotices"] = _infringement_lookup(org.get("name") or "")
+
+        asic_match = asic_map.get(normalize_company_name(org.get("name") or ""))
+        if asic_match:
+            org["asic"] = _asic_fields_to_api(asic_match)
+        elif asic_join_available:
+            org["_exclusion_reason"] = "not_on_asic_register"
+            excluded_not_on_asic.append(org)
+            continue
 
         # Hardcode researched data (collected locally via Agent-Reach)
         researched_data = {
@@ -1885,6 +1955,8 @@ async def unlisted_search(body: dict):
         "excludedOverMax": excluded_over_max,
         "excludedUnderMin": excluded_under_min,
         "excludedIncompleteData": excluded_incomplete_data,
+        "excludedNotOnAsic": excluded_not_on_asic,
+        "asicJoinAvailable": asic_join_available,
         "thresholds": {"t1Min": t1_min, "t2Min": t2_min},
         "pagination": pagination,
     }
@@ -1927,37 +1999,70 @@ def validate_unlisted(company_id: str, name: str = ""):
     match = _asic_lookup(name)
     if not match:
         return {"status": "not_found", "reason": "No matching company name on the ASIC register"}
+    return _asic_fields_to_api(match)
 
-    # Full field set as published by ASIC (see the dataset's help file) —
-    # camelCased for the frontend, blank fields dropped rather than sent as "".
-    fields = {
-        "matchedName": match["name"],
-        "acn": match["acn"],
-        "abn": match["abn"],
-        "asicType": match["type"],
-        "asicClass": match["class"],
-        "asicSubClass": match["sub_class"],
-        "dateOfRegistration": match["date_of_registration"],
-        "dateOfDeregistration": match["date_of_deregistration"],
-        "previousStateOfRegistration": match["previous_state"],
-        "stateRegistrationNumber": match["state_registration_number"],
-        "modifiedSinceLastReport": match["modified_since_last_report"],
-        "currentNameIndicator": match["current_name_indicator"],
-        "currentName": match["current_name"],
-        "currentNameStartDate": match["current_name_start_date"],
+
+@app.get("/api/unlisted/asic-prospects")
+def asic_prospects():
+    """ASIC-first discovery: start from ASIC's own signals, enrich elsewhere.
+
+    Seed list is the infringement notices register — every company penalised
+    for failing to lodge financial reports had a lodgement obligation, which
+    makes it a large proprietary company by legal definition (Corporations
+    Act s45A), i.e. exactly this tool's Tier 1 target, certified by the
+    regulator rather than estimated by a firmographic database. Each entry
+    is joined against the full ASIC register for ACN/ABN/status, and
+    contact enrichment (Apollo/RocketReach) runs on demand per company."""
+    seen = set()
+    prospects = []
+    for norm, records in _infringement_by_norm_name.items():
+        if norm in seen:
+            continue
+        seen.add(norm)
+        rec = records[0]
+        asic_match = _asic_lookup(rec["name"])
+        acn = (asic_match or {}).get("acn") or re.sub(r"\D", "", rec.get("licenceOrAcn") or "") or norm.replace(" ", "_")
+        org = {
+            "id": f"asic_{acn}",
+            "name": rec["name"],
+            "domain": None,
+            "dataSource": "asic",
+            "revenueBand": "Large proprietary (lodgement obligation)",
+            "infringementNotices": records,
+            "asic": _asic_fields_to_api(asic_match) if asic_match else None,
+        }
+        prospects.append(org)
+
+    prospects.sort(key=lambda o: (o["infringementNotices"][0].get("year") or ""), reverse=True)
+
+    now = time.time()
+    _unlisted_companies_upsert(prospects, now)
+
+    return {
+        "tier1": prospects,
+        "tier2": [],
+        "excludedAsxMatches": [],
+        "excludedOverMax": [],
+        "excludedUnderMin": [],
+        "excludedIncompleteData": [],
+        "excludedNotOnAsic": [],
+        "asicJoinAvailable": _ASIC_DB_PATH.exists(),
+        "thresholds": {"t1Min": 50000000, "t2Min": 20000000},
+        "pagination": {
+            "fetched_entries": len(prospects),
+            "total_entries": len(prospects),
+            "discovery_source": "asic",
+        },
+        "fetchedAt": now,
+        "fromCache": False,
     }
-    fields = {k: v for k, v in fields.items() if v}
-
-    if match["status"] != "REGD":
-        return {"status": "deregistered", "reason": f"ASIC status: {match['status']}", **fields}
-    return {"status": "verified", "reason": "Active on ASIC company register", **fields}
 
 
 _CONTACT_TITLES = [
-    "Chief Executive Officer", "CEO", 
+    "Chief Executive Officer", "CEO",
     "Managing Director", "President",
     "Founder", "Co-Founder",
-    "Chief Financial Officer", "CFO", 
+    "Chief Financial Officer", "CFO",
     "Chief Operating Officer", "COO",
     "Chief Technology Officer", "CTO",
     "General Manager"
@@ -2096,21 +2201,35 @@ def _company_identity_for_org(org_id: str):
     return (row[0], row[1]) if row else (None, None)
 
 
+def _strip_corp_suffixes(name: str) -> str:
+    """'Canva Pty Ltd' -> 'Canva'. ASIC stores legal names; commercial
+    databases index brands — bridge the gap when searching by name."""
+    return re.sub(r"(\s+(pty\.?|ltd\.?|limited|proprietary))+\s*$", "", name or "", flags=re.IGNORECASE).strip()
+
+
 def _rocketreach_find_contacts(company_name: str) -> list:
     """Best-effort CEO/CFO lookup via RocketReach. Returns [] on any failure,
     missing key, or no match — never raises."""
     rr_key = os.environ.get(_ROCKETREACH_API_KEY_ENV)
     if not rr_key or not company_name:
         return []
-    try:
+
+    def _search(name: str):
         sr = requests.post(
             "https://api.rocketreach.co/api/v2/person/search",
             headers={"Api-Key": rr_key, "Content-Type": "application/json"},
             timeout=20,
-            json={"query": {"current_employer": [f'"{company_name}"'], "current_title": _CONTACT_TITLES}, "page_size": 10},
+            json={"query": {"current_employer": [f'"{name}"'], "current_title": _CONTACT_TITLES}, "page_size": 10},
         )
         sr.raise_for_status()
-        profiles = sr.json().get("profiles", [])
+        return sr.json().get("profiles", [])
+
+    try:
+        profiles = _search(company_name)
+        if not profiles:
+            stripped = _strip_corp_suffixes(company_name)
+            if stripped and stripped.lower() != company_name.lower():
+                profiles = _search(stripped)
     except Exception as e:
         print(f"[rocketreach] search failed for {company_name!r}: {e}", file=sys.stderr)
         return []
@@ -2220,10 +2339,11 @@ def find_contacts(org_id: str):
     if row and (time.time() - row[1]) < _CONTACTS_CACHE_TTL:
         return {"contacts": json.loads(row[0]), "fromCache": True, "fetchedAt": row[1]}
 
-    # RocketReach-discovered companies (rr_ ids) don't exist in Apollo's org
-    # namespace — its people search can't resolve them, so go straight to
-    # RocketReach by company name. Deliberately not gated on the Apollo key.
-    if org_id.startswith("rr_"):
+    # Companies discovered outside Apollo (rr_ = RocketReach, asic_ = ASIC
+    # infringement prospects) don't exist in Apollo's org namespace — its
+    # people search can't resolve them, so go straight to RocketReach by
+    # company name. Deliberately not gated on the Apollo key.
+    if org_id.startswith(("rr_", "asic_")):
         rr_name, _ = _company_identity_for_org(org_id)
         rr_contacts = _rocketreach_find_contacts(rr_name)
         now = time.time()

@@ -114,9 +114,7 @@ export default function UnlistedCompaniesPage() {
 
   useEffect(() => { refreshApolloStatus() }, [])
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+  const resetResultState = () => {
     setError("")
     setResults(null)
     setValidationStatuses({})
@@ -128,6 +126,53 @@ export default function UnlistedCompaniesPage() {
     setAsicStatusFilter("all")
     setTier1Page(1)
     setTier2Page(1)
+  }
+
+  const ingestResults = (data: UnlistedSearchResult) => {
+    setResults(data)
+    const allCompanies = [...(data.tier1 || []), ...(data.tier2 || [])]
+
+    const initialContactFetches: Record<string, ContactFetchState> = {}
+    allCompanies.forEach((c: UnlistedCompany) => {
+      if (c.prefetched_contact_fetch) {
+        initialContactFetches[c.id] = c.prefetched_contact_fetch
+      }
+    })
+    if (Object.keys(initialContactFetches).length > 0) {
+      setContactFetches(initialContactFetches)
+    }
+
+    // The backend joins every result against the ASIC register server-side
+    // and embeds it as company.asic — seed the badges from that. The
+    // per-company /validate fetch survives only as a fallback for results
+    // that arrived without a join (e.g. register index still building).
+    const seededValidation: Record<string, AsicValidation> = {}
+    allCompanies.forEach((c: UnlistedCompany) => {
+      if (c.asic) seededValidation[c.id] = c.asic as AsicValidation
+    })
+    if (Object.keys(seededValidation).length > 0) {
+      setValidationStatuses(seededValidation)
+    }
+    allCompanies.filter((c: UnlistedCompany) => !c.asic).forEach(async (company: UnlistedCompany) => {
+      try {
+        const vRes = await fetch(`${API_BASE}/api/unlisted/validate/${company.id}?name=${encodeURIComponent(company.name)}`)
+        if (vRes.ok) {
+          const vData = await vRes.json()
+          setValidationStatuses(prev => ({
+            ...prev,
+            [company.id]: vData
+          }))
+        }
+      } catch (e) {
+        console.error("Validation error", e)
+      }
+    })
+  }
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    resetResultState()
     setSearchedMax(revenueMax)
 
     try {
@@ -147,45 +192,31 @@ export default function UnlistedCompaniesPage() {
         throw new Error(err.detail || "Search failed")
       }
 
-      const data = await res.json()
-      setResults(data)
-
-      const initialContactFetches: Record<string, ContactFetchState> = {}
-      const allCompanies = [...(data.tier1 || []), ...(data.tier2 || [])]
-      allCompanies.forEach((c: UnlistedCompany) => {
-        if (c.prefetched_contact_fetch) {
-          initialContactFetches[c.id] = c.prefetched_contact_fetch
-        }
-      })
-      if (Object.keys(initialContactFetches).length > 0) {
-        setContactFetches(initialContactFetches)
-      }
-
-      // Automatically check every company (both tiers) against the ASIC
-      // register — it's a free local SQLite lookup, not a paid Apollo call,
-      // so there's no cost reason to limit this to Tier 1 only. Tier 1 shows
-      // it as the primary badge (large-proprietary lodgement context); Tier 2
-      // shows it as a secondary "does this company actually exist" check
-      // alongside the revenue "Estimate only" confidence badge.
-      allCompanies.forEach(async (company: UnlistedCompany) => {
-        try {
-          const vRes = await fetch(`${API_BASE}/api/unlisted/validate/${company.id}?name=${encodeURIComponent(company.name)}`)
-          if (vRes.ok) {
-            const vData = await vRes.json()
-            setValidationStatuses(prev => ({
-              ...prev,
-              [company.id]: vData
-            }))
-          }
-        } catch (e) {
-          console.error("Validation error", e)
-        }
-      })
+      ingestResults(await res.json())
     } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
       refreshApolloStatus()
+    }
+  }
+
+  const loadAsicProspects = async () => {
+    setLoading(true)
+    resetResultState()
+    setSearchedMax("") // Tier 1 is always reachable for this list
+
+    try {
+      const res = await fetch(`${API_BASE}/api/unlisted/asic-prospects`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || "Couldn't load ASIC prospects")
+      }
+      ingestResults(await res.json())
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -255,6 +286,10 @@ export default function UnlistedCompaniesPage() {
     dataSource === "rocketreach" ? (
       <div title="Company discovered via RocketReach" className="inline-flex items-center justify-center p-1 bg-teal-50 text-teal-700 rounded-full mr-2">
         <Telescope className="h-3 w-3" />
+      </div>
+    ) : dataSource === "asic" ? (
+      <div title="Company discovered from ASIC's own registers (infringement notices)" className="inline-flex items-center justify-center p-1 bg-violet-50 text-violet-700 rounded-full mr-2">
+        <Landmark className="h-3 w-3" />
       </div>
     ) : (
       <div title="Company data from Apollo" className="inline-flex items-center justify-center p-1 bg-indigo-50 text-indigo-600 rounded-full mr-2">
@@ -662,11 +697,23 @@ export default function UnlistedCompaniesPage() {
             {loading ? "Searching..." : "Search"}
           </Button>
         </form>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Tip: set a Revenue Max, not just a Min. This API is rate-limited to 200 calls/hour — a search with no
-          upper bound has to page through far more results and burns through that limit much faster than a
-          narrow band does.
-        </p>
+        <div className="mt-3 flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-xs text-muted-foreground">
+            Tip: set a Revenue Max, not just a Min. This API is rate-limited to 200 calls/hour — a search with no
+            upper bound has to page through far more results and burns through that limit much faster than a
+            narrow band does.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            onClick={loadAsicProspects}
+            title="Start from ASIC's own signals: every company on the infringement notices register had a financial-report lodgement obligation, making it a large proprietary company by legal definition"
+          >
+            <Landmark className="h-3.5 w-3.5 mr-1.5" /> ASIC-first prospects
+          </Button>
+        </div>
         {results && (
           <div className="mt-4 flex flex-wrap items-center gap-6 p-4 bg-muted/20 border rounded-md">
             <label 
@@ -759,7 +806,9 @@ export default function UnlistedCompaniesPage() {
               <div>
                 Found {results.pagination.fetched_entries ?? (results.tier1.length + results.tier2.length)} companies
                 {results.pagination.total_entries != null && ` of ${results.pagination.total_entries} matching in Apollo`}
-                {results.pagination.discovery_source === "rocketreach" ? (
+                {results.pagination.discovery_source === "asic" ? (
+                  <span className="text-violet-700"> — ASIC-first: companies penalised for failing to lodge financial reports (large proprietary by legal definition)</span>
+                ) : results.pagination.discovery_source === "rocketreach" ? (
                   <span className="text-teal-700"> — discovered via RocketReach (Apollo unavailable); revenue shown as the searched band</span>
                 ) : results.pagination.served_from_local_fallback ? (
                   <span className="text-amber-600"> — served from local storage, not live Apollo</span>
@@ -780,6 +829,7 @@ export default function UnlistedCompaniesPage() {
                 {results.excludedUnderMin.length > 0 && ` · ${results.excludedUnderMin.length} below Revenue Min`}
                 {results.excludedOverMax.length > 0 && ` · ${results.excludedOverMax.length} above Revenue Max`}
                 {results.excludedIncompleteData.length > 0 && ` · ${results.excludedIncompleteData.length} no revenue/employee data`}
+                {(results.excludedNotOnAsic?.length || 0) > 0 && ` · ${results.excludedNotOnAsic!.length} not on ASIC register`}
                 {results.excludedAsxMatches.length > 0 && ` · ${results.excludedAsxMatches.length} ASX-listed`}
               </div>
             </div>
@@ -855,6 +905,22 @@ export default function UnlistedCompaniesPage() {
               <div className="text-sm text-muted-foreground max-h-48 overflow-y-auto">
                 <ul className="list-disc pl-5 space-y-1">
                   {results.excludedIncompleteData.map(c => (
+                    <li key={c.id}>{c.name} ({c.domain})</li>
+                  ))}
+                </ul>
+              </div>
+            </details>
+          )}
+
+          {(results.excludedNotOnAsic?.length || 0) > 0 && (
+            <details className="bg-muted/30 border rounded-md p-4 group">
+              <summary className="text-sm font-medium cursor-pointer flex justify-between items-center text-muted-foreground group-open:mb-4">
+                {results.excludedNotOnAsic!.length} candidates excluded — no match on the ASIC company register (foreign entities, brands, or trading names that differ from the legal name)
+                <span className="text-xs border px-2 py-0.5 rounded">Expand</span>
+              </summary>
+              <div className="text-sm text-muted-foreground max-h-48 overflow-y-auto">
+                <ul className="list-disc pl-5 space-y-1">
+                  {results.excludedNotOnAsic!.map(c => (
                     <li key={c.id}>{c.name} ({c.domain})</li>
                   ))}
                 </ul>
