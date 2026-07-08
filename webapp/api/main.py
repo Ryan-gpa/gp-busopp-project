@@ -1291,6 +1291,20 @@ def _unlisted_cache_conn():
         "CREATE TABLE IF NOT EXISTS contacts_cache ("
         "org_id TEXT PRIMARY KEY, contacts_json TEXT, fetched_at REAL)"
     )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS contacts ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "org_id TEXT, "
+        "name TEXT, "
+        "title TEXT, "
+        "email TEXT, "
+        "email_status TEXT, "
+        "phone TEXT, "
+        "linkedin_url TEXT, "
+        "source TEXT, "
+        "fetched_at REAL, "
+        "UNIQUE(org_id, name))"
+    )
     return conn
 
 
@@ -1978,6 +1992,28 @@ def _merge_contact_sources(apollo_contacts: list, rr_contacts: list) -> list:
     return merged
 
 
+def _persist_contacts(conn, org_id, contacts_list, now):
+    conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, json.dumps(contacts_list), now))
+    for c in contacts_list:
+        try:
+            conn.execute("""
+                INSERT OR REPLACE INTO contacts 
+                (org_id, name, title, email, email_status, phone, linkedin_url, source, fetched_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                org_id,
+                c.get("name"),
+                c.get("title"),
+                c.get("email"),
+                c.get("emailStatus"),
+                ", ".join(c.get("phoneNumbers", [])) if c.get("phoneNumbers") else None,
+                c.get("linkedinUrl"),
+                c.get("source"),
+                now
+            ))
+        except Exception as e:
+            print(f"Error persisting contact: {e}")
+
 @app.get("/api/unlisted/contacts/{org_id}")
 def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     """Find CEO/CFO contacts for a company by Apollo organization id.
@@ -2007,7 +2043,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
         now = time.time()
         conn = _unlisted_cache_conn()
         try:
-            conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, json.dumps(rr_contacts), now))
+            _persist_contacts(conn, org_id, rr_contacts, now)
             conn.commit()
         finally:
             conn.close()
@@ -2023,7 +2059,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
         now = time.time()
         conn = _unlisted_cache_conn()
         try:
-            conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, json.dumps(rr_contacts), now))
+            _persist_contacts(conn, org_id, rr_contacts, now)
             conn.commit()
         finally:
             conn.close()
@@ -2064,7 +2100,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
         now = time.time()
         conn = _unlisted_cache_conn()
         try:
-            conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, json.dumps(rr_contacts), now))
+            _persist_contacts(conn, org_id, rr_contacts, now)
             conn.commit()
         finally:
             conn.close()
@@ -2122,7 +2158,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
             now = time.time()
             conn = _unlisted_cache_conn()
             try:
-                conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, json.dumps(rr_contacts), now))
+                _persist_contacts(conn, org_id, rr_contacts, now)
                 conn.commit()
             finally:
                 conn.close()
@@ -2144,10 +2180,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     now = time.time()
     conn = _unlisted_cache_conn()
     try:
-        conn.execute(
-            "INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)",
-            (org_id, json.dumps(contacts), now),
-        )
+        _persist_contacts(conn, org_id, contacts, now)
         conn.commit()
     finally:
         conn.close()
@@ -2359,6 +2392,15 @@ def download_unified_db():
         from fastapi import HTTPException
         raise HTTPException(404, "Database not found or still building.")
     return FileResponse(db_path, filename="unified_companies.db")
+
+@app.post("/api/unlisted/migrate")
+def migrate_db(req: Request):
+    try:
+        script_path = HERE / "scripts" / "migrate_contacts.py"
+        res = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True, check=True)
+        return {"ok": True, "output": res.stdout}
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(500, f"Migration failed: {e.stderr}")
 
 _FRONTEND_DIR = (HERE / "../dist").resolve()
 
