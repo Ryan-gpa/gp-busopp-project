@@ -161,7 +161,8 @@ export interface UnlistedCompany {
   estimated_num_employees?: number;
   linkedin_employee_count?: number; // despite the name, this is org["estimated_num_employees"] unless employeeCountSource says otherwise
   employeeCountSource?: 'manual_research' | 'apollo_estimate';
-  dataSource?: 'apollo' | 'linkedin' | 'web' | 'other';
+  dataSource?: 'apollo' | 'rocketreach' | 'linkedin' | 'web' | 'other';
+  revenueBand?: string; // RocketReach discovery: in-band by search filter, no point estimate exists
   contacts?: { name: string; title: string; linkedin_url?: string }[];
   has_cached_contacts?: boolean;
   prefetched_contact_fetch?: ContactFetchState;
@@ -197,6 +198,7 @@ export interface UnlistedSearchResult {
     fetched_pages?: number
     rate_limited?: boolean
     served_from_local_fallback?: boolean
+    discovery_source?: string
     truncated?: boolean
   } | null
   fetchedAt?: number // unix seconds

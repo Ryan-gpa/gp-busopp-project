@@ -1370,6 +1370,13 @@ def _estimate_org_revenue(org: dict):
             return float(emp) * 150000
         except (TypeError, ValueError):
             pass
+    band_floor = org.get("_revenueBandFloor")
+    if band_floor is not None:
+        try:
+            # RocketReach-discovered: in-band guaranteed by the search filter
+            return float(band_floor)
+        except (TypeError, ValueError):
+            pass
     return None
 
 
@@ -1587,6 +1594,7 @@ async def unlisted_search(body: dict):
         total_pages = None
         rate_limited = False
         served_from_local_fallback = False
+        discovery_source = "apollo"
         page = 1
 
         while True:
@@ -1598,9 +1606,14 @@ async def unlisted_search(body: dict):
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("retry-after")
                     if page == 1:
-                        # Apollo itself is unavailable for a fresh fetch — fall back to
-                        # whatever we've already persisted locally from past searches
-                        # instead of failing outright.
+                        # Apollo unavailable — try RocketReach's own company
+                        # search (native revenue filter), then locally
+                        # persisted data, before failing outright.
+                        rr_orgs = _rocketreach_company_search(revenue_min, revenue_max, company_name)
+                        if rr_orgs:
+                            organizations = rr_orgs
+                            discovery_source = "rocketreach"
+                            break
                         fallback = _local_companies_matching(revenue_min, revenue_max, company_name)
                         if fallback:
                             organizations = fallback
@@ -1612,10 +1625,14 @@ async def unlisted_search(body: dict):
                     break  # keep whatever we already fetched before hitting the limit
                 if resp.status_code == 422 and "credit" in resp.text.lower():
                     # Exhausted lead credits block company search too, not just
-                    # contact reveals. Same treatment as a rate limit: serve
-                    # local data if any exists, otherwise say what's actually
-                    # wrong instead of leaking a raw HTTP error string.
+                    # contact reveals. Same ladder: RocketReach discovery, then
+                    # local data, then say what's actually wrong.
                     if page == 1:
+                        rr_orgs = _rocketreach_company_search(revenue_min, revenue_max, company_name)
+                        if rr_orgs:
+                            organizations = rr_orgs
+                            discovery_source = "rocketreach"
+                            break
                         fallback = _local_companies_matching(revenue_min, revenue_max, company_name)
                         if fallback:
                             organizations = fallback
@@ -1634,6 +1651,11 @@ async def unlisted_search(body: dict):
                 raise
             except Exception as e:
                 if page == 1:
+                    rr_orgs = _rocketreach_company_search(revenue_min, revenue_max, company_name)
+                    if rr_orgs:
+                        organizations = rr_orgs
+                        discovery_source = "rocketreach"
+                        break
                     fallback = _local_companies_matching(revenue_min, revenue_max, company_name)
                     if fallback:
                         organizations = fallback
@@ -1667,6 +1689,7 @@ async def unlisted_search(body: dict):
                 "fetched_pages": page,
                 "rate_limited": rate_limited,
                 "served_from_local_fallback": served_from_local_fallback,
+                "discovery_source": discovery_source,
                 "truncated": bool(rate_limited or served_from_local_fallback or (total_pages and page < total_pages)),
             },
         }
@@ -1733,7 +1756,7 @@ async def unlisted_search(body: dict):
             pass
         
     for org in kept:
-        org["dataSource"] = "apollo"
+        org["dataSource"] = org.get("dataSource") or "apollo"
         org["infringementNotices"] = _infringement_lookup(org.get("name") or "")
 
         # Hardcode researched data (collected locally via Agent-Reach)
@@ -1783,6 +1806,14 @@ async def unlisted_search(body: dict):
             rev_val = float(rev) if rev is not None else (float(emp_count) * 150000 if emp_count is not None else None)
         except (TypeError, ValueError):
             rev_val = None
+
+        if rev_val is None and org.get("_revenueBandFloor") is not None:
+            # RocketReach-discovered company: the search itself filtered by
+            # revenue band, so being in-band is guaranteed by the source even
+            # though no point value exists. Tier by the band floor — this is
+            # NOT the old fake-default trap, because the floor came from a
+            # filter the company actually matched, not from our search box.
+            rev_val = float(org["_revenueBandFloor"])
 
         if rev_val is None:
             org["_exclusion_reason"] = "incomplete_data"
@@ -1986,6 +2017,76 @@ def _contact_title_rank(title: str) -> int:
 _ROCKETREACH_API_KEY_ENV = "ROCKETREACH_API_KEY"
 
 
+def _fmt_millions(v: float) -> str:
+    return f"${v / 1_000_000:g}M"
+
+
+def _rocketreach_company_search(revenue_min, revenue_max, company_name=None) -> list:
+    """Company discovery via RocketReach when Apollo is unavailable. Unlike
+    Apollo (employee-count proxy), RocketReach filters by revenue natively —
+    numeric range strings like "25000000-50000000", verified live (6,431 AU
+    companies in the $25-50M band). Search results carry no revenue VALUE,
+    but every hit is inside the requested band by construction of the filter,
+    so results carry a revenueBand label rather than a fake point estimate.
+    Publicly-traded companies (ticker_symbol present) are dropped at the
+    source. Returns [] on any failure — best-effort, never raises."""
+    rr_key = os.environ.get(_ROCKETREACH_API_KEY_ENV)
+    if not rr_key:
+        return []
+    try:
+        r_min = int(float(revenue_min)) if revenue_min is not None else 20_000_000
+    except (TypeError, ValueError):
+        r_min = 20_000_000
+    try:
+        r_max = int(float(revenue_max)) if revenue_max is not None else 1_000_000_000_000
+    except (TypeError, ValueError):
+        r_max = 1_000_000_000_000
+
+    query = {"location": ["Australia"], "revenue": [f"{r_min}-{r_max}"]}
+    if company_name and company_name.strip():
+        query["name"] = [company_name.strip()]
+    band_label = f"{_fmt_millions(r_min)}–{_fmt_millions(r_max) if r_max < 1_000_000_000_000 else '∞'} (band)"
+
+    orgs, seen_ids = [], set()
+    for page in range(1, 4):  # up to 300 companies; searches don't spend export credits
+        try:
+            resp = requests.post(
+                "https://api.rocketreach.co/api/v2/searchCompany",
+                headers={"Api-Key": rr_key, "Content-Type": "application/json"},
+                timeout=30,
+                json={"query": query, "page_size": 100, "start": (page - 1) * 100 + 1},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            print(f"[rocketreach] company search failed (page {page}): {e}", file=sys.stderr)
+            break
+        companies = data.get("companies", [])
+        for c in companies:
+            cid = c.get("id")
+            if not cid or cid in seen_ids or not c.get("name"):
+                continue
+            seen_ids.add(cid)
+            if c.get("ticker_symbol"):
+                continue  # publicly traded — not an unlisted prospect
+            domain = (c.get("email_domain") or "").lower()
+            if domain.endswith(".gov.au") or domain.endswith(".edu.au"):
+                continue  # govt departments/universities pollute RocketReach's AU revenue bands
+            orgs.append({
+                "id": f"rr_{cid}",
+                "name": c["name"],
+                "domain": c.get("email_domain"),
+                "primary_domain": c.get("email_domain"),
+                "dataSource": "rocketreach",
+                "revenueBand": band_label,
+                "_revenueBandFloor": r_min,
+            })
+        total = (data.get("pagination") or {}).get("total") or 0
+        if not companies or page * 100 >= total:
+            break
+    return orgs
+
+
 def _company_identity_for_org(org_id: str):
     conn = _unlisted_cache_conn()
     try:
@@ -2109,10 +2210,6 @@ def find_contacts(org_id: str):
     then people/match per candidate to reveal full name + verified email
     (costs a real Apollo credit per candidate — capped at 2 per company).
     """
-    api_key = os.environ.get("APOLLO_API_KEY")
-    if not api_key:
-        return {"contacts": [], "fromCache": False, "reason": "No Apollo API key configured"}
-
     conn = _unlisted_cache_conn()
     try:
         row = conn.execute(
@@ -2122,6 +2219,25 @@ def find_contacts(org_id: str):
         conn.close()
     if row and (time.time() - row[1]) < _CONTACTS_CACHE_TTL:
         return {"contacts": json.loads(row[0]), "fromCache": True, "fetchedAt": row[1]}
+
+    # RocketReach-discovered companies (rr_ ids) don't exist in Apollo's org
+    # namespace — its people search can't resolve them, so go straight to
+    # RocketReach by company name. Deliberately not gated on the Apollo key.
+    if org_id.startswith("rr_"):
+        rr_name, _ = _company_identity_for_org(org_id)
+        rr_contacts = _rocketreach_find_contacts(rr_name)
+        now = time.time()
+        conn = _unlisted_cache_conn()
+        try:
+            conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, json.dumps(rr_contacts), now))
+            conn.commit()
+        finally:
+            conn.close()
+        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now}
+
+    api_key = os.environ.get("APOLLO_API_KEY")
+    if not api_key:
+        return {"contacts": [], "fromCache": False, "reason": "No Apollo API key configured"}
 
     headers = {"X-Api-Key": api_key, "Cache-Control": "no-cache"}
     try:

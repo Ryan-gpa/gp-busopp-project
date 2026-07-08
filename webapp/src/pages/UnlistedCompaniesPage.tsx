@@ -251,11 +251,16 @@ export default function UnlistedCompaniesPage() {
   // values that nothing ever actually set (dead code left over from an
   // earlier design), so it's been removed rather than kept as a decoration
   // that implies capabilities that don't exist.
-  const renderSourceIcon = () => (
-    <div title="Company data from Apollo" className="inline-flex items-center justify-center p-1 bg-indigo-50 text-indigo-600 rounded-full mr-2">
-      <Rocket className="h-3 w-3" />
-    </div>
-  )
+  const renderSourceIcon = (dataSource?: string) =>
+    dataSource === "rocketreach" ? (
+      <div title="Company discovered via RocketReach" className="inline-flex items-center justify-center p-1 bg-teal-50 text-teal-700 rounded-full mr-2">
+        <Telescope className="h-3 w-3" />
+      </div>
+    ) : (
+      <div title="Company data from Apollo" className="inline-flex items-center justify-center p-1 bg-indigo-50 text-indigo-600 rounded-full mr-2">
+        <Rocket className="h-3 w-3" />
+      </div>
+    )
 
   const renderAsicIcon = (status?: string) =>
     status === 'verified' ? (
@@ -355,8 +360,8 @@ export default function UnlistedCompaniesPage() {
       <tr key={company.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
         <td className="p-4">
           <div className="font-medium text-gray-900 flex items-center">
-            {renderSourceIcon()}
-            {hasRocketReachData && renderRocketReachIcon()}
+            {renderSourceIcon(company.dataSource)}
+            {hasRocketReachData && company.dataSource !== "rocketreach" && renderRocketReachIcon()}
             {renderAsicIcon(valInfo?.status)}
             {renderInfringementIcon(company.infringementNotices?.length || 0)}
             {company.name}
@@ -368,7 +373,9 @@ export default function UnlistedCompaniesPage() {
           </div>
         </td>
         <td className="p-4 text-gray-700">
-          {rev ? `$${rev.toLocaleString()}` : 'Unknown'}
+          {rev ? `$${rev.toLocaleString()}` : company.revenueBand ? (
+            <span title="RocketReach has no point estimate — the company matched this revenue band in the search filter">{company.revenueBand}</span>
+          ) : 'Unknown'}
         </td>
         <td className="p-4 text-gray-700">
           {employeeDisplay}
@@ -752,7 +759,9 @@ export default function UnlistedCompaniesPage() {
               <div>
                 Found {results.pagination.fetched_entries ?? (results.tier1.length + results.tier2.length)} companies
                 {results.pagination.total_entries != null && ` of ${results.pagination.total_entries} matching in Apollo`}
-                {results.pagination.served_from_local_fallback ? (
+                {results.pagination.discovery_source === "rocketreach" ? (
+                  <span className="text-teal-700"> — discovered via RocketReach (Apollo unavailable); revenue shown as the searched band</span>
+                ) : results.pagination.served_from_local_fallback ? (
                   <span className="text-amber-600"> — served from local storage, not live Apollo</span>
                 ) : results.pagination.rate_limited ? (
                   <span className="text-amber-600"> — stopped early: Apollo's hourly rate limit was hit mid-search. Try a narrower revenue range next time.</span>
