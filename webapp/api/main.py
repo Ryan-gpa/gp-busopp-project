@@ -1520,7 +1520,20 @@ async def unlisted_search(body: dict):
         query += " AND type = 'APTY' AND class = 'LMSH' AND subclass = 'PROP'"
         
     if only_infringements:
-        query += " AND has_infringement = 1"
+        # has_infringement column may be 0 due to normalization mismatch at build time.
+        # Use the live in-memory dict (loaded from JSON at startup) — it's always correct.
+        inf_norms = list(_infringement_by_norm_name.keys())
+        if not inf_norms:
+            # Infringement data not loaded yet — return empty safely
+            return {
+                "tier1": [], "tier2": [],
+                "excludedUnderMin": [], "excludedOverMax": [], "excludedIncompleteData": [],
+                "pagination": {"fetched_entries": 0, "total_entries": 0, "truncated": False, "rate_limited": False},
+                "fetchedAt": time.time(), "fromCache": True
+            }
+        placeholders = ",".join("?" * len(inf_norms))
+        query += f" AND name_norm IN ({placeholders})"
+        params.extend(inf_norms)
         
     if only_with_contacts:
         query += " AND has_contacts = 1"
