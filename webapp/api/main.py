@@ -1657,7 +1657,6 @@ async def unlisted_search(body: dict):
         rows = c.execute(query, params).fetchall()
         
         results = []
-        _validation_statuses = {}
         for row in rows:
             org = {
                 "id": f"asic_{row['acn']}",
@@ -1668,7 +1667,7 @@ async def unlisted_search(body: dict):
                 "dataSource": "asic",
                 "has_contacts": bool(row['has_contacts'])
             }
-            _validation_statuses[org['id']] = {
+            org['asic'] = {
                 "status": "verified" if row['status'] == 'REGD' else "deregistered",
                 "reason": f"ASIC Status: {row['status']}",
                 "acn": row['acn'],
