@@ -850,7 +850,13 @@ export default function UnlistedCompaniesPage() {
           </div>
 
           <div>
-            <h2 className="text-xl font-heading font-medium text-navy-deep mb-4 border-b pb-2">Tier 2 &mdash; $20-50M (estimate only)</h2>
+            <h2 className="text-xl font-heading font-medium text-navy-deep border-b pb-2">Tier 2 &mdash; Unverified leads (est. $20&ndash;50M)</h2>
+            <p className="text-xs text-muted-foreground mt-2 mb-4 max-w-3xl">
+              Revenue figures here are Apollo estimates, not audited numbers — for private companies they are often
+              crude round-number bands (many unrelated companies report exactly $20M). Below the $50M statutory line
+              there is no ASIC lodgement to corroborate size, so treat this list as a shortlist to validate, not a
+              finished target list.
+            </p>
             <div className="border rounded-md overflow-hidden bg-card">
               <table className="w-full text-left border-collapse">
                 <thead>
