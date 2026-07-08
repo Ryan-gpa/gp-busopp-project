@@ -1330,6 +1330,54 @@ def _local_companies_matching(revenue_min, revenue_max, company_name=None) -> li
     return matches
 
 
+# ── Apollo quota/credit status tracking ─────────────────────────────────────
+# Every real Apollo response already reveals the account state (rate-limit
+# headers + 422 "insufficient credits"), so record it passively as calls
+# happen. The status endpoint only makes a live probe when nothing recent is
+# known, so surfacing this in the UI costs ~zero extra quota.
+_apollo_status: dict = {"checkedAt": None}
+
+
+def _record_apollo_status(resp, include_rate=True):
+    try:
+        credits_exhausted = resp.status_code == 422 and "credit" in resp.text.lower()
+        update = {"checkedAt": time.time(), "creditsExhausted": credits_exhausted}
+        if include_rate:
+            # Only company-search responses carry the quota pool we display;
+            # people endpoints have their own separate pool whose headers
+            # would misreport the search quota.
+            update.update({
+                "hourlyLeft": int(resp.headers["x-hourly-requests-left"]) if resp.headers.get("x-hourly-requests-left") else None,
+                "hourlyLimit": int(resp.headers["x-rate-limit-hourly"]) if resp.headers.get("x-rate-limit-hourly") else None,
+                "rateLimited": resp.status_code == 429,
+            })
+        _apollo_status.update(update)
+    except Exception:
+        pass
+
+
+@app.get("/api/unlisted/apollo-status")
+def apollo_status():
+    """Last-known Apollo account health for the UI banner. Probes live only
+    when no real call has reported in for 10 minutes."""
+    api_key = os.environ.get("APOLLO_API_KEY")
+    if not api_key:
+        return {"configured": False}
+    stale = _apollo_status["checkedAt"] is None or (time.time() - _apollo_status["checkedAt"]) > 600
+    if stale:
+        try:
+            resp = requests.post(
+                "https://api.apollo.io/v1/mixed_companies/search",
+                json={"organization_locations": ["Australia"], "page": 1, "per_page": 1},
+                headers={"X-Api-Key": api_key, "Cache-Control": "no-cache"},
+                timeout=10,
+            )
+            _record_apollo_status(resp)
+        except Exception:
+            pass
+    return {"configured": True, **_apollo_status}
+
+
 # TODO: this SQLite cache (companies, contacts_cache) is a per-deployment
 # local store with no connection to HubSpot. GP already syncs contacts to
 # HubSpot elsewhere (see the gp-contacts/gp-enrich pipeline) — companies and
@@ -1464,6 +1512,7 @@ async def unlisted_search(body: dict):
             payload["per_page"] = PER_PAGE
             try:
                 resp = requests.post("https://api.apollo.io/v1/mixed_companies/search", json=payload, headers=headers, timeout=30)
+                _record_apollo_status(resp)
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("retry-after")
                     if page == 1:
@@ -1856,6 +1905,7 @@ def find_contacts(org_id: str):
             timeout=20,
             json={"organization_ids": [org_id], "person_titles": _CONTACT_TITLES, "page": 1, "per_page": 10},
         )
+        _record_apollo_status(search_resp, include_rate=False)
         if search_resp.status_code == 429:
             raise HTTPException(429, "Apollo people-search rate limit reached — try again shortly.")
         search_resp.raise_for_status()
@@ -1893,6 +1943,7 @@ def find_contacts(org_id: str):
                 timeout=20,
                 json={"id": person_id},
             )
+            _record_apollo_status(enrich_resp, include_rate=False)
             if enrich_resp.status_code in (402, 422):
                 # Apollo's lead-credit balance, not the API rate limit, is
                 # exhausted — this happened silently before and got cached as
