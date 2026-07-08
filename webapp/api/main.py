@@ -1657,6 +1657,7 @@ async def unlisted_search(body: dict):
         rows = c.execute(query, params).fetchall()
         
         results = []
+        _validation_statuses = {}
         for row in rows:
             org = {
                 "id": f"asic_{row['acn']}",
