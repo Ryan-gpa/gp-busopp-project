@@ -1837,9 +1837,18 @@ def _company_identity_for_org(org_id: str):
 
 
 def _strip_corp_suffixes(name: str) -> str:
-    """'Canva Pty Ltd' -> 'Canva'. ASIC stores legal names; commercial
-    databases index brands — bridge the gap when searching by name."""
-    return re.sub(r"(\s+(pty\.?|ltd\.?|limited|proprietary))+\s*$", "", name or "", flags=re.IGNORECASE).strip()
+    """'Canva Pty Ltd' -> 'Canva', 'COOPER ENERGY (CS) PTY LTD' -> 'COOPER ENERGY'.
+    ASIC stores legal names; commercial databases index brands — bridge the gap."""
+    if not name:
+        return ""
+    # Strip (XYZ)
+    name = re.sub(r"\(.*?\)", "", name)
+    # Strip Pty Ltd, etc at the end
+    name = re.sub(r"(\s+(pty\.?|ltd\.?|limited|proprietary))+\s*$", "", name, flags=re.IGNORECASE)
+    # Strip some other common useless corporate suffixes
+    name = re.sub(r"(\s+(group|holdings|australia))+\s*$", "", name, flags=re.IGNORECASE)
+    # Replace multiple spaces with single space
+    return re.sub(r"\s+", " ", name).strip()
 
 
 def _rocketreach_find_contacts(company_name: str) -> list:
