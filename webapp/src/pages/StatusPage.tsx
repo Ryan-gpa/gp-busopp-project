@@ -32,16 +32,19 @@ export default function StatusPage() {
         setError(err.message)
       }
     }
-    
     fetchStatus()
     const interval = setInterval(fetchStatus, 5000)
     return () => clearInterval(interval)
   }, [])
-
   const isLoading = !data && !error;
 
   if (isLoading) {
-    return <div className="text-gray-500 text-sm mb-4">Loading system status...</div>
+    return (
+      <div className="flex flex-col items-center justify-center py-6 bg-gray-50 rounded-lg border">
+        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <div className="text-gray-700 font-medium">Connecting to backend and checking systems...</div>
+      </div>
+    )
   }
 
   const udb = data?.unified_db
@@ -97,7 +100,12 @@ export default function StatusPage() {
           )}
         </div>
         <div>RocketReach {rrEmoji}</div>
-        {error && <div className="text-red-600 ml-auto flex items-center gap-1">Backend Error 🔴</div>}
+        {error && (
+          <div className="text-red-600 ml-auto flex items-center gap-2">
+            Backend Error 🔴
+            <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" title="Retrying..."></div>
+          </div>
+        )}
       </div>
       <div className={`text-sm mt-1 ${pulseColor}`}>
         <span className="font-semibold mr-1">Pulse Check:</span> {pulseMessage}
