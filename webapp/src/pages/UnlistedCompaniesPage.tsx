@@ -86,7 +86,7 @@ export default function UnlistedCompaniesPage() {
   const [contactFetches, setContactFetches] = useState<Record<string, ContactFetchState>>({})
 
   // Form state
-  const [revenueMin, setRevenueMin] = useState("20000000")
+  const [revenueMin, setRevenueMin] = useState("")
   const [revenueMax, setRevenueMax] = useState("")
   const [companyName, setCompanyName] = useState("")
 
