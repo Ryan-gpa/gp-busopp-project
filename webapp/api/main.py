@@ -2218,6 +2218,22 @@ def system_status():
     status["rocketreach"] = {
         "configured": bool(rr_key)
     }
+    # 6. Disk usage
+    import shutil
+    disk = shutil.disk_usage(str(DATA_DIR))
+    status["disk"] = {
+        "total_gb": round(disk.total / (1024**3), 2),
+        "used_gb": round(disk.used / (1024**3), 2),
+        "free_gb": round(disk.free / (1024**3), 2),
+        "used_pct": round(disk.used / disk.total * 100, 1)
+    }
+    
+    # 7. All DB files on volume
+    db_files = []
+    for f in DATA_DIR.iterdir():
+        if f.suffix in (".sqlite3", ".db") or f.name.endswith(".db"):
+            db_files.append({"name": f.name, "size_mb": round(f.stat().st_size / (1024*1024), 1)})
+    status["volume_files"] = sorted(db_files, key=lambda x: x["size_mb"], reverse=True)
     
     return status
 
@@ -2227,6 +2243,36 @@ def system_status():
 
 from fastapi.responses import FileResponse
 import os
+
+@app.post("/api/admin/purge-old-dbs")
+def purge_old_dbs():
+    """Delete legacy DB files to free disk space before a fresh build."""
+    deleted = []
+    freed_mb = 0
+    for old_name in ["asic_register_v2.sqlite3", "asic_register.sqlite3", "asic_register_v2.building.sqlite3"]:
+        p = DATA_DIR / old_name
+        if p.exists():
+            size_mb = round(p.stat().st_size / (1024*1024), 1)
+            p.unlink()
+            deleted.append(f"{old_name} ({size_mb}MB)")
+            freed_mb += size_mb
+    # Also delete stale lock
+    lock = DATA_DIR / ".building.lock"
+    if lock.exists():
+        lock.unlink()
+        deleted.append(".building.lock")
+    return {"deleted": deleted, "freed_mb": round(freed_mb, 1)}
+
+
+@app.post("/api/admin/rebuild-db")
+def rebuild_db():
+    """Force a fresh rebuild of unified_companies.db."""
+    global _asic_building
+    if _asic_building:
+        return {"status": "already_building"}
+    _ensure_asic_register_async()
+    return {"status": "build_started"}
+
 
 @app.get("/api/admin/download-db")
 def download_unified_db():
