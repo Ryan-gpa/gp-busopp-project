@@ -1854,7 +1854,7 @@ def _rocketreach_find_contacts(company_name: str) -> list:
             "https://api.rocketreach.co/api/v2/person/search",
             headers={"Api-Key": rr_key, "Content-Type": "application/json"},
             timeout=20,
-            json={"query": {"current_employer": [f'"{name}"'], "current_title": _CONTACT_TITLES}, "page_size": 10},
+            json={"query": {"current_employer": [name], "current_title": _CONTACT_TITLES}, "page_size": 10},
         )
         sr.raise_for_status()
         return sr.json().get("profiles", [])

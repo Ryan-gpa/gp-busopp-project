@@ -149,6 +149,7 @@ export type ContactFetchState = {
   contacts?: any[]
   error?: string
   fetchedAt?: number
+  source?: string
 }
 
 export interface UnlistedCompany {

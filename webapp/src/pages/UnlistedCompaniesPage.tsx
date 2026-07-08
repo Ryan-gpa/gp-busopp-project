@@ -344,7 +344,7 @@ export default function UnlistedCompaniesPage() {
   }
 
   const findContacts = async (companyId: string, source?: string) => {
-    setContactFetches(prev => ({ ...prev, [companyId]: { status: "loading" } }))
+    setContactFetches(prev => ({ ...prev, [companyId]: { status: "loading", source: source || "apollo" } }))
     try {
       const url = source
         ? `${API_BASE}/api/unlisted/contacts/${companyId}?source=${source}`
@@ -501,7 +501,9 @@ export default function UnlistedCompaniesPage() {
           ) : (() => {
             const fetchState = contactFetches[company.id]
             if (fetchState?.status === "loading") {
-              return <span className="text-xs text-muted-foreground">Searching Apollo&hellip;</span>
+              const loadingMsg = fetchState.source === "rocketreach" ? "Searching RocketReach..." : 
+                                 fetchState.source === "apollo" ? "Searching Apollo..." : "Searching...";
+              return <span className="text-xs text-muted-foreground">{loadingMsg}</span>
             }
             if (fetchState?.status === "error") {
               return (
