@@ -343,20 +343,21 @@ export default function UnlistedCompaniesPage() {
       return <span className="text-gray-500 font-medium text-xs">Estimate only</span>
   }
 
-  const findContacts = async (companyId: string) => {
+  const findContacts = async (companyId: string, source?: string) => {
     setContactFetches(prev => ({ ...prev, [companyId]: { status: "loading" } }))
     try {
-      const res = await fetch(`${API_BASE}/api/unlisted/contacts/${companyId}`)
+      const url = source
+        ? `${API_BASE}/api/unlisted/contacts/${companyId}?source=${source}`
+        : `${API_BASE}/api/unlisted/contacts/${companyId}`
+      const res = await fetch(url)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.detail || "Lookup failed")
       }
       const data = await res.json()
-      setContactFetches(prev => ({ ...prev, [companyId]: { status: "done", contacts: data.contacts || [], fetchedAt: data.fetchedAt } }))
+      setContactFetches(prev => ({ ...prev, [companyId]: { status: "done", contacts: data.contacts || [], fetchedAt: data.fetchedAt, source: data.source } }))
     } catch (e: any) {
       setContactFetches(prev => ({ ...prev, [companyId]: { status: "error", error: e.message } }))
-    } finally {
-      // done
     }
   }
 
@@ -546,15 +547,35 @@ export default function UnlistedCompaniesPage() {
                 </>
               )
           }
+            // Show source-choice buttons when not yet fetched
+            // Apollo costs credits; RocketReach is the free-ish fallback
+            const apolloAvailable = !company.id.startsWith("rr_")
+            const rrAvailable = true
             return (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => findContacts(company.id)}
-                title="Spends real Apollo credits to reveal a verified email — only use for companies you're actually pursuing"
-              >
-                Find Contacts
-              </Button>
+              <div className="flex flex-col gap-1.5">
+                {apolloAvailable && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => findContacts(company.id, "apollo")}
+                    title="Uses Apollo credits to reveal verified email — costs money, high quality"
+                    className="text-xs h-7"
+                  >
+                    🔵 Apollo
+                  </Button>
+                )}
+                {rrAvailable && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => findContacts(company.id, "rocketreach")}
+                    title="Uses RocketReach to find contacts — no per-lookup credit cost"
+                    className="text-xs h-7"
+                  >
+                    🔭 RocketReach
+                  </Button>
+                )}
+              </div>
             )
           })()}
         </td>

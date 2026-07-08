@@ -62,7 +62,9 @@ export default function StatusPage() {
 
   const udbEmoji = udb?.building ? "🟡" : (udb?.exists ? "🟢" : "🔴")
   const infEmoji = inf?.exists ? "🟢" : "🟡"
-  const apolloEmoji = !apollo?.configured ? "🔴" : (apollo.rate_limited || apollo.credits_exhausted ? "🟡" : "🟢")
+  const apolloRateOk = apollo?.configured && !apollo.rate_limited
+  const apolloCreditsOk = apollo?.configured && !apollo.credits_exhausted
+  const apolloEmoji = !apollo?.configured ? "🔴" : apollo.credits_exhausted ? "🟡" : apollo.rate_limited ? "🟡" : "🟢"
   const rrEmoji = rr?.configured ? "🟢" : "🟡"
 
   // --- Pulse Check logic (priority order) ---
@@ -116,13 +118,16 @@ export default function StatusPage() {
           Infringements {infEmoji}
         </div>
         <div
-          className="flex items-center gap-2"
-          title={apollo?.configured ? `${apollo.hourly_left ?? "?"}/${apollo.hourly_limit ?? "?"} API calls/hr remaining` : "No API key configured"}
+          className="flex items-center gap-1.5"
+          title={apollo?.configured
+            ? `API rate: ${apollo.hourly_left ?? "?"}/${apollo.hourly_limit ?? "?"} calls/hr remaining\nLead credits: ${apollo.credits_exhausted ? "EXHAUSTED" : "available"}`
+            : "No API key configured"}
         >
-          Apollo API {apolloEmoji}
-          {apollo?.configured && apollo.hourly_left != null && (
-            <span className="text-xs text-gray-500 font-normal">
-              ({apollo.hourly_left}/{apollo.hourly_limit}/hr)
+          <span>Apollo {apolloEmoji}</span>
+          {apollo?.configured && (
+            <span className="text-xs font-normal text-gray-500">
+              ({apollo.hourly_left}/{apollo.hourly_limit}/hr
+              {apollo.credits_exhausted && <span className="text-amber-600 font-medium ml-1">· credits exhausted</span>})
             </span>
           )}
         </div>

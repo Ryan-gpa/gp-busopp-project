@@ -1956,7 +1956,7 @@ def _merge_contact_sources(apollo_contacts: list, rr_contacts: list) -> list:
 
 
 @app.get("/api/unlisted/contacts/{org_id}")
-def find_contacts(org_id: str):
+def find_contacts(org_id: str, source: str = "auto"):
     """Find CEO/CFO contacts for a company by Apollo organization id.
 
     Two Apollo calls, on demand only (never automatic for a whole result
@@ -1974,11 +1974,8 @@ def find_contacts(org_id: str):
     if row and (time.time() - row[1]) < _CONTACTS_CACHE_TTL:
         return {"contacts": json.loads(row[0]), "fromCache": True, "fetchedAt": row[1]}
 
-    # Companies discovered outside Apollo (rr_ = RocketReach, asic_ = ASIC
-    # infringement prospects) don't exist in Apollo's org namespace — its
-    # people search can't resolve them, so go straight to RocketReach by
-    # company name. Deliberately not gated on the Apollo key.
-    if org_id.startswith(("rr_", "asic_")):
+    # If user explicitly requested RocketReach — go straight there regardless of org_id prefix
+    if source == "rocketreach":
         rr_name, _ = _company_identity_for_org(org_id)
         rr_contacts = _rocketreach_find_contacts(rr_name)
         now = time.time()
@@ -1988,7 +1985,23 @@ def find_contacts(org_id: str):
             conn.commit()
         finally:
             conn.close()
-        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now}
+        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach"}
+
+    # Companies discovered outside Apollo (rr_ = RocketReach, asic_ = ASIC
+    # infringement prospects) don't exist in Apollo's org namespace — its
+    # people search can't resolve them, so go straight to RocketReach by
+    # company name unless caller explicitly requested Apollo.
+    if source != "apollo" and org_id.startswith(("rr_", "asic_")):
+        rr_name, _ = _company_identity_for_org(org_id)
+        rr_contacts = _rocketreach_find_contacts(rr_name)
+        now = time.time()
+        conn = _unlisted_cache_conn()
+        try:
+            conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, json.dumps(rr_contacts), now))
+            conn.commit()
+        finally:
+            conn.close()
+        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach"}
 
     api_key = os.environ.get("APOLLO_API_KEY")
     if not api_key:
