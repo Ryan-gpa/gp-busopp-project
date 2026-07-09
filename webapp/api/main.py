@@ -1549,7 +1549,7 @@ async def unlisted_search(body: dict):
         else:
             query += " AND c.status = 'REGD'" if asic_status_filter == "verified" else " AND c.status != 'REGD'"
 
-    where_portion = query[query.index("WHERE"):]
+    where_portion = "WHERE 1=1" + query.split("WHERE 1=1")[1]
     count_query = f"SELECT COUNT(*) FROM companies c LEFT JOIN metrics m ON c.acn = m.acn {where_portion}"
     data_query = f"""
         SELECT c.acn, c.name, c.name_norm, c.status, c.type, c.class, c.subclass, c.state,
