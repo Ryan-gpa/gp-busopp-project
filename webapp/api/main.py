@@ -2612,6 +2612,20 @@ def debug_migrate():
     res = subprocess.run([sys.executable, str(script)], capture_output=True, text=True)
     return {"stdout": res.stdout, "stderr": res.stderr}
 
+
+@app.post("/api/admin/test-rr")
+def test_rr():
+    import os, requests, json
+    rr_key = os.environ.get('ROCKETREACH_API_KEY')
+    company_name = 'Sephora Australia Pty Ltd'
+
+    res = requests.get(
+        'https://api.rocketreach.co/api/v2/company/lookup',
+        headers={'Api-Key': rr_key},
+        params={'name': company_name}
+    )
+    return {"status_code": res.status_code, "json": res.json()}
+
 @app.post("/api/admin/sql")
 def execute_sql(req: SqlReq):
     import sqlite3
@@ -2872,6 +2886,7 @@ def force_fix():
         if index.exists():
             return FileResponse(str(index))
         raise HTTPException(404, "Frontend not built.")
+
 
 
 
