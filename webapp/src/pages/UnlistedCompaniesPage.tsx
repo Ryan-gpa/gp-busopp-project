@@ -79,7 +79,6 @@ export default function UnlistedCompaniesPage() {
   const [validationStatuses, setValidationStatuses] = useState<Record<string, AsicValidation>>({})
   const [expandedAsic, setExpandedAsic] = useState<Record<string, boolean>>({})
   const [expandedInfringements, setExpandedInfringements] = useState<Record<string, boolean>>({})
-  const [onlyInfringements, setOnlyInfringements] = useState(false)
   const [onlyProprietary, setOnlyProprietary] = useState(false)
   const [onlyWithContacts, setOnlyWithContacts] = useState(false)
   const [asicStatusFilter, setAsicStatusFilter] = useState("all")
@@ -157,7 +156,6 @@ export default function UnlistedCompaniesPage() {
       const payload: any = { 
         locations: ["Australia"],
         onlyProprietary,
-        onlyInfringements,
         onlyWithContacts,
         asicStatusFilter
       }
@@ -188,7 +186,7 @@ export default function UnlistedCompaniesPage() {
   useEffect(() => {
     handleSearch()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlyInfringements, onlyProprietary, onlyWithContacts, asicStatusFilter])
+  }, [onlyProprietary, onlyWithContacts, asicStatusFilter])
 
   const loadAsicProspects = async () => {
     setLoading(true)
