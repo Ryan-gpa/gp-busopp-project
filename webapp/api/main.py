@@ -2603,6 +2603,15 @@ def test_infringements():
     else:
         return {"error": "file not found", "path": str(p)}
 
+
+@app.post("/api/admin/debug-migrate")
+def debug_migrate():
+    from pathlib import Path
+    import subprocess, sys
+    script = Path(__file__).parent / "scripts" / "migrate_to_erd.py"
+    res = subprocess.run([sys.executable, str(script)], capture_output=True, text=True)
+    return {"stdout": res.stdout, "stderr": res.stderr}
+
 @app.post("/api/admin/sql")
 def execute_sql(req: SqlReq):
     import sqlite3
@@ -2863,6 +2872,7 @@ def force_fix():
         if index.exists():
             return FileResponse(str(index))
         raise HTTPException(404, "Frontend not built.")
+
 
 
 
