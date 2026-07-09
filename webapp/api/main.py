@@ -2545,6 +2545,52 @@ def migrate_erd():
 from pydantic import BaseModel
 class SqlReq(BaseModel):
     query: str
+
+from fastapi import BackgroundTasks
+
+@app.post("/api/admin/backfill-infringements")
+def backfill_infringements(background_tasks: BackgroundTasks):
+    def run_backfill():
+        import time
+        try:
+            live_conn = sqlite3.connect(str(DATA_DIR / "unified_companies.db"))
+            live_conn.row_factory = sqlite3.Row
+            rows = live_conn.execute("SELECT acn, name FROM companies WHERE EXISTS(SELECT 1 FROM infringements i WHERE i.acn = companies.acn)").fetchall()
+            
+            for row in rows:
+                acn = row['acn']
+                name = row['name']
+                org_id = f"asic_{acn}"
+                
+                print(f"Backfilling {name} ({acn})...")
+                
+                # Fetch metrics
+                try:
+                    _fetch_and_persist_rr_metrics(org_id, name)
+                except Exception as e:
+                    print(f"Metrics fetch error for {name}: {e}")
+                
+                # Fetch contacts
+                try:
+                    rr_contacts = _rocketreach_find_contacts(name)
+                    if rr_contacts:
+                        _insert_live_contacts(org_id, rr_contacts, "rocketreach")
+                except Exception as e:
+                    print(f"Contact fetch error for {name}: {e}")
+                    if "429" in str(e) or "quota" in str(e).lower() or "exhausted" in str(e).lower():
+                        print("Rate limit or quota hit. Stopping backfill.")
+                        break
+                
+                time.sleep(2)
+        except Exception as e:
+            print(f"Backfill loop error: {e}")
+        finally:
+            if 'live_conn' in locals():
+                live_conn.close()
+
+    background_tasks.add_task(run_backfill)
+    return {"status": "started", "message": "Backfill running in background."}
+
 @app.post("/api/admin/sql")
 def execute_sql(req: SqlReq):
     import sqlite3
@@ -2805,6 +2851,7 @@ def force_fix():
         if index.exists():
             return FileResponse(str(index))
         raise HTTPException(404, "Frontend not built.")
+
 
 
 
