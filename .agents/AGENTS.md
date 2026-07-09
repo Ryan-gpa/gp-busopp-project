@@ -9,3 +9,6 @@ When working on data-heavy applications or integrations, you must adopt the mind
 3. **Actionable Feedback**: The dashboard must provide a "Pulse Check" that translates the technical status (e.g., "building", "rate_limited", "not_found") into a clear, actionable message for the user (e.g., "Database is building in the background. Please wait 2-5 minutes.").
 4. **Proactive Diagnostics**: If an API integration is failing, check if the API key is configured and verify the quota/rate limits before assuming the code is broken. Feed this diagnostic data to the user.
 5. **Route Ordering Awareness**: When appending diagnostic endpoints to a backend router, ALWAYS ensure they are placed before any catch-all (`/{path}`) or SPA-serving routes to prevent them from being swallowed and returning 404s/HTML instead of JSON.
+
+
+6. **Maintain Data Models**: Whenever modifying database schema, adding new tables, or changing core architecture, you MUST automatically update the corresponding Data Dictionary and Entity Relationship Diagram (ERD) artifacts to reflect the new state. This ensures documentation always stays in sync with code.

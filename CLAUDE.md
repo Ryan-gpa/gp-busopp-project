@@ -350,3 +350,10 @@ Deployment is live on Railway (Docker, port 8000, LibreOffice included for serve
 | Q-04 | Progress Reports / Trading Halts — keep AMBER, promote to GREEN, or drop? |
 | Q-05 | Auditor to confirm exact AASB sub-paragraph refs in section 2 |
 | Q-06 | Internal appendix: same file last page vs separate `_Internal.docx`? |
+
+
+---
+
+## AI Agent Directives
+
+1. **Maintain Data Models**: Whenever modifying database schema, adding new tables, or changing core architecture, you MUST automatically update the corresponding Data Dictionary and Entity Relationship Diagram (ERD) artifacts to reflect the new state. This ensures documentation always stays in sync with code.
