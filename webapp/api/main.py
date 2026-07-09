@@ -2571,7 +2571,6 @@ if _FRONTEND_DIR.exists():
 
 @app.get('/api/admin/force-fix')
 def force_fix():
-    from webapp.api.main import _fetch_and_persist_rr_metrics, _unlisted_cache_conn, _company_identity_for_org
     import json, traceback
     conn = _unlisted_cache_conn()
     contact_rows = conn.execute('SELECT org_id FROM contacts_cache').fetchall()
