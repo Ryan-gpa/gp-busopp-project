@@ -2125,6 +2125,18 @@ def _apollo_company_lookup(company_name: str) -> dict:
     return {}
 
 @app.get("/api/unlisted/contacts/{org_id}")
+def _update_live_has_contacts(org_id: str):
+    acn = org_id.replace('asic_', '').replace('rr_', '')
+    try:
+        live_conn = sqlite3.connect(str(DATA_DIR / "unified_companies.db"))
+        live_conn.execute("UPDATE companies SET has_contacts = 1 WHERE acn = ?", (acn,))
+        live_conn.commit()
+    except Exception as e:
+        pass
+    finally:
+        if 'live_conn' in locals():
+            live_conn.close()
+
 def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     """Find CEO/CFO contacts for a company by Apollo organization id.
 
@@ -2437,6 +2449,35 @@ def backfill_apollo_metrics(limit: int = 10):
 
     conn.close()
     return {"message": f"Backfilled {count} companies.", "companies": backfilled}
+
+@app.post("/api/admin/sync-live")
+def sync_live_db():
+    cache_conn = _unlisted_cache_conn()
+    live_conn = sqlite3.connect(str(DATA_DIR / "unified_companies.db"))
+    
+    contacts = cache_conn.execute("SELECT org_id FROM contacts_cache WHERE contacts_json != '[]'").fetchall()
+    count_contacts = 0
+    for (org_id,) in contacts:
+        acn = org_id.replace('asic_', '').replace('rr_', '')
+        res = live_conn.execute("UPDATE companies SET has_contacts = 1 WHERE acn = ?", (acn,))
+        if res.rowcount > 0: count_contacts += 1
+
+    companies = cache_conn.execute("SELECT apollo_id, data_json FROM companies").fetchall()
+    count_metrics = 0
+    for (org_id, data_json) in companies:
+        if not data_json: continue
+        acn = org_id.replace('asic_', '').replace('rr_', '')
+        data = json.loads(data_json)
+        rev = data.get("annual_revenue") or data.get("organization_revenue") or data.get("revenue")
+        emp = data.get("estimated_num_employees") or data.get("employees")
+        if rev or emp:
+            res = live_conn.execute("UPDATE companies SET revenue = ?, employees = ? WHERE acn = ?", (rev, emp, acn))
+            if res.rowcount > 0: count_metrics += 1
+            
+    live_conn.commit()
+    cache_conn.close()
+    live_conn.close()
+    return {"message": f"Synced {count_contacts} contacts and {count_metrics} metrics"}
 
 @app.post("/api/admin/rebuild-unified")
 def admin_rebuild_unified():
