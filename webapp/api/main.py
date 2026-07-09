@@ -2168,7 +2168,6 @@ def _apollo_company_lookup(company_name: str) -> dict:
         print(f"[apollo] company lookup failed for {company_name}: {e}")
     return {}
 
-@app.get("/api/unlisted/contacts/{org_id}")
 def _insert_live_contacts(org_id: str, contacts_list: list, source: str):
     acn = org_id.replace('asic_', '').replace('rr_', '')
     try:
@@ -2213,6 +2212,7 @@ def save_contacts(org_id: str, contacts_list: list, source: str):
     _insert_live_contacts(org_id, contacts_list, source)
 
 
+@app.get("/api/unlisted/contacts/{org_id}")
 def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     """Find CEO/CFO contacts for a company by Apollo organization id.
 
