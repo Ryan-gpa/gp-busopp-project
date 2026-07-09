@@ -1505,7 +1505,7 @@ async def unlisted_search(body: dict):
             c.acn, c.name, c.name_norm, c.status, c.type, c.class, c.subclass, c.state, 
             c.is_large_prop, 
             EXISTS(SELECT 1 FROM infringements i WHERE i.acn = c.acn) as has_infringement, 
-            m.revenue, m.employees, 
+            COALESCE(m.revenue, c.revenue) as revenue, COALESCE(m.employees, c.employees) as employees, 
             EXISTS(SELECT 1 FROM contacts cnt WHERE cnt.acn = c.acn) as has_contacts
         FROM companies c
         LEFT JOIN metrics m ON c.acn = m.acn
@@ -1521,7 +1521,7 @@ async def unlisted_search(body: dict):
     if revenue_min is not None:
         try:
             rmin = float(revenue_min)
-            query += " AND (m.revenue >= ? OR m.revenue IS NULL)"
+            query += " AND (COALESCE(m.revenue, c.revenue) >= ? OR COALESCE(m.revenue, c.revenue) IS NULL)"
             params.append(rmin)
         except (ValueError, TypeError):
             pass
@@ -1529,7 +1529,7 @@ async def unlisted_search(body: dict):
     if revenue_max is not None:
         try:
             rmax = float(revenue_max)
-            query += " AND (m.revenue <= ? OR m.revenue IS NULL)"
+            query += " AND (COALESCE(m.revenue, c.revenue) <= ? OR COALESCE(m.revenue, c.revenue) IS NULL)"
             params.append(rmax)
         except (ValueError, TypeError):
             pass
