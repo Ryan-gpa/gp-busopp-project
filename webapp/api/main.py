@@ -1618,7 +1618,7 @@ async def unlisted_search(body: dict):
             "excludedOverMax": [],
             "excludedIncompleteData": [],
             "pagination": {
-                "total_pages": 1,
+        "total_pages": 1,
                 "fetched_pages": 1,
                 "rate_limited": False,
                 "fetched_entries": len(results),
@@ -1665,6 +1665,13 @@ def asic_prospects():
     contact enrichment (Apollo/RocketReach) runs on demand per company."""
     seen = set()
     prospects = []
+    
+    conn = _unlisted_cache_conn()
+    try:
+        cache_data = {row[0]: json.loads(row[1]) for row in conn.execute("SELECT apollo_id, data_json FROM companies WHERE data_json IS NOT NULL").fetchall()}
+    finally:
+        conn.close()
+
     for norm, records in _infringement_by_norm_name.items():
         if norm in seen:
             continue
@@ -1672,13 +1679,16 @@ def asic_prospects():
         rec = records[0]
         asic_match = _asic_lookup(rec["name"])
         acn = (asic_match or {}).get("acn") or re.sub(r"\D", "", rec.get("licenceOrAcn") or "") or norm.replace(" ", "_")
+        org_id = f"asic_{acn}"
+        cached = cache_data.get(org_id, {})
+        
         org = {
-            "id": f"asic_{acn}",
+            "id": org_id,
             "name": rec["name"],
             "domain": None,
             "dataSource": "asic",
-            "annual_revenue": None,
-            "estimated_num_employees": None,
+            "annual_revenue": cached.get("annual_revenue") or cached.get("organization_revenue") or cached.get("revenue"),
+            "estimated_num_employees": cached.get("estimated_num_employees") or cached.get("employees"),
             "infringementNotices": records,
             "asic": _asic_fields_to_api(asic_match) if asic_match else None,
         }
