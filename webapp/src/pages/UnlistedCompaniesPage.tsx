@@ -362,8 +362,8 @@ export default function UnlistedCompaniesPage() {
           const updateList = (list: UnlistedCompany[]) =>
             list.map(c => c.id === companyId ? {
               ...c,
-              annual_revenue: data.revenue !== undefined ? data.revenue : c.annual_revenue,
-              estimated_num_employees: data.employees !== undefined ? data.employees : c.estimated_num_employees
+              annual_revenue: data.revenue != null ? data.revenue : c.annual_revenue,
+              estimated_num_employees: data.employees != null ? data.employees : c.estimated_num_employees
             } : c);
           return { ...prev, tier1: updateList(prev.tier1), tier2: updateList(prev.tier2) };
         });

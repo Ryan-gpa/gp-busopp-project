@@ -2051,10 +2051,12 @@ def _persist_contacts(conn, org_id, contacts_list, now):
             print(f"Error persisting contact: {e}")
 
 def _fetch_and_persist_rr_metrics(org_id: str, company_name: str) -> dict:
-    """Fetch company metrics from RR and immediately persist to both live and cache DBs."""
+    """Fetch company metrics from RR (or Apollo fallback) and immediately persist."""
     metrics = _rocketreach_company_lookup(company_name)
     if not metrics.get("revenue") and not metrics.get("employees"):
-        return metrics
+        metrics = _apollo_company_lookup(company_name)
+        if not metrics.get("revenue") and not metrics.get("employees"):
+            return metrics
 
     rev = metrics.get("revenue")
     emp = metrics.get("employees")
