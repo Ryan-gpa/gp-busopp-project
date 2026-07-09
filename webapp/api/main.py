@@ -2267,11 +2267,23 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     try:
         _persist_contacts(conn, org_id, contacts, now)
         conn.commit()
+        
+        # Check if we already have company metrics cached
+        has_metrics = False
+        row = conn.execute("SELECT data_json FROM companies WHERE apollo_id = ?", (org_id,)).fetchone()
+        if row and row[0]:
+            cached_data = json.loads(row[0])
+            if cached_data.get("annual_revenue") or cached_data.get("organization_revenue") or cached_data.get("revenue"):
+                has_metrics = True
     finally:
         conn.close()
 
+    # If Apollo was used but we still don't have company metrics, fetch them via RocketReach
+    if not has_metrics and not metrics:
+        metrics = _fetch_and_persist_rr_metrics(org_id, company_name)
+
     res = {"contacts": contacts, "fromCache": False, "fetchedAt": now}
-    if 'metrics' in locals() and metrics:
+    if metrics:
         res["revenue"] = metrics.get("revenue")
         res["employees"] = metrics.get("employees")
     return res
@@ -2324,6 +2336,32 @@ def export_contacts_csv():
         headers={"Content-Disposition": 'attachment; filename="unlisted_contacts_hubspot.csv"'},
     )
 
+
+@app.get("/api/admin/backfill-apollo-metrics")
+def backfill_apollo_metrics(limit: int = 10):
+    conn = _unlisted_cache_conn()
+    rows = conn.execute("SELECT apollo_id, data_json FROM companies").fetchall()
+    
+    count = 0
+    backfilled = []
+    for apollo_id, data_json in rows:
+        data = json.loads(data_json) if data_json else {}
+        rev = data.get("annual_revenue") or data.get("organization_revenue") or data.get("revenue")
+        if not rev:
+            name, _ = _company_identity_for_org(apollo_id)
+            if not name:
+                name = data.get("name")
+            if name:
+                try:
+                    _fetch_and_persist_rr_metrics(apollo_id, name)
+                    count += 1
+                    backfilled.append(name)
+                    if count >= limit:
+                        break
+                except Exception as e:
+                    print(f"Failed to backfill {name}: {e}")
+    conn.close()
+    return {"message": f"Backfilled {count} companies.", "companies": backfilled}
 
 @app.post("/api/admin/rebuild-unified")
 def admin_rebuild_unified():

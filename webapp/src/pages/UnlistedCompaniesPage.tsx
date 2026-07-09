@@ -759,19 +759,6 @@ export default function UnlistedCompaniesPage() {
               Large Proprietary only
             </label>
 
-            <label className="flex items-center gap-2 text-sm text-red-700 cursor-pointer font-medium">
-              <input
-                type="checkbox"
-                checked={onlyInfringements}
-                onChange={e => {
-                  setOnlyInfringements(e.target.checked)
-                  setTier1Page(1)
-                  setTier2Page(1)
-                }}
-                className="rounded border-red-300"
-              />
-              ASIC infringement notices only
-            </label>
 
             <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
               <input
