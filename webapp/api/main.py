@@ -2149,8 +2149,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
             try:
                 comp_row = cache_conn.execute("SELECT data_json FROM companies WHERE apollo_id = ?", (org_id,)).fetchone()
                 if comp_row and comp_row[0]:
-                    import json
-                    data = json.loads(comp_row[0])
+                        data = json.loads(comp_row[0])
                     rev = data.get("annual_revenue") or data.get("organization_revenue") or data.get("revenue")
                     emp = data.get("estimated_num_employees") or data.get("employees")
             except Exception:
@@ -2654,5 +2653,6 @@ def force_fix():
         if index.exists():
             return FileResponse(str(index))
         raise HTTPException(404, "Frontend not built.")
+
 
 
