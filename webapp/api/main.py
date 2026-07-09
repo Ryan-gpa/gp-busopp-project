@@ -2526,6 +2526,25 @@ def migrate_erd():
     res = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True)
     return {"stdout": res.stdout, "stderr": res.stderr}
 
+from pydantic import BaseModel
+class SqlReq(BaseModel):
+    query: str
+@app.post("/api/admin/sql")
+def execute_sql(req: SqlReq):
+    import sqlite3
+    db_path = DATA_DIR / "unified_companies.db"
+    try:
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        cur = conn.execute(req.query)
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
 @app.post("/api/admin/sync-live")
 def sync_live_db():
     cache_conn = _unlisted_cache_conn()
