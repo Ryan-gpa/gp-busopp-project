@@ -81,7 +81,10 @@ export default function UnlistedCompaniesPage() {
   const [expandedInfringements, setExpandedInfringements] = useState<Record<string, boolean>>({})
   const [onlyProprietary, setOnlyProprietary] = useState(false)
   const [onlyWithContacts, setOnlyWithContacts] = useState(false)
-  const [asicStatusFilter, setAsicStatusFilter] = useState("all")
+  const [dbStatusFilter, setDbStatusFilter] = useState("all")
+  const [entityTypeFilter, setEntityTypeFilter] = useState("all")
+  const [classFilter, setClassFilter] = useState("all")
+  const [subclassFilter, setSubclassFilter] = useState("all")
   const [contactFetches, setContactFetches] = useState<Record<string, ContactFetchState>>({})
 
   // Form state
@@ -157,7 +160,7 @@ export default function UnlistedCompaniesPage() {
         locations: ["Australia"],
         onlyProprietary,
         onlyWithContacts,
-        asicStatusFilter
+        dbStatusFilter
       }
       if (revenueMin) payload.revenueMin = Number(revenueMin)
       if (revenueMax) payload.revenueMax = Number(revenueMax)
@@ -186,7 +189,7 @@ export default function UnlistedCompaniesPage() {
   useEffect(() => {
     handleSearch()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlyProprietary, onlyWithContacts, asicStatusFilter])
+  }, [onlyProprietary, onlyWithContacts, dbStatusFilter, dbStatusFilter, entityTypeFilter, classFilter, subclassFilter])
 
   const loadAsicProspects = async () => {
     setLoading(true)
@@ -773,19 +776,61 @@ export default function UnlistedCompaniesPage() {
             </label>
 
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-700 font-medium">ASIC Status:</label>
-              <select
-                className="border rounded px-2 py-1 text-sm bg-white"
-                value={asicStatusFilter}
-                onChange={e => {
-                  setAsicStatusFilter(e.target.value)
-                  setTier1Page(1)
-                  setTier2Page(1)
-                }}
-              >
-                <option value="all">All Statuses</option>
-                <option value="verified">Active (REGD)</option>
-                <option value="deregistered">Deregistered</option>
+              <label className="text-sm text-gray-700 font-medium">Status:</label>
+              <select className="border rounded px-2 py-1 text-sm bg-white" value={dbStatusFilter} onChange={e => { setDbStatusFilter(e.target.value); setTier1Page(1); setTier2Page(1); }}>
+                <option value="all">All</option>
+                <option value="REGD">Registered (REGD)</option>
+                <option value="DRGD">Deregistered (DRGD)</option>
+                <option value="EXAD">External Administration (EXAD)</option>
+                <option value="SOFF">Strike Off (SOFF)</option>
+                <option value="NOAC">No longer active (NOAC)</option>
+                <option value="CNCL">Cancelled (CNCL)</option>
+                <option value="DISS">Dissolved (DISS)</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700 font-medium">Type:</label>
+              <select className="border rounded px-2 py-1 text-sm bg-white" value={entityTypeFilter} onChange={e => { setEntityTypeFilter(e.target.value); setTier1Page(1); setTier2Page(1); }}>
+                <option value="all">All</option>
+                <option value="APTY">Proprietary (APTY)</option>
+                <option value="APUB">Public (APUB)</option>
+                <option value="FNOS">Foreign (FNOS)</option>
+                <option value="RACN">Reg Aust Body (RACN)</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700 font-medium">Class:</label>
+              <select className="border rounded px-2 py-1 text-sm bg-white" value={classFilter} onChange={e => { setClassFilter(e.target.value); setTier1Page(1); setTier2Page(1); }}>
+                <option value="all">All</option>
+                <option value="LMSH">Limited by Shares (LMSH)</option>
+                <option value="NONE">None</option>
+                <option value="LMGT">Limited by Guarantee (LMGT)</option>
+                <option value="LMSG">Limited by Shares & Guarantee (LMSG)</option>
+                <option value="UNLM">Unlimited (UNLM)</option>
+                <option value="NLIA">No Liability (NLIA)</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700 font-medium">Subclass:</label>
+              <select className="border rounded px-2 py-1 text-sm bg-white" value={subclassFilter} onChange={e => { setSubclassFilter(e.target.value); setTier1Page(1); setTier2Page(1); }}>
+                <option value="all">All</option>
+                <option value="PROP">Proprietary (PROP)</option>
+                <option value="PSTC">Proprietary Super (PSTC)</option>
+                <option value="ULST">Unlisted Public (ULST)</option>
+                <option value="ULSN">Unlisted (ULSN)</option>
+                <option value="LISN">Listed Public (LISN)</option>
+                <option value="LIST">Listed Public (LIST)</option>
+                <option value="HUNT">Home Unit Company (HUNT)</option>
+                <option value="PNPC">Proprietary Non-Profit (PNPC)</option>
+                <option value="PUBF">Public Fund (PUBF)</option>
+                <option value="ULSS">Unlisted Super (ULSS)</option>
+                <option value="NLTD">No Liability (NLTD)</option>
+                <option value="RACA">Reg Aust Body (RACA)</option>
+                <option value="RACO">Reg Aust Body (RACO)</option>
+                <option value="LISS">Listed Super (LISS)</option>
+                <option value="EXPT">Exempt Public (EXPT)</option>
+                <option value="STFI">State/Federal Inst (STFI)</option>
+                <option value="NONE">None</option>
               </select>
             </div>
           </div>

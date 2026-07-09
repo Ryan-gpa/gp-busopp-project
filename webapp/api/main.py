@@ -1493,7 +1493,10 @@ async def unlisted_search(body: dict):
     only_proprietary = body.get("onlyProprietary", False)
     only_infringements = body.get("onlyInfringements", False)
     only_with_contacts = body.get("onlyWithContacts", False)
-    asic_status_filter = body.get("asicStatusFilter", "all")
+    db_status = body.get("dbStatusFilter", "all")
+    entity_type = body.get("entityTypeFilter", "all")
+    liability_class = body.get("classFilter", "all")
+    subclass = body.get("subclassFilter", "all")
 
     db_path = DATA_DIR / "unified_companies.db"
     if not db_path.exists():
@@ -1543,11 +1546,24 @@ async def unlisted_search(body: dict):
     if only_with_contacts:
         query += " AND EXISTS(SELECT 1 FROM contacts cnt WHERE cnt.acn = c.acn)"
         
-    if asic_status_filter != "all":
-        if asic_status_filter == "pending":
-            query += " AND c.status NOT IN ('REGD', 'DRGD')"
-        else:
-            query += " AND c.status = 'REGD'" if asic_status_filter == "verified" else " AND c.status != 'REGD'"
+    if db_status != "all":
+        query += " AND c.status = ?"
+        params.append(db_status)
+        
+    if entity_type != "all":
+        query += " AND c.type = ?"
+        params.append(entity_type)
+        
+    if liability_class != "all":
+        query += " AND c.class = ?"
+        params.append(liability_class)
+        
+    if subclass != "all":
+        query += " AND c.subclass = ?"
+        params.append(subclass)
+
+    # Note: We must inject the parameters in the correct order for the count_query and data_query.
+    # The count_query doesn't join metrics. Wait! The data_query JOINS metrics. If we used params, they apply to where_portion.
 
     where_portion = "WHERE 1=1" + query.split("WHERE 1=1")[1]
     count_query = f"SELECT COUNT(*) FROM companies c LEFT JOIN metrics m ON c.acn = m.acn {where_portion}"
