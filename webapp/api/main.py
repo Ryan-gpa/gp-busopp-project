@@ -2512,6 +2512,14 @@ def backfill_apollo_metrics(limit: int = 10):
     conn.close()
     return {"message": f"Backfilled {count} companies.", "companies": backfilled}
 
+@app.post("/api/admin/migrate-erd")
+def migrate_erd():
+    import sys, subprocess, os
+    from pathlib import Path
+    script_path = Path(__file__).parent / "scripts" / "migrate_to_erd.py"
+    res = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True)
+    return {"stdout": res.stdout, "stderr": res.stderr}
+
 @app.post("/api/admin/sync-live")
 def sync_live_db():
     cache_conn = _unlisted_cache_conn()
