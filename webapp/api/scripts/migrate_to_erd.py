@@ -69,9 +69,12 @@ def main():
             data = json.load(f)
         
         for item in data:
-            acn = str(item.get("acn", "")).replace(" ", "")
-            if not acn:
+            acn = str(item.get("acn", item.get("licenceOrAcn", "")))
+            import re
+            acn_match = re.search(r'(\d[\d\s]*\d)', acn)
+            if not acn_match:
                 continue
+            acn = acn_match.group(1).replace(" ", "").zfill(9)
             conn.execute("""
                 INSERT INTO infringements (acn, notice_date, offence, penalty_paid, amount, url, raw_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
