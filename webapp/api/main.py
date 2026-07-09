@@ -2347,10 +2347,12 @@ def export_contacts_csv():
 @app.get("/api/admin/backfill-apollo-metrics")
 def backfill_apollo_metrics(limit: int = 10):
     conn = _unlisted_cache_conn()
-    rows = conn.execute("SELECT apollo_id, data_json FROM companies").fetchall()
     
+    # 1. Backfill companies that are in the companies table but missing revenue
+    rows = conn.execute("SELECT apollo_id, data_json FROM companies").fetchall()
     count = 0
     backfilled = []
+    
     for apollo_id, data_json in rows:
         data = json.loads(data_json) if data_json else {}
         rev = data.get("annual_revenue") or data.get("organization_revenue") or data.get("revenue")
@@ -2360,13 +2362,39 @@ def backfill_apollo_metrics(limit: int = 10):
                 name = data.get("name")
             if name:
                 try:
-                    _fetch_and_persist_rr_metrics(apollo_id, name)
-                    count += 1
-                    backfilled.append(name)
-                    if count >= limit:
-                        break
+                    metrics = _fetch_and_persist_rr_metrics(apollo_id, name)
+                    if metrics:  # only count if we didn't get rate limited early return
+                        count += 1
+                        backfilled.append(name)
+                        if count >= limit:
+                            break
                 except Exception as e:
                     print(f"Failed to backfill {name}: {e}")
+
+    # 2. Backfill companies that have contacts but NO entry (or no revenue) in the companies table
+    if count < limit:
+        contact_rows = conn.execute("SELECT org_id FROM contacts_cache").fetchall()
+        for c_row in contact_rows:
+            org_id = c_row[0]
+            comp = conn.execute("SELECT data_json FROM companies WHERE apollo_id = ?", (org_id,)).fetchone()
+            rev = None
+            if comp and comp[0]:
+                data = json.loads(comp[0])
+                rev = data.get("annual_revenue") or data.get("organization_revenue") or data.get("revenue")
+            
+            if not rev:
+                name, _ = _company_identity_for_org(org_id)
+                if name and name not in backfilled:
+                    try:
+                        metrics = _fetch_and_persist_rr_metrics(org_id, name)
+                        if metrics:
+                            count += 1
+                            backfilled.append(name)
+                            if count >= limit:
+                                break
+                    except Exception as e:
+                        print(f"Failed to backfill {name} from contacts: {e}")
+
     conn.close()
     return {"message": f"Backfilled {count} companies.", "companies": backfilled}
 
