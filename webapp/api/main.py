@@ -1502,24 +1502,26 @@ async def unlisted_search(body: dict):
         
     query = """
         SELECT 
-            acn, name, name_norm, status, type, class, subclass, state, 
-            is_large_prop, has_infringement, revenue, employees, has_contacts
-        FROM companies
+            c.acn, c.name, c.name_norm, c.status, c.type, c.class, c.subclass, c.state, 
+            c.is_large_prop, 
+            EXISTS(SELECT 1 FROM infringements i WHERE i.acn = c.acn) as has_infringement, 
+            m.revenue, m.employees, 
+            EXISTS(SELECT 1 FROM contacts cnt WHERE cnt.acn = c.acn) as has_contacts
+        FROM companies c
+        LEFT JOIN metrics m ON c.acn = m.acn
         WHERE 1=1
     """
     params = []
     
     if company_name and company_name.strip():
-        query += " AND name_norm LIKE ?"
-        # Note: normalize_company_name must be defined above
+        query += " AND c.name_norm LIKE ?"
         norm = normalize_company_name(company_name.strip())
         params.append(f"%{norm}%")
         
     if revenue_min is not None:
         try:
             rmin = float(revenue_min)
-            # Show companies that meet revenue OR haven't been enriched yet
-            query += " AND (revenue >= ? OR revenue IS NULL)"
+            query += " AND (m.revenue >= ? OR m.revenue IS NULL)"
             params.append(rmin)
         except (ValueError, TypeError):
             pass
@@ -1527,48 +1529,37 @@ async def unlisted_search(body: dict):
     if revenue_max is not None:
         try:
             rmax = float(revenue_max)
-            query += " AND (revenue <= ? OR revenue IS NULL)"
+            query += " AND (m.revenue <= ? OR m.revenue IS NULL)"
             params.append(rmax)
         except (ValueError, TypeError):
             pass
             
     if only_proprietary:
-        query += " AND type = 'APTY' AND class = 'LMSH' AND subclass = 'PROP'"
+        query += " AND c.type = 'APTY' AND c.class = 'LMSH' AND c.subclass = 'PROP'"
         
     if only_infringements:
-        # has_infringement column may be 0 due to normalization mismatch at build time.
-        # Use the live in-memory dict (loaded from JSON at startup) — it's always correct.
-        inf_norms = list(_infringement_by_norm_name.keys())
-        if not inf_norms:
-            # Infringement data not loaded yet — return empty safely
-            return {
-                "tier1": [], "tier2": [],
-                "excludedUnderMin": [], "excludedOverMax": [], "excludedIncompleteData": [],
-                "pagination": {"fetched_entries": 0, "total_entries": 0, "truncated": False, "rate_limited": False},
-                "fetchedAt": time.time(), "fromCache": True
-            }
-        placeholders = ",".join("?" * len(inf_norms))
-        query += f" AND name_norm IN ({placeholders})"
-        params.extend(inf_norms)
+        query += " AND EXISTS(SELECT 1 FROM infringements i WHERE i.acn = c.acn)"
         
     if only_with_contacts:
-        query += " AND has_contacts = 1"
+        query += " AND EXISTS(SELECT 1 FROM contacts cnt WHERE cnt.acn = c.acn)"
         
     if asic_status_filter != "all":
         if asic_status_filter == "pending":
-            query += " AND status NOT IN ('REGD', 'DRGD')"
+            query += " AND c.status NOT IN ('REGD', 'DRGD')"
         else:
-            query += " AND status = 'REGD'" if asic_status_filter == "verified" else " AND status != 'REGD'"
+            query += " AND c.status = 'REGD'" if asic_status_filter == "verified" else " AND c.status != 'REGD'"
 
-    # Build count + data queries from the already-built WHERE conditions in `query`
-    # Extract just the WHERE portion (everything after FROM companies)
     where_portion = query[query.index("WHERE"):]
-    count_query = f"SELECT COUNT(*) FROM companies {where_portion}"
+    count_query = f"SELECT COUNT(*) FROM companies c LEFT JOIN metrics m ON c.acn = m.acn {where_portion}"
     data_query = f"""
-        SELECT acn, name, name_norm, status, type, class, subclass, state,
-               is_large_prop, has_infringement, revenue, employees, has_contacts
-        FROM companies {where_portion}
-        ORDER BY has_infringement DESC, acn DESC
+        SELECT c.acn, c.name, c.name_norm, c.status, c.type, c.class, c.subclass, c.state,
+               c.is_large_prop, 
+               EXISTS(SELECT 1 FROM infringements i WHERE i.acn = c.acn) as has_infringement, 
+               m.revenue, m.employees, 
+               EXISTS(SELECT 1 FROM contacts cnt WHERE cnt.acn = c.acn) as has_contacts
+        FROM companies c 
+        LEFT JOIN metrics m ON c.acn = m.acn {where_portion}
+        ORDER BY has_infringement DESC, c.acn DESC
         LIMIT 5000
     """
 
@@ -1578,18 +1569,36 @@ async def unlisted_search(body: dict):
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
-        # Count total matching rows (fast on indexed columns)
         try:
             total_matched = c.execute(count_query, params).fetchone()[0]
-        except Exception:
+        except Exception as e:
             total_matched = None
 
         rows = c.execute(data_query, params).fetchall()
         
+        # Pre-fetch infringements and contacts
+        acns = [row['acn'] for row in rows]
+        contacts_by_acn = {}
+        inf_by_acn = {}
+        if acns:
+            placeholders = ",".join("?" * len(acns))
+            
+            # Fetch contacts
+            cr_rows = c.execute(f"SELECT acn, raw_json FROM contacts WHERE acn IN ({placeholders})", acns).fetchall()
+            import json
+            for cr in cr_rows:
+                contacts_by_acn.setdefault(cr[0], []).append(json.loads(cr[1]))
+                
+            # Fetch infringements
+            ir_rows = c.execute(f"SELECT acn, raw_json FROM infringements WHERE acn IN ({placeholders})", acns).fetchall()
+            for ir in ir_rows:
+                inf_by_acn.setdefault(ir[0], []).append(json.loads(ir[1]))
+        
         results = []
         for row in rows:
+            acn = row['acn']
             org = {
-                "id": f"asic_{row['acn']}",
+                "id": f"asic_{acn}",
                 "name": row['name'],
                 "annual_revenue": row['revenue'],
                 "estimated_num_employees": row['employees'],
@@ -1600,14 +1609,19 @@ async def unlisted_search(body: dict):
             org['asic'] = {
                 "status": "verified" if row['status'] == 'REGD' else "deregistered",
                 "reason": f"ASIC Status: {row['status']}",
-                "acn": row['acn'],
+                "acn": acn,
                 "type": row['type'],
                 "class": row['class'],
                 "subclass": row['subclass'],
                 "state": row['state']
             }
-            if row['has_infringement']:
+            if acn in inf_by_acn:
+                org["infringementNotices"] = inf_by_acn[acn]
+            elif row['has_infringement']:
                 org["infringementNotices"] = [{"title": "Infringement Notice"}]
+                
+            if acn in contacts_by_acn:
+                org["contacts"] = contacts_by_acn[acn]
                 
             results.append(org)
             
@@ -1618,7 +1632,7 @@ async def unlisted_search(body: dict):
             "excludedOverMax": [],
             "excludedIncompleteData": [],
             "pagination": {
-        "total_pages": 1,
+                "total_pages": 1,
                 "fetched_pages": 1,
                 "rate_limited": False,
                 "fetched_entries": len(results),
@@ -2029,7 +2043,7 @@ def _merge_contact_sources(apollo_contacts: list, rr_contacts: list) -> list:
 
 
 def _persist_contacts(conn, org_id, contacts_list, now):
-    conn.execute("INSERT OR REPLACE INTO contacts_cache VALUES (?,?,?)", (org_id, json.dumps(contacts_list), now))
+    save_contacts(org_id, contacts_list, source if 'source' in locals() else 'apollo')
     for c in contacts_list:
         try:
             conn.execute("""
@@ -2057,6 +2071,30 @@ def _fetch_and_persist_rr_metrics(org_id: str, company_name: str) -> dict:
         metrics = _apollo_company_lookup(company_name)
         if not metrics.get("revenue") and not metrics.get("employees"):
             return metrics
+
+    rev = metrics.get("revenue")
+    emp = metrics.get("employees")
+    source = metrics.get("dataSource", "rocketreach")
+    
+    try:
+        import time
+        live_conn = sqlite3.connect(str(DATA_DIR / "unified_companies.db"))
+        acn = org_id.replace('asic_', '').replace('rr_', '')
+        live_conn.execute("UPDATE companies SET revenue = ?, employees = ? WHERE acn = ?", (rev, emp, acn))
+        
+        live_conn.execute("""
+            INSERT OR REPLACE INTO metrics (org_id, acn, revenue, employees, source, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (org_id, acn, rev, emp, source, time.time()))
+        
+        live_conn.commit()
+    except Exception as e:
+        pass
+    finally:
+        if 'live_conn' in locals():
+            live_conn.close()
+
+    return metrics
 
     rev = metrics.get("revenue")
     emp = metrics.get("employees")
@@ -2125,17 +2163,49 @@ def _apollo_company_lookup(company_name: str) -> dict:
     return {}
 
 @app.get("/api/unlisted/contacts/{org_id}")
-def _update_live_has_contacts(org_id: str):
+def _insert_live_contacts(org_id: str, contacts_list: list, source: str):
     acn = org_id.replace('asic_', '').replace('rr_', '')
     try:
         live_conn = sqlite3.connect(str(DATA_DIR / "unified_companies.db"))
         live_conn.execute("UPDATE companies SET has_contacts = 1 WHERE acn = ?", (acn,))
+        
+        live_conn.execute("DELETE FROM contacts WHERE org_id = ?", (org_id,))
+        import time
+        now = time.time()
+        for c in contacts_list:
+            name = c.get("name")
+            title = c.get("title") or c.get("current_title")
+            email = c.get("email") or c.get("current_work_email")
+            linkedin = c.get("linkedin_url") or c.get("linkedin")
+            
+            live_conn.execute("""
+                INSERT INTO contacts (org_id, acn, name, title, email, linkedin_url, source, updated_at, raw_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (org_id, acn, name, title, email, linkedin, source, now, json.dumps(c)))
+            
         live_conn.commit()
     except Exception as e:
         pass
     finally:
         if 'live_conn' in locals():
             live_conn.close()
+
+
+def save_contacts(org_id: str, contacts_list: list, source: str):
+    import time, json
+    now = time.time()
+    conn = _unlisted_cache_conn()
+    try:
+        conn.execute("INSERT OR REPLACE INTO contacts_cache (org_id, contacts_json, fetched_at) VALUES (?, ?, ?)",
+                     (org_id, json.dumps(contacts_list), now))
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+        
+    _insert_live_contacts(org_id, contacts_list, source)
+
 
 def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     """Find CEO/CFO contacts for a company by Apollo organization id.
@@ -2178,9 +2248,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
         now = time.time()
         conn = _unlisted_cache_conn()
         try:
-            conn.execute("INSERT OR REPLACE INTO contacts_cache (org_id, contacts_json, fetched_at) VALUES (?, ?, ?)",
-                         (org_id, json.dumps(rr_contacts), now))
-            conn.commit()
+            save_contacts(org_id, rr_contacts, "rocketreach")
         finally:
             conn.close()
         return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach", "revenue": metrics.get("revenue"), "employees": metrics.get("employees")}
@@ -2196,9 +2264,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
         now = time.time()
         conn = _unlisted_cache_conn()
         try:
-            conn.execute("INSERT OR REPLACE INTO contacts_cache (org_id, contacts_json, fetched_at) VALUES (?, ?, ?)",
-                         (org_id, json.dumps(rr_contacts), now))
-            conn.commit()
+            save_contacts(org_id, rr_contacts, "rocketreach")
         finally:
             conn.close()
         return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach", "revenue": metrics.get("revenue"), "employees": metrics.get("employees")}
@@ -2239,9 +2305,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
         now = time.time()
         conn = _unlisted_cache_conn()
         try:
-            conn.execute("INSERT OR REPLACE INTO contacts_cache (org_id, contacts_json, fetched_at) VALUES (?, ?, ?)",
-                         (org_id, json.dumps(rr_contacts), now))
-            conn.commit()
+            save_contacts(org_id, rr_contacts, "rocketreach")
         finally:
             conn.close()
         return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach", "revenue": metrics.get("revenue"), "employees": metrics.get("employees")}
@@ -2300,9 +2364,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
             now = time.time()
             conn = _unlisted_cache_conn()
             try:
-                conn.execute("INSERT OR REPLACE INTO contacts_cache (org_id, contacts_json, fetched_at) VALUES (?, ?, ?)",
-                             (org_id, json.dumps(rr_contacts), now))
-                conn.commit()
+                save_contacts(org_id, rr_contacts, "rocketreach")
             finally:
                 conn.close()
             return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach", "revenue": metrics.get("revenue"), "employees": metrics.get("employees")}
