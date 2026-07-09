@@ -10,7 +10,7 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", os.environ.get("RAILWAY_VOLUME_MOUNT_
 def main():
     unified_db_path = DATA_DIR / "unified_companies.db"
     cache_db_path = DATA_DIR / "unlisted_search_cache.sqlite3"
-    infringements_json_path = HERE.parent / "asic_infringement_notices.json"
+    infringements_json_path = DATA_DIR / "asic_infringement_notices.json" if (DATA_DIR / "asic_infringement_notices.json").exists() else HERE.parent / "asic_infringement_notices.json"
     
     if not unified_db_path.exists():
         print("unified_companies.db not found.")
