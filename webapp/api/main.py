@@ -1903,8 +1903,15 @@ def _rocketreach_company_lookup(company_name: str) -> dict:
                 "revenue": data.get("revenue"),
                 "employees": data.get("num_employees")
             }
+        elif res.status_code == 429:
+            print(f"[rocketreach] Rate limit hit during company lookup for {company_name}", file=sys.stderr)
+            raise Exception("RocketReach API rate limit reached")
+        else:
+            print(f"[rocketreach] lookup returned {res.status_code} for {company_name}", file=sys.stderr)
     except Exception as e:
         print(f"[rocketreach] company lookup failed for {company_name!r}: {e}", file=sys.stderr)
+        if "rate limit" in str(e).lower():
+            raise
     return {}
 
 
