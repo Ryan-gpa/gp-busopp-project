@@ -779,57 +779,57 @@ export default function UnlistedCompaniesPage() {
               <label className="text-sm text-gray-700 font-medium">Status:</label>
               <select className="border rounded px-2 py-1 text-sm bg-white" value={dbStatusFilter} onChange={e => { setDbStatusFilter(e.target.value); setTier1Page(1); setTier2Page(1); }}>
                 <option value="all">All</option>
-                <option value="REGD">Registered (REGD)</option>
-                <option value="DRGD">Deregistered (DRGD)</option>
-                <option value="EXAD">External Administration (EXAD)</option>
-                <option value="SOFF">Strike Off (SOFF)</option>
-                <option value="NOAC">No longer active (NOAC)</option>
-                <option value="CNCL">Cancelled (CNCL)</option>
-                <option value="DISS">Dissolved (DISS)</option>
+                <option value="REGD">Registered</option>
+                <option value="DRGD">Deregistered</option>
+                <option value="EXAD">External Administration</option>
+                <option value="SOFF">Strike Off</option>
+                <option value="NOAC">No longer active</option>
+                <option value="CNCL">Cancelled</option>
+                <option value="DISS">Dissolved</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-700 font-medium">Type:</label>
               <select className="border rounded px-2 py-1 text-sm bg-white" value={entityTypeFilter} onChange={e => { setEntityTypeFilter(e.target.value); setTier1Page(1); setTier2Page(1); }}>
                 <option value="all">All</option>
-                <option value="APTY">Proprietary (APTY)</option>
-                <option value="APUB">Public (APUB)</option>
-                <option value="FNOS">Foreign (FNOS)</option>
-                <option value="RACN">Reg Aust Body (RACN)</option>
+                <option value="APTY">Proprietary</option>
+                <option value="APUB">Public</option>
+                <option value="FNOS">Foreign</option>
+                <option value="RACN">Reg Aust Body</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-700 font-medium">Class:</label>
               <select className="border rounded px-2 py-1 text-sm bg-white" value={classFilter} onChange={e => { setClassFilter(e.target.value); setTier1Page(1); setTier2Page(1); }}>
                 <option value="all">All</option>
-                <option value="LMSH">Limited by Shares (LMSH)</option>
+                <option value="LMSH">Limited by Shares</option>
                 <option value="NONE">None</option>
-                <option value="LMGT">Limited by Guarantee (LMGT)</option>
-                <option value="LMSG">Limited by Shares & Guarantee (LMSG)</option>
-                <option value="UNLM">Unlimited (UNLM)</option>
-                <option value="NLIA">No Liability (NLIA)</option>
+                <option value="LMGT">Limited by Guarantee</option>
+                <option value="LMSG">Limited by Shares & Guarantee</option>
+                <option value="UNLM">Unlimited</option>
+                <option value="NLIA">No Liability</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-700 font-medium">Subclass:</label>
               <select className="border rounded px-2 py-1 text-sm bg-white" value={subclassFilter} onChange={e => { setSubclassFilter(e.target.value); setTier1Page(1); setTier2Page(1); }}>
                 <option value="all">All</option>
-                <option value="PROP">Proprietary (PROP)</option>
-                <option value="PSTC">Proprietary Super (PSTC)</option>
-                <option value="ULST">Unlisted Public (ULST)</option>
-                <option value="ULSN">Unlisted (ULSN)</option>
-                <option value="LISN">Listed Public (LISN)</option>
-                <option value="LIST">Listed Public (LIST)</option>
-                <option value="HUNT">Home Unit Company (HUNT)</option>
-                <option value="PNPC">Proprietary Non-Profit (PNPC)</option>
-                <option value="PUBF">Public Fund (PUBF)</option>
-                <option value="ULSS">Unlisted Super (ULSS)</option>
-                <option value="NLTD">No Liability (NLTD)</option>
-                <option value="RACA">Reg Aust Body (RACA)</option>
-                <option value="RACO">Reg Aust Body (RACO)</option>
-                <option value="LISS">Listed Super (LISS)</option>
-                <option value="EXPT">Exempt Public (EXPT)</option>
-                <option value="STFI">State/Federal Inst (STFI)</option>
+                <option value="PROP">Proprietary</option>
+                <option value="PSTC">Proprietary Super</option>
+                <option value="ULST">Unlisted Public</option>
+                <option value="ULSN">Unlisted</option>
+                <option value="LISN">Listed Public</option>
+                <option value="LIST">Listed Public</option>
+                <option value="HUNT">Home Unit Company</option>
+                <option value="PNPC">Proprietary Non-Profit</option>
+                <option value="PUBF">Public Fund</option>
+                <option value="ULSS">Unlisted Super</option>
+                <option value="NLTD">No Liability</option>
+                <option value="RACA">Reg Aust Body</option>
+                <option value="RACO">Reg Aust Body</option>
+                <option value="LISS">Listed Super</option>
+                <option value="EXPT">Exempt Public</option>
+                <option value="STFI">State/Federal Inst</option>
                 <option value="NONE">None</option>
               </select>
             </div>
