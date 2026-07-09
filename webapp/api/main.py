@@ -1879,6 +1879,30 @@ def _strip_corp_suffixes(name: str) -> str:
     return re.sub(r"\s+", " ", name).strip()
 
 
+def _rocketreach_company_lookup(company_name: str) -> dict:
+    """Fetch company metrics (revenue, employees) from RocketReach Company Lookup API."""
+    rr_key = os.environ.get(_ROCKETREACH_API_KEY_ENV)
+    if not rr_key or not company_name:
+        return {}
+    
+    try:
+        res = requests.get(
+            "https://api.rocketreach.co/api/v2/company/lookup",
+            headers={"Api-Key": rr_key},
+            params={"name": company_name},
+            timeout=20
+        )
+        if res.status_code == 200:
+            data = res.json()
+            return {
+                "revenue": data.get("revenue"),
+                "employees": data.get("num_employees")
+            }
+    except Exception as e:
+        print(f"[rocketreach] company lookup failed for {company_name!r}: {e}", file=sys.stderr)
+    return {}
+
+
 def _rocketreach_find_contacts(company_name: str) -> list:
     """Best-effort CEO/CFO lookup via RocketReach. Returns [] on any failure,
     missing key, or no match — never raises."""
@@ -2014,6 +2038,52 @@ def _persist_contacts(conn, org_id, contacts_list, now):
         except Exception as e:
             print(f"Error persisting contact: {e}")
 
+def _fetch_and_persist_rr_metrics(org_id: str, company_name: str) -> dict:
+    """Fetch company metrics from RR and immediately persist to both live and cache DBs."""
+    metrics = _rocketreach_company_lookup(company_name)
+    if not metrics.get("revenue") and not metrics.get("employees"):
+        return metrics
+
+    rev = metrics.get("revenue")
+    emp = metrics.get("employees")
+    
+    # 1. Update live DB so UI sees it instantly upon reload without rebuilding
+    try:
+        live_conn = sqlite3.connect(str(DATA_DIR / "unified_companies.db"))
+        acn = org_id.replace('asic_', '')
+        live_conn.execute("UPDATE companies SET revenue = ?, employees = ? WHERE acn = ?", (rev, emp, acn))
+        live_conn.commit()
+    except Exception as e:
+        print(f"Failed to update live DB with RR metrics for {acn}: {e}", file=sys.stderr)
+    finally:
+        if 'live_conn' in locals():
+            live_conn.close()
+
+    # 2. Update cache DB so it survives full rebuilds
+    try:
+        cache_conn = _unlisted_cache_conn()
+        row = cache_conn.execute("SELECT data_json FROM companies WHERE apollo_id = ?", (org_id,)).fetchone()
+        if row and row[0]:
+            data = json.loads(row[0])
+            data["annual_revenue"] = rev
+            data["estimated_num_employees"] = emp
+            cache_conn.execute("UPDATE companies SET data_json = ? WHERE apollo_id = ?", (json.dumps(data), org_id))
+        else:
+            # Create a mock Apollo data_json so build_unified_db.py can extract it later
+            mock_data = {"annual_revenue": rev, "estimated_num_employees": emp}
+            cache_conn.execute(
+                "INSERT INTO companies (apollo_id, name, data_json, first_seen, last_seen) VALUES (?, ?, ?, ?, ?)",
+                (org_id, company_name, json.dumps(mock_data), time.time(), time.time())
+            )
+        cache_conn.commit()
+    except Exception as e:
+        print(f"Failed to update cache DB with RR metrics for {org_id}: {e}", file=sys.stderr)
+    finally:
+        if 'cache_conn' in locals():
+            cache_conn.close()
+
+    return metrics
+
 @app.get("/api/unlisted/contacts/{org_id}")
 def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     """Find CEO/CFO contacts for a company by Apollo organization id.
@@ -2036,18 +2106,20 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
         if cached_data:  # Ignore empty cached results ([]) to force re-fetch with new fuzzy logic
             return {"contacts": cached_data, "fromCache": True, "fetchedAt": row[1]}
 
-    # If user explicitly requested RocketReach — go straight there regardless of org_id prefix
+    # If user explicitly requested RocketReach - go straight there regardless of org_id prefix
     if source == "rocketreach":
         rr_name, _ = _company_identity_for_org(org_id)
         rr_contacts = _rocketreach_find_contacts(rr_name)
+        metrics = _fetch_and_persist_rr_metrics(org_id, rr_name)
         now = time.time()
         conn = _unlisted_cache_conn()
         try:
-            _persist_contacts(conn, org_id, rr_contacts, now)
+            conn.execute("INSERT OR REPLACE INTO contacts_cache (org_id, contacts_json, fetched_at) VALUES (?, ?, ?)",
+                         (org_id, json.dumps(rr_contacts), now))
             conn.commit()
         finally:
             conn.close()
-        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach"}
+        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach", "revenue": metrics.get("revenue"), "employees": metrics.get("employees")}
 
     # Companies discovered outside Apollo (rr_ = RocketReach, asic_ = ASIC
     # infringement prospects) don't exist in Apollo's org namespace — its
@@ -2056,14 +2128,16 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     if source != "apollo" and org_id.startswith(("rr_", "asic_")):
         rr_name, _ = _company_identity_for_org(org_id)
         rr_contacts = _rocketreach_find_contacts(rr_name)
+        metrics = _fetch_and_persist_rr_metrics(org_id, rr_name)
         now = time.time()
         conn = _unlisted_cache_conn()
         try:
-            _persist_contacts(conn, org_id, rr_contacts, now)
+            conn.execute("INSERT OR REPLACE INTO contacts_cache (org_id, contacts_json, fetched_at) VALUES (?, ?, ?)",
+                         (org_id, json.dumps(rr_contacts), now))
             conn.commit()
         finally:
             conn.close()
-        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach"}
+        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach", "revenue": metrics.get("revenue"), "employees": metrics.get("employees")}
 
     api_key = os.environ.get("APOLLO_API_KEY")
     if not api_key:
@@ -2093,18 +2167,20 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
 
     company_name, _company_domain = _company_identity_for_org(org_id)
 
-    # No Apollo candidates at all — try RocketReach before concluding
+    # No Apollo candidates at all - try RocketReach before concluding
     # "nobody found"; whatever the answer, it's cacheable.
     if not top_candidates:
         rr_contacts = _rocketreach_find_contacts(company_name)
+        metrics = _fetch_and_persist_rr_metrics(org_id, company_name)
         now = time.time()
         conn = _unlisted_cache_conn()
         try:
-            _persist_contacts(conn, org_id, rr_contacts, now)
+            conn.execute("INSERT OR REPLACE INTO contacts_cache (org_id, contacts_json, fetched_at) VALUES (?, ?, ?)",
+                         (org_id, json.dumps(rr_contacts), now))
             conn.commit()
         finally:
             conn.close()
-        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now}
+        return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach", "revenue": metrics.get("revenue"), "employees": metrics.get("employees")}
 
     contacts = []
     enrich_failed = False
@@ -2150,19 +2226,22 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
             "source": "apollo",
         })
 
+    metrics = {}
     if not contacts and enrich_failed:
         # Every Apollo reveal failed (usually exhausted lead credits) —
         # RocketReach can still save the request if it's configured.
         rr_contacts = _rocketreach_find_contacts(company_name)
         if rr_contacts:
+            metrics = _fetch_and_persist_rr_metrics(org_id, company_name)
             now = time.time()
             conn = _unlisted_cache_conn()
             try:
-                _persist_contacts(conn, org_id, rr_contacts, now)
+                conn.execute("INSERT OR REPLACE INTO contacts_cache (org_id, contacts_json, fetched_at) VALUES (?, ?, ?)",
+                             (org_id, json.dumps(rr_contacts), now))
                 conn.commit()
             finally:
                 conn.close()
-            return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now}
+            return {"contacts": rr_contacts, "fromCache": False, "fetchedAt": now, "source": "rocketreach", "revenue": metrics.get("revenue"), "employees": metrics.get("employees")}
         # Do not cache the failure as "no contacts found." Surface it.
         raise HTTPException(
             502,
@@ -2175,6 +2254,7 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     if contacts and not any(c.get("email") or c.get("phoneNumbers") for c in contacts):
         rr_contacts = _rocketreach_find_contacts(company_name)
         if rr_contacts:
+            metrics = _fetch_and_persist_rr_metrics(org_id, company_name)
             contacts = _merge_contact_sources(contacts, rr_contacts)
 
     now = time.time()
@@ -2185,7 +2265,11 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     finally:
         conn.close()
 
-    return {"contacts": contacts, "fromCache": False, "fetchedAt": now}
+    res = {"contacts": contacts, "fromCache": False, "fetchedAt": now}
+    if 'metrics' in locals() and metrics:
+        res["revenue"] = metrics.get("revenue")
+        res["employees"] = metrics.get("employees")
+    return res
 
 
 @app.get("/api/unlisted/export/contacts.csv")

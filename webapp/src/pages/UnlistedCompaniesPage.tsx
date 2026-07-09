@@ -357,6 +357,19 @@ export default function UnlistedCompaniesPage() {
       }
       const data = await res.json()
       setContactFetches(prev => ({ ...prev, [companyId]: { status: "done", contacts: data.contacts || [], fetchedAt: data.fetchedAt, source: data.source } }))
+      
+      if (data.revenue !== undefined || data.employees !== undefined) {
+        setResults(prev => {
+          if (!prev) return prev;
+          const updateList = (list: UnlistedCompany[]) =>
+            list.map(c => c.id === companyId ? {
+              ...c,
+              annual_revenue: data.revenue !== undefined ? data.revenue : c.annual_revenue,
+              estimated_num_employees: data.employees !== undefined ? data.employees : c.estimated_num_employees
+            } : c);
+          return { ...prev, tier1: updateList(prev.tier1), tier2: updateList(prev.tier2) };
+        });
+      }
     } catch (e: any) {
       setContactFetches(prev => ({ ...prev, [companyId]: { status: "error", error: e.message } }))
     }
