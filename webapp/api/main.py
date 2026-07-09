@@ -1654,21 +1654,14 @@ def validate_unlisted(company_id: str, name: str = ""):
 
 @app.get("/api/unlisted/asic-prospects")
 def asic_prospects():
-    """ASIC-first discovery: start from ASIC's own signals, enrich elsewhere.
-
-    Seed list is the infringement notices register — every company penalised
-    for failing to lodge financial reports had a lodgement obligation, which
-    makes it a large proprietary company by legal definition (Corporations
-    Act s45A), i.e. exactly this tool's Tier 1 target, certified by the
-    regulator rather than estimated by a firmographic database. Each entry
-    is joined against the full ASIC register for ACN/ABN/status, and
-    contact enrichment (Apollo/RocketReach) runs on demand per company."""
+    """ASIC-first discovery: start from ASIC's own signals, enrich elsewhere."""
     seen = set()
     prospects = []
     
     conn = _unlisted_cache_conn()
     try:
         cache_data = {row[0]: json.loads(row[1]) for row in conn.execute("SELECT apollo_id, data_json FROM companies WHERE data_json IS NOT NULL").fetchall()}
+        has_contacts_set = {row[0] for row in conn.execute("SELECT org_id FROM contacts_cache WHERE contacts_json != '[]'").fetchall()}
     finally:
         conn.close()
 
@@ -1690,6 +1683,7 @@ def asic_prospects():
             "annual_revenue": cached.get("annual_revenue") or cached.get("organization_revenue") or cached.get("revenue"),
             "estimated_num_employees": cached.get("estimated_num_employees") or cached.get("employees"),
             "infringementNotices": records,
+            "has_contacts": org_id in has_contacts_set,
             "asic": _asic_fields_to_api(asic_match) if asic_match else None,
         }
         prospects.append(org)
