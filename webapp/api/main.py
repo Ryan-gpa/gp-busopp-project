@@ -1672,12 +1672,18 @@ def asic_prospects():
     seen = set()
     prospects = []
     
-    conn = _unlisted_cache_conn()
-    try:
-        cache_data = {row[0]: json.loads(row[1]) for row in conn.execute("SELECT apollo_id, data_json FROM companies WHERE data_json IS NOT NULL").fetchall()}
-        has_contacts_set = {row[0] for row in conn.execute("SELECT org_id FROM contacts_cache WHERE contacts_json != '[]'").fetchall()}
-    finally:
-        conn.close()
+    import sqlite3
+    db_path = DATA_DIR / "unified_companies.db"
+    if db_path.exists():
+        conn = sqlite3.connect(str(db_path))
+        try:
+            cache_data = {row[0]: {"annual_revenue": row[1], "estimated_num_employees": row[2]} for row in conn.execute("SELECT acn, revenue, employees FROM metrics").fetchall()}
+            has_contacts_set = {row[0] for row in conn.execute("SELECT DISTINCT acn FROM contacts").fetchall()}
+        finally:
+            conn.close()
+    else:
+        cache_data = {}
+        has_contacts_set = set()
 
     for norm, records in _infringement_by_norm_name.items():
         if norm in seen:
@@ -1687,7 +1693,7 @@ def asic_prospects():
         asic_match = _asic_lookup(rec["name"])
         acn = (asic_match or {}).get("acn") or re.sub(r"\D", "", rec.get("licenceOrAcn") or "") or norm.replace(" ", "_")
         org_id = f"asic_{acn}"
-        cached = cache_data.get(org_id, {})
+        cached = cache_data.get(acn, {})
         
         org = {
             "id": org_id,
@@ -1697,7 +1703,7 @@ def asic_prospects():
             "annual_revenue": cached.get("annual_revenue") or cached.get("organization_revenue") or cached.get("revenue"),
             "estimated_num_employees": cached.get("estimated_num_employees") or cached.get("employees"),
             "infringementNotices": records,
-            "has_contacts": org_id in has_contacts_set,
+            "has_contacts": acn in has_contacts_set,
             "asic": _asic_fields_to_api(asic_match) if asic_match else None,
         }
         prospects.append(org)
