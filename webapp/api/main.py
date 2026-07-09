@@ -1905,7 +1905,7 @@ def _rocketreach_company_lookup(company_name: str) -> dict:
             }
         elif res.status_code == 429:
             print(f"[rocketreach] Rate limit hit during company lookup for {company_name}", file=sys.stderr)
-            raise Exception("RocketReach API rate limit reached")
+            return {}  # Rate limit reached, gracefully return empty metrics
         else:
             print(f"[rocketreach] lookup returned {res.status_code} for {company_name}", file=sys.stderr)
     except Exception as e:
@@ -2096,6 +2096,32 @@ def _fetch_and_persist_rr_metrics(org_id: str, company_name: str) -> dict:
 
     return metrics
 
+
+def _apollo_company_lookup(company_name: str) -> dict:
+    import os, requests
+    api_key = os.environ.get("APOLLO_API_KEY")
+    if not api_key:
+        return {}
+    try:
+        headers = {"X-Api-Key": api_key, "Cache-Control": "no-cache"}
+        search_resp = requests.post(
+            "https://api.apollo.io/api/v1/mixed_companies/search",
+            headers=headers,
+            timeout=20,
+            json={"q_organization_name": company_name, "page": 1, "per_page": 1},
+        )
+        if search_resp.status_code == 200:
+            orgs = search_resp.json().get("organizations", [])
+            if orgs:
+                org = orgs[0]
+                return {
+                    "revenue": org.get("annual_revenue") or org.get("organization_revenue"),
+                    "employees": org.get("estimated_num_employees")
+                }
+    except Exception as e:
+        print(f"[apollo] company lookup failed for {company_name}: {e}")
+    return {}
+
 @app.get("/api/unlisted/contacts/{org_id}")
 def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     """Find CEO/CFO contacts for a company by Apollo organization id.
@@ -2116,7 +2142,20 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
     if row and (time.time() - row[1]) < _CONTACTS_CACHE_TTL and not force:
         cached_data = json.loads(row[0])
         if cached_data:  # Ignore empty cached results ([]) to force re-fetch with new fuzzy logic
-            return {"contacts": cached_data, "fromCache": True, "fetchedAt": row[1]}
+            rev, emp = None, None
+            cache_conn = _unlisted_cache_conn()
+            try:
+                comp_row = cache_conn.execute("SELECT data_json FROM companies WHERE apollo_id = ?", (org_id,)).fetchone()
+                if comp_row and comp_row[0]:
+                    import json
+                    data = json.loads(comp_row[0])
+                    rev = data.get("annual_revenue") or data.get("organization_revenue") or data.get("revenue")
+                    emp = data.get("estimated_num_employees") or data.get("employees")
+            except Exception:
+                pass
+            finally:
+                cache_conn.close()
+            return {"contacts": cached_data, "fromCache": True, "fetchedAt": row[1], "revenue": rev, "employees": emp}
 
     # If user explicitly requested RocketReach - go straight there regardless of org_id prefix
     if source == "rocketreach":
