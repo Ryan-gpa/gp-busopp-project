@@ -2591,6 +2591,18 @@ def backfill_infringements(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_backfill)
     return {"status": "started", "message": "Backfill running in background."}
 
+
+@app.post("/api/admin/test-infringements")
+def test_infringements():
+    import json
+    p = DATA_DIR / "asic_infringement_notices.json"
+    if p.exists():
+        with open(p, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return {"count": len(data), "sample": data[0] if data else None}
+    else:
+        return {"error": "file not found", "path": str(p)}
+
 @app.post("/api/admin/sql")
 def execute_sql(req: SqlReq):
     import sqlite3
@@ -2851,6 +2863,7 @@ def force_fix():
         if index.exists():
             return FileResponse(str(index))
         raise HTTPException(404, "Frontend not built.")
+
 
 
 
