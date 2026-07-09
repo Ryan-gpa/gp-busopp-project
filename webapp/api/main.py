@@ -1882,6 +1882,7 @@ def _strip_corp_suffixes(name: str) -> str:
 def _rocketreach_company_lookup(company_name: str) -> dict:
     """Fetch company metrics (revenue, employees) from RocketReach Company Lookup API."""
     rr_key = os.environ.get(_ROCKETREACH_API_KEY_ENV)
+    company_name = _strip_corp_suffixes(company_name)
     if not rr_key or not company_name:
         return {}
     
