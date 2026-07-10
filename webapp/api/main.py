@@ -2641,6 +2641,21 @@ def test_rr_person():
     )
     return {"status_code": sr.status_code, "json": sr.json()}
 
+
+@app.post("/api/admin/test-rr-person-cooper")
+def test_rr_person_cooper():
+    import os, requests, json
+    rr_key = os.environ.get('ROCKETREACH_API_KEY')
+    company_name = 'Cooper Energy'
+
+    sr = requests.post(
+        "https://api.rocketreach.co/api/v2/person/search",
+        headers={"Api-Key": rr_key, "Content-Type": "application/json"},
+        timeout=20,
+        json={"query": {"current_employer": [f'"{company_name}"']}, "page_size": 1},
+    )
+    return {"status_code": sr.status_code, "json": sr.json()}
+
 @app.post("/api/admin/sql")
 def execute_sql(req: SqlReq):
     import sqlite3
@@ -2901,6 +2916,7 @@ def force_fix():
         if index.exists():
             return FileResponse(str(index))
         raise HTTPException(404, "Frontend not built.")
+
 
 
 
