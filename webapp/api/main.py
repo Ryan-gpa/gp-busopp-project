@@ -104,6 +104,42 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", os.environ.get("RAILWAY_VOLUME_MOUNT_
 KIT_DIR = (APP_ROOT / "disclosure-review-kit").resolve()
 OUTPUT_DIR = KIT_DIR / "output"
 
+def _ensure_db_schema():
+    """Create any missing ERD tables on the unified_companies.db at startup.
+    Safe to call on every boot — uses CREATE TABLE IF NOT EXISTS + ALTER TABLE
+    so existing data is never dropped."""
+    db_path = DATA_DIR / "unified_companies.db"
+    if not db_path.exists():
+        return  # DB not yet loaded — will be created by migration endpoint
+    try:
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS company_news (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                acn       TEXT NOT NULL,
+                source    TEXT NOT NULL DEFAULT 'AFR',
+                url       TEXT UNIQUE NOT NULL,
+                title     TEXT,
+                summary   TEXT,
+                fetched_at REAL
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_acn    ON company_news(acn)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_source ON company_news(source)")
+        # Add source column if this is an older schema
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(company_news)").fetchall()]
+        if "source" not in cols:
+            conn.execute("ALTER TABLE company_news ADD COLUMN source TEXT NOT NULL DEFAULT 'AFR'")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_source ON company_news(source)")
+        conn.commit()
+        conn.close()
+        print("[startup] company_news schema verified/created.")
+    except Exception as e:
+        print(f"[startup] WARNING: could not ensure company_news schema: {e}")
+
+_ensure_db_schema()
+
+
 # ASX public token (same one asx.com.au uses)
 ASX_TOKEN = "83ff96335c2d45a094df02a206a39ff4"
 ASX_FILE_URL = "https://asx.api.markitdigital.com/asx-research/1.0/file/{key}"
