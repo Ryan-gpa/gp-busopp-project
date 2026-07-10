@@ -87,7 +87,7 @@ export default function StatusPage() {
     pulseMessage = "ASIC search works. Apollo contacts disabled — add APOLLO_API_KEY to Railway env vars to enable CEO/CFO lookup."
     pulseColor = "text-amber-600"
   } else if (apollo?.credits_exhausted) {
-    pulseMessage = `ASIC search works ✓  |  Apollo lead credits exhausted — 'Find Contacts' will fail until you top up. (${apollo.hourly_left}/${apollo.hourly_limit} API calls/hr remaining)`
+    pulseMessage = `ASIC search works ✓  |  Apollo Lead Credits Exhausted — 'Find Contacts' is blocked. (${apollo.hourly_left}/${apollo.hourly_limit} Hourly API calls remaining for fetching company revenue)`
     pulseColor = "text-amber-600 font-bold"
   } else if (apollo?.rate_limited) {
     pulseMessage = "Apollo hourly rate limit hit. Searches serve from local cache until the hour resets."
