@@ -1618,7 +1618,6 @@ async def unlisted_search(body: dict):
             
             # Fetch contacts
             cr_rows = c.execute(f"SELECT acn, raw_json FROM contacts WHERE acn IN ({placeholders})", acns).fetchall()
-            import json
             for cr in cr_rows:
                 contacts_by_acn.setdefault(cr[0], []).append(json.loads(cr[1]))
         else:
