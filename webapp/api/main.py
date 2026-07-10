@@ -112,7 +112,9 @@ def _ensure_db_schema():
     if not db_path.exists():
         return  # DB not yet loaded — will be created by migration endpoint
     try:
-        conn = sqlite3.connect(str(db_path))
+        conn = sqlite3.connect(str(db_path), timeout=30)
+        # WAL mode: readers and writers never block each other
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS company_news (
                 id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -126,6 +128,7 @@ def _ensure_db_schema():
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_acn    ON company_news(acn)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_source ON company_news(source)")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_acn_name ON contacts(acn, name)")
         # Add source column if this is an older schema
         cols = [r[1] for r in conn.execute("PRAGMA table_info(company_news)").fetchall()]
         if "source" not in cols:
@@ -133,9 +136,10 @@ def _ensure_db_schema():
             conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_source ON company_news(source)")
         conn.commit()
         conn.close()
-        print("[startup] company_news schema verified/created.")
+        print("[startup] DB schema verified/created (WAL mode enabled).")
     except Exception as e:
-        print(f"[startup] WARNING: could not ensure company_news schema: {e}")
+        print(f"[startup] WARNING: could not ensure DB schema: {e}")
+
 
 _ensure_db_schema()
 
@@ -1649,8 +1653,8 @@ async def unlisted_search(body: dict):
         LIMIT 5000
     """
 
-    import sqlite3
-    conn = sqlite3.connect(str(db_path))
+    conn = sqlite3.connect(str(db_path), timeout=30)
+    conn.execute("PRAGMA journal_mode=WAL")
     try:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
