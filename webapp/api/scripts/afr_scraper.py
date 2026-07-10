@@ -25,8 +25,8 @@ if not DB_PATH.exists() and (HERE.parent.parent.parent / "railway_db.sqlite").ex
     
 SESSION_FILE = DATA_DIR / "afr_session.json"
 
-# Read directly from the user's gpa_local .env file for credentials since this is local testing
-ENV_PATH = Path(r"c:\Users\88hon\Downloads\gpa_local_tool\gpa_local\.env")
+# Try to load .env from the project webapp directory
+ENV_PATH = HERE.parent.parent / ".env"
 if ENV_PATH.exists():
     from dotenv import load_dotenv
     load_dotenv(ENV_PATH)
