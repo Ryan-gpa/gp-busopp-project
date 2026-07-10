@@ -1606,7 +1606,7 @@ async def unlisted_search(body: dict):
                 
             # Fetch company news
             news_by_acn = {}
-            nr_rows = c.execute(f"SELECT acn, url, title, summary, source, fetched_at FROM company_news WHERE acn IN ({placeholders})", acns).fetchall()
+            nr_rows = c.execute(f"SELECT acn, url, title, summary, COALESCE(source, 'AFR') as source, fetched_at FROM company_news WHERE acn IN ({placeholders})", acns).fetchall()
             for nr in nr_rows:
                 news_by_acn.setdefault(nr['acn'], []).append({
                     "url": nr['url'],
