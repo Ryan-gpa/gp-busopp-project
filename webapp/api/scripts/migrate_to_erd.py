@@ -128,7 +128,7 @@ def main():
             ))
             
     print("Migrating Metrics...")
-    conn.execute("DELETE FROM metrics")
+    # Never DELETE — use INSERT OR REPLACE to upsert from cache without wiping prod data
     if cache_db_path.exists():
         cache_conn = sqlite3.connect(str(cache_db_path))
         companies = cache_conn.execute("SELECT apollo_id, data_json, last_seen FROM companies").fetchall()
@@ -152,7 +152,7 @@ def main():
                 """, (org_id, acn, rev, emp, source, last_seen))
 
         print("Migrating Contacts...")
-        conn.execute("DELETE FROM contacts")
+        # Never DELETE — use INSERT OR IGNORE to add new contacts without wiping prod data
         try:
             contacts = cache_conn.execute("SELECT org_id, contacts_json, fetched_at FROM contacts_cache").fetchall()
             for org_id, contacts_json, fetched_at in contacts:
@@ -173,7 +173,7 @@ def main():
                     source = "rocketreach" if org_id.startswith('rr_') or c.get("current_work_email") else "apollo"
                     
                     conn.execute("""
-                        INSERT INTO contacts (org_id, acn, name, title, email, linkedin_url, source, updated_at, raw_json)
+                        INSERT OR IGNORE INTO contacts (org_id, acn, name, title, email, linkedin_url, source, updated_at, raw_json)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (org_id, acn, name, title, email, linkedin, source, fetched_at, json.dumps(c)))
         except sqlite3.OperationalError:

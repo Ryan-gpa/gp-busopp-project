@@ -59,11 +59,11 @@ total_ok += ok; total_fail += fail
 # --- metrics ---
 ok, fail = sync_table(
     conn, "metrics",
-    "SELECT acn, revenue, employees, source, fetched_at FROM metrics",
+    "SELECT acn, revenue, employees, source, updated_at FROM metrics",
     lambda r: (
-        f"INSERT OR REPLACE INTO metrics (acn, revenue, employees, source, fetched_at) "
+        f"INSERT OR REPLACE INTO metrics (acn, revenue, employees, source, updated_at) "
         f"VALUES ({esc(r['acn'])}, {r['revenue'] or 'NULL'}, {r['employees'] or 'NULL'}, "
-        f"{esc(r['source'])}, {esc(r['fetched_at'])})"
+        f"{esc(r['source'])}, {esc(r['updated_at'])})"
     )
 )
 total_ok += ok; total_fail += fail
@@ -71,10 +71,11 @@ total_ok += ok; total_fail += fail
 # --- contacts ---
 ok, fail = sync_table(
     conn, "contacts",
-    "SELECT acn, raw_json, source, fetched_at FROM contacts",
+    "SELECT acn, name, title, email, linkedin_url, source, updated_at, raw_json FROM contacts",
     lambda r: (
-        f"INSERT OR IGNORE INTO contacts (acn, raw_json, source, fetched_at) "
-        f"VALUES ({esc(r['acn'])}, {esc(r['raw_json'])}, {esc(r['source'])}, {esc(r['fetched_at'])})"
+        f"INSERT OR IGNORE INTO contacts (acn, name, title, email, linkedin_url, source, updated_at, raw_json) "
+        f"VALUES ({esc(r['acn'])}, {esc(r['name'])}, {esc(r['title'])}, {esc(r['email'])}, "
+        f"{esc(r['linkedin_url'])}, {esc(r['source'])}, {esc(r['updated_at'])}, {esc(r['raw_json'])})"
     )
 )
 total_ok += ok; total_fail += fail
