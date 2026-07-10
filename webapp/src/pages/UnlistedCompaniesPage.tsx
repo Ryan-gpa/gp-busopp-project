@@ -166,7 +166,8 @@ export default function UnlistedCompaniesPage() {
         dbStatusFilter,
         entityTypeFilter,
         classFilter,
-        subclassFilter
+        subclassFilter,
+        newsSourceFilter
       }
       if (revenueMin) payload.revenueMin = Number(revenueMin)
       if (revenueMax) payload.revenueMax = Number(revenueMax)
@@ -195,7 +196,7 @@ export default function UnlistedCompaniesPage() {
   useEffect(() => {
     handleSearch()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlyProprietary, onlyWithContacts, dbStatusFilter, dbStatusFilter, entityTypeFilter, classFilter, subclassFilter])
+  }, [onlyProprietary, onlyWithContacts, dbStatusFilter, entityTypeFilter, classFilter, subclassFilter, newsSourceFilter])
 
   const loadAsicProspects = async () => {
     setLoading(true)

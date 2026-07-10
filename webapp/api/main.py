@@ -1590,6 +1590,8 @@ async def unlisted_search(body: dict):
     if only_with_contacts:
         query += " AND EXISTS(SELECT 1 FROM contacts cnt WHERE cnt.acn = c.acn)"
         
+    news_source = body.get("newsSourceFilter", "all")
+
     if db_status != "all":
         query += " AND c.status = ?"
         params.append(db_status)
@@ -1605,6 +1607,10 @@ async def unlisted_search(body: dict):
     if subclass != "all":
         query += " AND c.subclass = ?"
         params.append(subclass)
+
+    if news_source != "all":
+        query += " AND EXISTS(SELECT 1 FROM company_news cn WHERE cn.acn = c.acn AND cn.source = ?)"
+        params.append(news_source)
 
     # Note: We must inject the parameters in the correct order for the count_query and data_query.
     # The count_query doesn't join metrics. Wait! The data_query JOINS metrics. If we used params, they apply to where_portion.
