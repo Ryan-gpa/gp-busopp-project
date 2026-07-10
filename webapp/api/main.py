@@ -2564,19 +2564,18 @@ def backfill_infringements(background_tasks: BackgroundTasks):
                 
                 print(f"Backfilling {name} ({acn})...")
                 
-                # Fetch metrics
+                # Fetch metrics and contacts together to avoid double spending credits
                 try:
-                    _fetch_and_persist_rr_metrics(org_id, name)
-                except Exception as e:
-                    print(f"Metrics fetch error for {name}: {e}")
-                
-                # Fetch contacts
-                try:
+                    metrics = _fetch_and_persist_rr_metrics(org_id, name)
+                    if not metrics or (not metrics.get('revenue') and not metrics.get('employees')):
+                        print(f"Skipping contact fetch for {name}: No company metrics found.")
+                        continue
+                        
                     rr_contacts = _rocketreach_find_contacts(name)
                     if rr_contacts:
                         _insert_live_contacts(org_id, rr_contacts, "rocketreach")
                 except Exception as e:
-                    print(f"Contact fetch error for {name}: {e}")
+                    print(f"API fetch error for {name}: {e}")
                     if "429" in str(e) or "quota" in str(e).lower() or "exhausted" in str(e).lower():
                         print("Rate limit or quota hit. Stopping backfill.")
                         break
