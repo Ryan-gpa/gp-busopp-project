@@ -535,7 +535,9 @@ export default function UnlistedCompaniesPage() {
         <td className="p-4">
           {company.contacts && company.contacts.length > 0 && !contactFetches[company.id] ? (
             <div className="flex flex-col gap-1">
-              {company.contacts.map((c, i) => (
+              {company.contacts
+                .filter((c, idx, arr) => arr.findIndex(x => x.name === c.name) === idx)
+                .map((c, i) => (
                 <div key={i} className="text-sm">
                   <span className="font-medium text-gray-900">{c.name}</span>
                   <span className="text-gray-500 ml-2">{c.title}</span>
@@ -569,7 +571,9 @@ export default function UnlistedCompaniesPage() {
               return (
                 <>
                   <div className="flex flex-col gap-1">
-                    {fetchState.contacts.map((c, i) => (
+                    {fetchState.contacts
+                      .filter((c, idx, arr) => arr.findIndex(x => x.name === c.name) === idx)
+                      .map((c, i) => (
                       <div key={i} className="text-sm">
                         <span className="font-medium text-gray-900">{c.name}</span>
                         {renderContactSourceIcons(c.source)}
