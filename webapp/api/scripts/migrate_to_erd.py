@@ -16,8 +16,9 @@ def main():
         print("unified_companies.db not found.")
         return
 
-    conn = sqlite3.connect(str(unified_db_path))
-    
+    conn = sqlite3.connect(str(unified_db_path), timeout=30)
+    conn.execute("PRAGMA journal_mode=WAL")
+
     print("Creating ERD tables...")
     
     conn.execute("""
@@ -86,6 +87,17 @@ def main():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_source ON company_news(source)")
     # Backfill any rows that have a null source
     conn.execute("UPDATE company_news SET source = 'AFR' WHERE source IS NULL OR source = ''")
+
+    # Filter indexes on companies for fast WHERE clause filtering
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_companies_status   ON companies(status)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_companies_type     ON companies(type)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_companies_class    ON companies(class)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_companies_subclass ON companies(subclass)")
+
+    # Remove any bad metrics/contacts rows where acn is not a valid 9-digit ASIC ACN
+    # (i.e. Apollo hex IDs that were imported by mistake)
+    conn.execute("DELETE FROM metrics WHERE org_id NOT LIKE 'asic_%' AND org_id NOT LIKE 'rr_%'")
+    conn.execute("DELETE FROM contacts WHERE LENGTH(acn) != 9 OR CAST(acn AS INTEGER) = 0")
     
     print("Migrating Infringements...")
     conn.execute("DROP TABLE IF EXISTS infringements")
@@ -129,23 +141,26 @@ def main():
             ))
             
     print("Migrating Metrics...")
-    # Never DELETE — use INSERT OR REPLACE to upsert from cache without wiping prod data
+    # ONLY import rows where org_id is asic_ or rr_ prefixed — Apollo hex IDs cannot join to companies
     if cache_db_path.exists():
         cache_conn = sqlite3.connect(str(cache_db_path))
         companies = cache_conn.execute("SELECT apollo_id, data_json, last_seen FROM companies").fetchall()
         for org_id, data_json, last_seen in companies:
             if not data_json: continue
+            # GUARD: skip any row where org_id is not in ASIC ACN format
+            if not (org_id.startswith('asic_') or org_id.startswith('rr_')):
+                continue
             acn = None
             if org_id.startswith('asic_'):
-                acn = org_id.replace('asic_', '')
+                acn = org_id.replace('asic_', '').zfill(9)
             elif org_id.startswith('rr_'):
-                acn = org_id.replace('rr_', '')
-            
+                acn = org_id.replace('rr_', '').zfill(9)
+
             data = json.loads(data_json)
             rev = data.get("annual_revenue") or data.get("organization_revenue") or data.get("revenue")
             emp = data.get("estimated_num_employees") or data.get("employees")
             source = data.get("dataSource") or ("apollo" if not org_id.startswith('rr_') else "rocketreach")
-            
+
             if rev or emp:
                 conn.execute("""
                     INSERT OR REPLACE INTO metrics (org_id, acn, revenue, employees, source, updated_at)
