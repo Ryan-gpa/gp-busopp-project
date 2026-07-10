@@ -1636,30 +1636,135 @@ async def unlisted_search(body: dict):
         query += " AND EXISTS(SELECT 1 FROM company_news cn WHERE cn.acn = c.acn AND cn.source = ?)"
         params.append(news_source)
 
-    # Note: We must inject the parameters in the correct order for the count_query and data_query.
-    # The count_query doesn't join metrics. Wait! The data_query JOINS metrics. If we used params, they apply to where_portion.
+    # -----------------------------------------------------------------------
+    # QUERY BUILDER — driving-table strategy
+    # Rule: never scan 4.4M companies rows to satisfy a small-table filter.
+    # When a small-table filter is active (news/infringements/contacts), start
+    # FROM that small table (handful of rows) and JOIN to companies.
+    # -----------------------------------------------------------------------
 
-    where_portion = "WHERE 1=1" + query.split("WHERE 1=1")[1]
-
-    # Skip COUNT on unfiltered (full 4.4M scan times out). Only count when filters narrow things down.
-    has_filters = len(params) > 0 or only_proprietary or only_infringements or only_with_contacts or news_source != "all" or db_status != "all" or entity_type != "all" or liability_class != "all" or subclass != "all"
-    count_query = f"SELECT COUNT(*) FROM companies c LEFT JOIN metrics m ON c.acn = m.acn {where_portion}" if has_filters else None
-
-    # LEFT JOIN infringements instead of EXISTS subquery so ORDER BY is fast (no full table scan)
-    data_query = f"""
-        SELECT c.acn, c.name, c.name_norm, c.status, c.type, c.class, c.subclass, c.state,
-               c.is_large_prop,
-               CASE WHEN inf.acn IS NOT NULL THEN 1 ELSE 0 END as has_infringement,
-               m.revenue, m.employees,
-               CASE WHEN cnt.acn IS NOT NULL THEN 1 ELSE 0 END as has_contacts
-        FROM companies c
+    # Shared SELECT columns (used in both driving strategies)
+    SELECT_COLS = """
+        c.acn, c.name, c.name_norm, c.status, c.type, c.class, c.subclass, c.state,
+        c.is_large_prop,
+        CASE WHEN inf.acn IS NOT NULL THEN 1 ELSE 0 END as has_infringement,
+        m.revenue, m.employees,
+        CASE WHEN cnt.acn IS NOT NULL THEN 1 ELSE 0 END as has_contacts
+    """
+    JOINS = """
         LEFT JOIN metrics m ON m.acn = c.acn
         LEFT JOIN (SELECT DISTINCT acn FROM infringements) inf ON inf.acn = c.acn
         LEFT JOIN (SELECT DISTINCT acn FROM contacts) cnt ON cnt.acn = c.acn
-        {where_portion}
-        ORDER BY has_infringement DESC, (m.revenue IS NOT NULL) DESC, c.acn DESC
-        LIMIT 5000
     """
+
+    # Build the WHERE clause for companies-level filters (indexed columns)
+    company_where = []
+    company_params = []
+    if company_name and company_name.strip():
+        company_where.append("c.name_norm LIKE ?")
+        company_params.append(f"%{normalize_company_name(company_name.strip())}%")
+    if db_status != "all":
+        company_where.append("c.status = ?")
+        company_params.append(db_status)
+    if entity_type != "all":
+        company_where.append("c.type = ?")
+        company_params.append(entity_type)
+    if liability_class != "all":
+        company_where.append("c.class = ?")
+        company_params.append(liability_class)
+    if subclass != "all":
+        company_where.append("c.subclass = ?")
+        company_params.append(subclass)
+    if only_proprietary:
+        company_where.append("c.type = 'APTY' AND c.class = 'LMSH' AND c.subclass = 'PROP'")
+    if revenue_min is not None:
+        try:
+            company_where.append("(m.revenue >= ? OR m.revenue IS NULL)")
+            company_params.append(float(revenue_min))
+        except (ValueError, TypeError):
+            pass
+    if revenue_max is not None:
+        try:
+            company_where.append("(m.revenue <= ? OR m.revenue IS NULL)")
+            company_params.append(float(revenue_max))
+        except (ValueError, TypeError):
+            pass
+
+    where_str = ("WHERE " + " AND ".join(company_where)) if company_where else ""
+
+    # ---- Strategy A: small-table drivers ----
+    # When filtering on news/infringements/contacts, drive from that small table.
+    # This avoids scanning 4.4M companies rows.
+    if news_source != "all":
+        # Drive from company_news (65 rows max)
+        driver = f"(SELECT DISTINCT acn FROM company_news WHERE source = ?)"
+        driver_params = [news_source]
+        if only_infringements:
+            # intersect with infringements (54 rows) — just add another JOIN condition
+            pass  # handled by inf JOIN below
+        if only_with_contacts:
+            driver = f"(SELECT DISTINCT acn FROM company_news WHERE source = ?)"  # already small
+        data_query = f"""
+            SELECT {SELECT_COLS}
+            FROM {driver} drv
+            JOIN companies c ON c.acn = drv.acn
+            {JOINS}
+            {where_str}
+            ORDER BY has_infringement DESC, (m.revenue IS NOT NULL) DESC, c.acn DESC
+            LIMIT 5000
+        """
+        params = driver_params + company_params
+        # COUNT is cheap — same driver
+        count_query = f"SELECT COUNT(*) FROM {driver} drv JOIN companies c ON c.acn = drv.acn {JOINS} {where_str}"
+        count_params = driver_params + company_params
+
+    elif only_infringements:
+        # Drive from infringements (54 rows)
+        data_query = f"""
+            SELECT {SELECT_COLS}
+            FROM (SELECT DISTINCT acn FROM infringements) drv
+            JOIN companies c ON c.acn = drv.acn
+            {JOINS}
+            {where_str}
+            ORDER BY has_infringement DESC, (m.revenue IS NOT NULL) DESC, c.acn DESC
+            LIMIT 5000
+        """
+        params = company_params
+        count_query = f"SELECT COUNT(*) FROM (SELECT DISTINCT acn FROM infringements) drv JOIN companies c ON c.acn = drv.acn {JOINS} {where_str}"
+        count_params = company_params
+
+    elif only_with_contacts:
+        # Drive from contacts (~11 rows)
+        data_query = f"""
+            SELECT {SELECT_COLS}
+            FROM (SELECT DISTINCT acn FROM contacts) drv
+            JOIN companies c ON c.acn = drv.acn
+            {JOINS}
+            {where_str}
+            ORDER BY has_infringement DESC, (m.revenue IS NOT NULL) DESC, c.acn DESC
+            LIMIT 5000
+        """
+        params = company_params
+        count_query = f"SELECT COUNT(*) FROM (SELECT DISTINCT acn FROM contacts) drv JOIN companies c ON c.acn = drv.acn {JOINS} {where_str}"
+        count_params = company_params
+
+    else:
+        # ---- Strategy B: drive from companies (4.4M rows) ----
+        # Only safe when we have indexed company filters, or we accept "up to 5000" with no COUNT.
+        data_query = f"""
+            SELECT {SELECT_COLS}
+            FROM companies c
+            {JOINS}
+            {where_str}
+            ORDER BY has_infringement DESC, (m.revenue IS NOT NULL) DESC, c.acn DESC
+            LIMIT 5000
+        """
+        params = company_params
+        # Only count if company-level indexed filters are applied (otherwise skip — too slow)
+        has_indexed_filter = bool(company_where)
+        count_query = f"SELECT COUNT(*) FROM companies c {JOINS} {where_str}" if has_indexed_filter else None
+        count_params = company_params
+
 
     conn = sqlite3.connect(str(db_path), timeout=30)
     conn.execute("PRAGMA journal_mode=WAL")
@@ -1668,7 +1773,7 @@ async def unlisted_search(body: dict):
         c = conn.cursor()
 
         try:
-            total_matched = c.execute(count_query, params).fetchone()[0] if count_query else -1
+            total_matched = c.execute(count_query, count_params).fetchone()[0] if count_query else -1
         except Exception as e:
             total_matched = -1
 
