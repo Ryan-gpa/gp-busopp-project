@@ -1599,16 +1599,30 @@ async def unlisted_search(body: dict):
         if acns:
             placeholders = ",".join("?" * len(acns))
             
+            # Fetch infringements
+            ir_rows = c.execute(f"SELECT acn, raw_json FROM infringements WHERE acn IN ({placeholders})", acns).fetchall()
+            for ir in ir_rows:
+                inf_by_acn.setdefault(ir[0], []).append(json.loads(ir[1]))
+                
+            # Fetch company news
+            news_by_acn = {}
+            nr_rows = c.execute(f"SELECT acn, url, title, summary, source, fetched_at FROM company_news WHERE acn IN ({placeholders})", acns).fetchall()
+            for nr in nr_rows:
+                news_by_acn.setdefault(nr['acn'], []).append({
+                    "url": nr['url'],
+                    "title": nr['title'],
+                    "summary": nr['summary'],
+                    "source": nr['source'],
+                    "fetchedAt": nr['fetched_at']
+                })
+            
             # Fetch contacts
             cr_rows = c.execute(f"SELECT acn, raw_json FROM contacts WHERE acn IN ({placeholders})", acns).fetchall()
             import json
             for cr in cr_rows:
                 contacts_by_acn.setdefault(cr[0], []).append(json.loads(cr[1]))
-                
-            # Fetch infringements
-            ir_rows = c.execute(f"SELECT acn, raw_json FROM infringements WHERE acn IN ({placeholders})", acns).fetchall()
-            for ir in ir_rows:
-                inf_by_acn.setdefault(ir[0], []).append(json.loads(ir[1]))
+        else:
+            news_by_acn = {}
         
         results = []
         for row in rows:
@@ -1638,6 +1652,9 @@ async def unlisted_search(body: dict):
                 
             if acn in contacts_by_acn:
                 org["contacts"] = contacts_by_acn[acn]
+                
+            if acn in news_by_acn:
+                org["news"] = news_by_acn[acn]
                 
             results.append(org)
             

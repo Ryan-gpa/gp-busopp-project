@@ -152,6 +152,14 @@ export type ContactFetchState = {
   source?: string
 }
 
+export interface CompanyNews {
+  url: string;
+  title: string;
+  summary: string;
+  source: string;
+  fetchedAt: number;
+}
+
 export interface UnlistedCompany {
   id: string;
   name: string;
@@ -170,6 +178,7 @@ export interface UnlistedCompany {
   prefetched_contact_fetch?: ContactFetchState;
   _asx_exclusion_reason?: string
   infringementNotices?: InfringementNotice[];
+  news?: CompanyNews[];
 }
 
 export interface InfringementNotice {

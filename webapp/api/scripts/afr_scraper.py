@@ -1,14 +1,18 @@
 import os
+import re
 import sys
 import time
 import json
 import sqlite3
+import urllib.parse
 from pathlib import Path
 
 try:
     from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-except ImportError:
-    print("Please install playwright: pip install playwright && playwright install chromium")
+    from playwright_stealth import Stealth
+except ImportError as e:
+    print(f"ImportError: {e}")
+    print("Please install playwright and stealth: pip install playwright playwright-stealth && playwright install chromium")
     sys.exit(1)
 
 try:
@@ -18,11 +22,18 @@ except ImportError:
     sys.exit(1)
 
 HERE = Path(__file__).resolve().parent
-DATA_DIR = Path(os.environ.get("DATA_DIR", os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", HERE.parent.parent.parent / "data")))
-DB_PATH = DATA_DIR / "unified_companies.db"
-if not DB_PATH.exists() and (HERE.parent.parent.parent / "railway_db.sqlite").exists():
-    DB_PATH = HERE.parent.parent.parent / "railway_db.sqlite"
-    
+DATA_DIR = Path(os.environ.get("DATA_DIR", os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", HERE.parent)))
+
+# Resolve the canonical DB — always prefer unified_companies.db which has the full ERD
+# (infringements, metrics, contacts, company_news). Fall back to railway_db.sqlite only
+# if unified_companies.db is genuinely absent.
+_candidates = [
+    DATA_DIR / "unified_companies.db",
+    HERE.parent / "unified_companies.db",
+    HERE.parent.parent.parent / "railway_db.sqlite",
+]
+DB_PATH = next((p for p in _candidates if p.exists()), _candidates[0])
+
 SESSION_FILE = DATA_DIR / "afr_session.json"
 
 # Try to load .env from the project webapp directory
@@ -47,7 +58,7 @@ def summarize_article(text: str) -> str:
     try:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-haiku-4-5-20251001",
             max_tokens=300,
             temperature=0.3,
             system="You are a financial analyst. Provide a concise, 2-3 sentence summary of the following news article, focusing on any regulatory, legal, or financial issues.",
@@ -62,24 +73,27 @@ def summarize_article(text: str) -> str:
 
 def login_afr(page):
     """Log into AFR and save session."""
-    print("Logging into AFR...")
-    page.goto("https://www.afr.com/login")
+    print("Navigating to AFR homepage...")
+    page.goto("https://www.afr.com")
     
     try:
-        # Wait for the email field
-        page.wait_for_selector('input[type="email"]', timeout=10000)
-        page.fill('input[type="email"]', AFR_EMAIL)
+        # Click the "Log in" button on the homepage
+        print("Clicking Log in button...")
+        page.locator('button:has-text("Log in")').filter(visible=True).first.click()
         
-        # Check if password is on the same page
-        if page.is_visible('input[type="password"]'):
-            page.fill('input[type="password"]', AFR_PASSWORD)
-            page.click('button[type="submit"]')
+        # Wait for the email field (part of Nine SSO)
+        page.wait_for_selector('#loginEmail', timeout=10000)
+        page.fill('#loginEmail', AFR_EMAIL)
+        
+        if page.is_visible('#loginPassword'):
+            page.fill('#loginPassword', AFR_PASSWORD)
+            page.locator('button[type="submit"]').filter(has_text="Log in").first.click()
         else:
             # Click continue and wait for password field
-            page.click('button[type="submit"]')
-            page.wait_for_selector('input[type="password"]', timeout=10000)
-            page.fill('input[type="password"]', AFR_PASSWORD)
-            page.click('button[type="submit"]')
+            page.locator('button[type="submit"]').filter(has_text="Log in").first.click()
+            page.wait_for_selector('#loginPassword', timeout=10000)
+            page.fill('#loginPassword', AFR_PASSWORD)
+            page.locator('button[type="submit"]').filter(has_text="Log in").first.click()
         
         # Wait for successful login (logout button or avatar)
         try:
@@ -96,68 +110,98 @@ def login_afr(page):
     except PlaywrightTimeoutError:
         print("Timeout during login. The page structure might have changed or a CAPTCHA appeared.")
         page.screenshot(path=str(DATA_DIR / "login_error.png"))
+        with open(DATA_DIR / "login_error.html", "w", encoding="utf-8") as f:
+            f.write(page.content())
         sys.exit(1)
 
+# Legal suffixes to strip before searching AFR so we search the brand name,
+# not the corporate registry name. e.g. "Canva Pty Ltd" -> "Canva"
+_LEGAL_SUFFIXES = re.compile(
+    r"\s+(pty\.?\s*ltd\.?|pty\.?\s*limited|proprietary\s+limited|limited|ltd\.?|"  
+    r"corporation|corp\.?|incorporated|inc\.?|hold\s*co|holdings?)\s*$",
+    re.IGNORECASE
+)
+
+def _search_name(company_name: str) -> str:
+    """Strip legal suffixes and return a clean search term."""
+    name = _LEGAL_SUFFIXES.sub("", company_name).strip()
+    return name or company_name
+
+def _is_relevant(url: str, title: str, keywords: list[str]) -> bool:
+    """Return True only if the article URL slug or headline contains at least
+    one meaningful keyword from the company name. Prevents saving generic
+    AFR lifestyle/travel articles that have nothing to do with the company."""
+    haystack = (url + " " + title).lower()
+    return any(kw in haystack for kw in keywords)
+
 def scrape_company_news(page, acn: str, company_name: str, conn: sqlite3.Connection):
-    print(f"\nSearching AFR for: {company_name}")
-    search_url = f"https://www.afr.com/search?text={company_name}"
+    search_term = _search_name(company_name)
+    # Build relevance keywords from the cleaned name (words >= 4 chars to avoid noise)
+    keywords = [w.lower() for w in re.split(r"\W+", search_term) if len(w) >= 4]
+
+    print(f"\nSearching AFR for: {company_name} (query: '{search_term}')")
+    search_url = f"https://www.afr.com/search?text={urllib.parse.quote(search_term)}"
     page.goto(search_url)
-    
+
     try:
-        page.wait_for_selector('a[data-testid="StoryTileBasic-Title"]', timeout=5000)
+        page.wait_for_selector('a[data-testid="headlineLink"]', timeout=8000)
     except PlaywrightTimeoutError:
         print("No articles found or timeout.")
         return
 
-    # Extract top 3 article links
-    links = page.locator('a[data-testid="StoryTileBasic-Title"]').all()
-    top_links = []
-    for link in links[:3]:
-        url = link.get_attribute("href")
-        if url and url.startswith("/"):
+    # Collect candidate links
+    links = page.locator('a[data-testid="headlineLink"]').all()
+    unique_urls = []
+    for link in links:
+        url = link.get_attribute("href") or ""
+        title_text = link.inner_text() or ""
+        if url and not url.startswith("http"):
             url = "https://www.afr.com" + url
-        if url:
-            top_links.append(url)
-            
-    print(f"Found {len(top_links)} articles.")
-    
-    for url in top_links:
-        # Check if already processed
-        cur = conn.execute("SELECT 1 FROM company_news WHERE url = ?", (url,))
-        if cur.fetchone():
-            print(f"Already processed: {url}")
+        # Relevance gate — skip if neither URL nor headline mentions the company
+        if not keywords or _is_relevant(url, title_text, keywords):
+            if url and url not in unique_urls:
+                unique_urls.append(url)
+
+    if not unique_urls:
+        print(f"No relevant articles found for '{search_term}'.")
+        return
+
+    for url in unique_urls[:3]:
+        # Skip if already saved to company_news
+        if conn.execute("SELECT id FROM company_news WHERE url=?", (url,)).fetchone():
+            print(f"Already in database: {url}")
             continue
-            
+
         print(f"Scraping article: {url}")
         page.goto(url)
-        
+
         try:
-            page.wait_for_selector('article', timeout=10000)
-            
+            page.wait_for_selector('article', timeout=12000)
+
             title_loc = page.locator('h1').first
             title = title_loc.inner_text() if title_loc.is_visible() else "Unknown Title"
-            
+
             paragraphs = page.locator('article p').all()
             text_content = "\n".join([p.inner_text() for p in paragraphs])
-            
+
             if len(text_content) < 100:
-                print("Article too short (might be blocked by paywall).")
+                print("Article too short (paywall or empty).")
                 continue
-                
+
             print("Summarizing...")
             summary = summarize_article(text_content)
-            
+
             conn.execute("""
-                INSERT INTO company_news (acn, url, title, summary, fetched_at)
-                VALUES (?, ?, ?, ?, ?)
-            """, (acn, url, title, summary, time.time()))
+                INSERT INTO company_news (acn, source, url, title, summary, fetched_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (acn, 'AFR', url, title, summary, time.time()))
             conn.commit()
             print("Saved successfully.")
-            
+
         except PlaywrightTimeoutError:
             print(f"Timeout loading article: {url}")
             continue
-            
+
         time.sleep(2)
 
 def main():
@@ -183,15 +227,19 @@ def main():
         print(f"Database error: {e}")
         sys.exit(1)
     
-    # Get companies from infringements
-    # Hardcoded test list since DB isn't fully built locally
-    companies = [
-        {"acn": "000000001", "name": "BHP Group"},
-        {"acn": "000000002", "name": "Commonwealth Bank"}
-    ]
-    
+    # Query company names directly from the infringements table ERD column — no JSON parsing
+    rows = conn.execute("""
+        SELECT DISTINCT acn, name
+        FROM infringements
+        WHERE name IS NOT NULL AND name != ''
+        ORDER BY name
+    """).fetchall()
+    companies = [{"acn": r["acn"], "name": r["name"]} for r in rows]
+
+    print(f"Found {len(companies)} unique infringement companies to scrape.")
+
     if not companies:
-        print("No infringement companies found in DB.")
+        print("No infringement companies found in the infringements table. Run migrate_to_erd.py first.")
         sys.exit(0)
 
     with sync_playwright() as p:
@@ -199,13 +247,17 @@ def main():
         needs_login = not SESSION_FILE.exists()
         browser = p.chromium.launch(headless=not needs_login)
         
+        # Add standard user agent to avoid basic blocks
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        
         context = None
         if not needs_login:
             print("Loading existing session...")
-            context = browser.new_context(storage_state=str(SESSION_FILE))
+            context = browser.new_context(storage_state=str(SESSION_FILE), user_agent=user_agent)
         else:
-            context = browser.new_context()
+            context = browser.new_context(user_agent=user_agent)
             
+        Stealth().apply_stealth_sync(context)
         page = context.new_page()
         
         if not SESSION_FILE.exists():
@@ -214,7 +266,10 @@ def main():
         for comp in companies:
             acn = comp['acn']
             name = comp['name']
-            scrape_company_news(page, acn, name, conn)
+            try:
+                scrape_company_news(page, acn, name, conn)
+            except Exception as e:
+                print(f"Error scraping {name}: {e} — skipping")
             time.sleep(3)
             
         browser.close()

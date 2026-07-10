@@ -79,6 +79,8 @@ export default function UnlistedCompaniesPage() {
   const [validationStatuses, setValidationStatuses] = useState<Record<string, AsicValidation>>({})
   const [expandedAsic, setExpandedAsic] = useState<Record<string, boolean>>({})
   const [expandedInfringements, setExpandedInfringements] = useState<Record<string, boolean>>({})
+  const [expandedNews, setExpandedNews] = useState<Record<string, boolean>>({})
+  const [newsSourceFilter, setNewsSourceFilter] = useState("all")
   const [onlyProprietary, setOnlyProprietary] = useState(false)
   const [onlyWithContacts, setOnlyWithContacts] = useState(false)
   const [dbStatusFilter, setDbStatusFilter] = useState("all")
@@ -104,6 +106,7 @@ export default function UnlistedCompaniesPage() {
     setValidationStatuses({})
     setContactFetches({})
     setExpandedInfringements({})
+    setExpandedNews({})
     setTier1Page(1)
     setTier2Page(1)
   }
@@ -160,7 +163,10 @@ export default function UnlistedCompaniesPage() {
         locations: ["Australia"],
         onlyProprietary,
         onlyWithContacts,
-        dbStatusFilter
+        dbStatusFilter,
+        entityTypeFilter,
+        classFilter,
+        subclassFilter
       }
       if (revenueMin) payload.revenueMin = Number(revenueMin)
       if (revenueMax) payload.revenueMax = Number(revenueMax)
@@ -487,6 +493,36 @@ export default function UnlistedCompaniesPage() {
                             <a href={n.mediaReleaseUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">{n.mediaReleaseId}</a>
                           )}
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            {company.news && company.news.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  className="text-xs text-blue-600 hover:underline mt-1 block"
+                  onClick={() => setExpandedNews(prev => ({ ...prev, [company.id]: !prev[company.id] }))}
+                >
+                  {expandedNews[company.id] ? "Hide" : "Show"} {company.news.length} news article{company.news.length > 1 ? "s" : ""}
+                </button>
+                {expandedNews[company.id] && (
+                  <div className="mt-2 text-xs space-y-3 border-t pt-2">
+                    {company.news
+                      .filter(n => newsSourceFilter === 'all' || n.source === newsSourceFilter)
+                      .map((n, i) => (
+                      <div key={i} className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{n.source}</span>
+                          <a href={n.url} target="_blank" rel="noreferrer" className="text-blue-700 font-medium hover:underline leading-tight">
+                            {n.title}
+                          </a>
+                        </div>
+                        <p className="text-gray-700 leading-relaxed bg-blue-50/50 p-2 rounded">
+                          {n.summary}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -831,6 +867,13 @@ export default function UnlistedCompaniesPage() {
                 <option value="EXPT">Exempt Public</option>
                 <option value="STFI">State/Federal Inst</option>
                 <option value="NONE">None</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700 font-medium">News Source:</label>
+              <select className="border rounded px-2 py-1 text-sm bg-white" value={newsSourceFilter} onChange={e => setNewsSourceFilter(e.target.value)}>
+                <option value="all">All Sources</option>
+                <option value="AFR">AFR</option>
               </select>
             </div>
           </div>

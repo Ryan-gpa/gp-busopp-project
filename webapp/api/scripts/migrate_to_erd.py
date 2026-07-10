@@ -24,6 +24,7 @@ def main():
         CREATE TABLE IF NOT EXISTS infringements (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             acn TEXT,
+            name TEXT,
             notice_date TEXT,
             offence TEXT,
             penalty_paid TEXT,
@@ -62,10 +63,13 @@ def main():
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_contacts_acn ON contacts(acn)")
     
+    # company_news: never DROP — scraped data is expensive to regenerate.
+    # Use CREATE IF NOT EXISTS then ALTER to add any missing columns.
     conn.execute("""
         CREATE TABLE IF NOT EXISTS company_news (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             acn TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'AFR',
             url TEXT UNIQUE NOT NULL,
             title TEXT,
             summary TEXT,
@@ -73,9 +77,31 @@ def main():
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_acn ON company_news(acn)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_source ON company_news(source)")
+    # Add source column if this is an older schema that doesn't have it yet
+    existing_cols = [r[1] for r in conn.execute("PRAGMA table_info(company_news)").fetchall()]
+    if 'source' not in existing_cols:
+        conn.execute("ALTER TABLE company_news ADD COLUMN source TEXT NOT NULL DEFAULT 'AFR'")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_source ON company_news(source)")
+    # Backfill any rows that have a null source
+    conn.execute("UPDATE company_news SET source = 'AFR' WHERE source IS NULL OR source = ''")
     
     print("Migrating Infringements...")
-    conn.execute("DELETE FROM infringements")
+    conn.execute("DROP TABLE IF EXISTS infringements")
+    conn.execute("""
+        CREATE TABLE infringements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            acn TEXT,
+            name TEXT,
+            notice_date TEXT,
+            offence TEXT,
+            penalty_paid TEXT,
+            amount REAL,
+            url TEXT,
+            raw_json TEXT
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_infringements_acn ON infringements(acn)")
     if infringements_json_path.exists():
         with open(infringements_json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -88,15 +114,16 @@ def main():
                 continue
             acn = acn_match.group(1).replace(" ", "").zfill(9)
             conn.execute("""
-                INSERT INTO infringements (acn, notice_date, offence, penalty_paid, amount, url, raw_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO infringements (acn, name, notice_date, offence, penalty_paid, amount, url, raw_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 acn,
-                item.get("date"),
+                item.get("name"),
+                item.get("date") or item.get("datePaid"),
                 item.get("offence"),
                 item.get("penaltyPaid"),
                 item.get("amount"),
-                item.get("url"),
+                item.get("noticePdfUrl") or item.get("url"),
                 json.dumps(item)
             ))
             
