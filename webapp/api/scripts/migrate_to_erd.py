@@ -62,6 +62,18 @@ def main():
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_contacts_acn ON contacts(acn)")
     
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS company_news (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            acn TEXT NOT NULL,
+            url TEXT UNIQUE NOT NULL,
+            title TEXT,
+            summary TEXT,
+            fetched_at REAL
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_acn ON company_news(acn)")
+    
     print("Migrating Infringements...")
     conn.execute("DELETE FROM infringements")
     if infringements_json_path.exists():
