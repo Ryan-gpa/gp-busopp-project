@@ -1640,16 +1640,24 @@ async def unlisted_search(body: dict):
     # The count_query doesn't join metrics. Wait! The data_query JOINS metrics. If we used params, they apply to where_portion.
 
     where_portion = "WHERE 1=1" + query.split("WHERE 1=1")[1]
-    count_query = f"SELECT COUNT(*) FROM companies c LEFT JOIN metrics m ON c.acn = m.acn {where_portion}"
+
+    # Skip COUNT on unfiltered (full 4.4M scan times out). Only count when filters narrow things down.
+    has_filters = len(params) > 0 or only_proprietary or only_infringements or only_with_contacts or news_source != "all" or db_status != "all" or entity_type != "all" or liability_class != "all" or subclass != "all"
+    count_query = f"SELECT COUNT(*) FROM companies c LEFT JOIN metrics m ON c.acn = m.acn {where_portion}" if has_filters else None
+
+    # LEFT JOIN infringements instead of EXISTS subquery so ORDER BY is fast (no full table scan)
     data_query = f"""
         SELECT c.acn, c.name, c.name_norm, c.status, c.type, c.class, c.subclass, c.state,
-               c.is_large_prop, 
-               EXISTS(SELECT 1 FROM infringements i WHERE i.acn = c.acn) as has_infringement, 
-               m.revenue, m.employees, 
-               EXISTS(SELECT 1 FROM contacts cnt WHERE cnt.acn = c.acn) as has_contacts
-        FROM companies c 
-        LEFT JOIN metrics m ON c.acn = m.acn {where_portion}
-        ORDER BY has_infringement DESC, c.acn DESC
+               c.is_large_prop,
+               CASE WHEN inf.acn IS NOT NULL THEN 1 ELSE 0 END as has_infringement,
+               m.revenue, m.employees,
+               CASE WHEN cnt.acn IS NOT NULL THEN 1 ELSE 0 END as has_contacts
+        FROM companies c
+        LEFT JOIN metrics m ON m.acn = c.acn
+        LEFT JOIN (SELECT DISTINCT acn FROM infringements) inf ON inf.acn = c.acn
+        LEFT JOIN (SELECT DISTINCT acn FROM contacts) cnt ON cnt.acn = c.acn
+        {where_portion}
+        ORDER BY has_infringement DESC, (m.revenue IS NOT NULL) DESC, c.acn DESC
         LIMIT 5000
     """
 
@@ -1660,9 +1668,9 @@ async def unlisted_search(body: dict):
         c = conn.cursor()
 
         try:
-            total_matched = c.execute(count_query, params).fetchone()[0]
+            total_matched = c.execute(count_query, params).fetchone()[0] if count_query else -1
         except Exception as e:
-            total_matched = None
+            total_matched = -1
 
         rows = c.execute(data_query, params).fetchall()
         
