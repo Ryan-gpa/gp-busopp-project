@@ -2656,6 +2656,21 @@ def test_rr_person_cooper():
     )
     return {"status_code": sr.status_code, "json": sr.json()}
 
+
+@app.post("/api/admin/test-rr-person-lookup")
+def test_rr_person_lookup():
+    import os, requests, json
+    rr_key = os.environ.get('ROCKETREACH_API_KEY')
+    pid = 77050780
+
+    lr = requests.get(
+        "https://api.rocketreach.co/api/v2/person/lookup",
+        headers={"Api-Key": rr_key},
+        params={"id": pid},
+        timeout=30,
+    )
+    return {"status_code": lr.status_code, "json": lr.json()}
+
 @app.post("/api/admin/sql")
 def execute_sql(req: SqlReq):
     import sqlite3
@@ -2916,6 +2931,7 @@ def force_fix():
         if index.exists():
             return FileResponse(str(index))
         raise HTTPException(404, "Frontend not built.")
+
 
 
 
