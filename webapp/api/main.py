@@ -139,6 +139,26 @@ def _ensure_db_schema():
 
 _ensure_db_schema()
 
+def _run_erd_migration_on_startup():
+    """Run migrate_to_erd.py in a background thread at startup so the ERD schema
+    is always up to date on every Railway deploy — no manual endpoint call needed."""
+    import subprocess
+    script_path = Path(__file__).parent / "scripts" / "migrate_to_erd.py"
+    if not script_path.exists():
+        print("[startup] migrate_to_erd.py not found, skipping auto-migration.")
+        return
+    try:
+        res = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True, timeout=120)
+        if res.stdout:
+            print(f"[startup][migrate-erd] {res.stdout.strip()}")
+        if res.stderr:
+            print(f"[startup][migrate-erd] STDERR: {res.stderr.strip()}")
+        print("[startup] ERD migration complete.")
+    except Exception as e:
+        print(f"[startup] ERD migration failed: {e}")
+
+threading.Thread(target=_run_erd_migration_on_startup, daemon=True).start()
+
 
 # ASX public token (same one asx.com.au uses)
 ASX_TOKEN = "83ff96335c2d45a094df02a206a39ff4"
