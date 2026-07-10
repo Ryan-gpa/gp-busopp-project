@@ -62,6 +62,7 @@ def main():
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_contacts_acn ON contacts(acn)")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_acn_name ON contacts(acn, name)")
     
     # company_news: never DROP — scraped data is expensive to regenerate.
     # Use CREATE IF NOT EXISTS then ALTER to add any missing columns.
