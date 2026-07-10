@@ -1,4 +1,258 @@
-# Co-work POC — CLAUDE.md
+# GP Business Opportunities — Project State (CLAUDE.md)
+
+> **AI AGENT RULES — READ FIRST, ALWAYS:**
+> 1. **NEVER use DROP TABLE on `company_news`, `contacts`, or `metrics`** — these contain scraped data that took days to collect. Use `CREATE TABLE IF NOT EXISTS` + `ALTER TABLE ADD COLUMN` only.
+> 2. **NEVER commit `.env`, `railway_db.sqlite`, `data/afr_session.json`, or scratch `patch*.py` files.**
+> 3. **After ANY schema change to `migrate_to_erd.py`, run `sync_to_prod.py` immediately after deploy.**
+> 4. **`playwright` and `playwright-stealth` are LOCAL-ONLY dependencies — never add them to `webapp/api/requirements.txt`.**
+> 5. **Always query the ERD tables (`companies`, `infringements`, `contacts`, `metrics`, `company_news`) — never JSON files.**
+> 6. **After every code change, commit and push to GitHub so Railway auto-deploys.**
+> 7. **Production = Railway. Local = `webapp/api/unified_companies.db`. Sync local → prod with `sync_to_prod.py` after every scrape.**
+
+---
+
+## What This Project Is
+
+A **GP Business Development Intelligence Platform** for identifying and researching unlisted Australian private company prospects.
+
+**Production URL:** https://gp-busopp-project.vercel.app (frontend)
+**API URL:** https://gp-busopp-project-production.up.railway.app (backend)
+**GitHub:** https://github.com/Ryan-gpa/gp-busopp-project
+
+---
+
+## Architecture
+
+```
+Vercel (React/Vite frontend)
+    ↓ fetch /api/*
+Railway (FastAPI backend, port 8080)
+    ↓ reads/writes
+SQLite (Railway persistent volume: /var/lib/... unified_companies.db)
+```
+
+### Local Development
+```
+webapp/api/unified_companies.db   ← LOCAL copy of the DB (not in git)
+webapp/api/scripts/sync_to_prod.py ← push local scraped data → Railway DB
+```
+
+---
+
+## ERD Database Schema (unified_companies.db)
+
+### `companies` table (3.96M rows — ASIC bulk data)
+| Column | Type | Notes |
+|--------|------|-------|
+| acn | TEXT PK | 9-digit ACN |
+| name | TEXT | Company name |
+| name_norm | TEXT | Normalised for search |
+| status | TEXT | REGD, DRGD, etc. |
+| type | TEXT | APTY=Proprietary, FNOS=Foreign, etc. |
+| class | TEXT | LMSH=Limited by shares |
+| subclass | TEXT | PROP=Proprietary |
+| state | TEXT | |
+| is_large_prop | INTEGER | 0/1 |
+| revenue | REAL | From ASIC bulk data |
+| employees | INTEGER | |
+
+### `infringements` table (54 rows — ASIC notices)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| acn | TEXT | |
+| name | TEXT | Company name |
+| notice_date | TEXT | |
+| offence | TEXT | |
+| penalty_paid | TEXT | |
+| amount | REAL | |
+| url | TEXT | PDF link |
+| raw_json | TEXT | Full JSON |
+
+**Source:** `webapp/api/scripts/asic_infringement_notices.json` (also `webapp/asic_infringement_notices.json`)
+**Loaded by:** `migrate_to_erd.py` — DROP + recreate is OK for this table only (reloaded from JSON each time)
+
+### `metrics` table (~3,996 rows — RocketReach/Apollo enrichment)
+| Column | Type | Notes |
+|--------|------|-------|
+| org_id | TEXT PK | e.g. `asic_123456789` |
+| acn | TEXT | |
+| revenue | REAL | Annual revenue AUD |
+| employees | INTEGER | |
+| source | TEXT | `apollo` or `rocketreach` |
+| updated_at | REAL | Unix timestamp |
+
+**⚠️ NEVER DELETE FROM metrics — use INSERT OR REPLACE**
+
+### `contacts` table (11 rows — Apollo/RocketReach people)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| org_id | TEXT | |
+| acn | TEXT | |
+| name | TEXT | |
+| title | TEXT | |
+| email | TEXT | |
+| linkedin_url | TEXT | |
+| source | TEXT | `apollo` or `rocketreach` |
+| updated_at | REAL | |
+| raw_json | TEXT | Full contact JSON |
+
+**⚠️ NEVER DELETE FROM contacts — use INSERT OR IGNORE**
+
+### `company_news` table (65 rows — AFR scraper)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | INTEGER PK | |
+| acn | TEXT | |
+| source | TEXT | `AFR` (future: other sources) |
+| url | TEXT UNIQUE | |
+| title | TEXT | |
+| summary | TEXT | AI-generated summary |
+| fetched_at | REAL | Unix timestamp |
+
+**⚠️ NEVER DROP company_news — use CREATE TABLE IF NOT EXISTS + ALTER TABLE ADD COLUMN**
+
+---
+
+## Key Scripts
+
+### `webapp/api/scripts/migrate_to_erd.py`
+Applies ERD schema to `unified_companies.db`. **Auto-runs on every Railway startup** (background thread in `main.py`).
+- `infringements`: DROP + recreate (reloaded from JSON) ✅ OK
+- `metrics`: `INSERT OR REPLACE` from cache — never DELETE ✅
+- `contacts`: `INSERT OR IGNORE` from cache — never DELETE ✅
+- `company_news`: `CREATE TABLE IF NOT EXISTS` + `ALTER TABLE ADD COLUMN` — never DROP ✅
+
+### `webapp/api/scripts/afr_scraper.py`
+Scrapes AFR for news about ASIC infringement companies.
+- Reads company names from `infringements` table (NOT from JSON)
+- Strips legal suffixes before search query
+- Relevance-gates articles (must mention company in title/slug)
+- Saves to `company_news` with `source='AFR'`
+- **Local only** — requires Playwright + AFR login session
+- After running: execute `sync_to_prod.py`
+
+### `webapp/api/scripts/sync_to_prod.py`
+**Run this after every local scraping session** to push data to Railway.
+```powershell
+cd C:\Users\88hon\gp-busopp-project
+python webapp/api/scripts/sync_to_prod.py
+```
+Syncs in batches of 100 rows:
+- `company_news` → INSERT OR IGNORE
+- `metrics` → INSERT OR REPLACE
+- `contacts` → INSERT OR IGNORE
+
+### `webapp/api/scripts/migrate_contacts.py`
+Migrates contacts from legacy cache format.
+
+---
+
+## Frontend Filters (UnlistedCompaniesPage.tsx)
+
+All 5 filters send to backend and trigger a new search:
+
+| Filter | State Var | Backend Field | SQL Clause |
+|--------|-----------|---------------|------------|
+| Status | `dbStatusFilter` | `dbStatusFilter` | `c.status = ?` |
+| Type | `entityTypeFilter` | `entityTypeFilter` | `c.type = ?` |
+| Class | `classFilter` | `classFilter` | `c.class = ?` |
+| Subclass | `subclassFilter` | `subclassFilter` | `c.subclass = ?` |
+| News Source | `newsSourceFilter` | `newsSourceFilter` | `EXISTS (SELECT 1 FROM company_news WHERE acn=c.acn AND source=?)` |
+
+**Type values:** `APTY` (Proprietary), `FNOS` (Foreign), `PUBA` (Public), `RGAS` (Reg Aust Body)
+
+---
+
+## Backend API (webapp/api/main.py)
+
+Key endpoints:
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Health check |
+| GET | `/api/admin/system-status` | DB status, table counts |
+| POST | `/api/admin/sql` | Run raw SQL (admin use) |
+| POST | `/api/admin/migrate-erd` | Run migrate_to_erd.py manually |
+| POST | `/api/unlisted/search` | Main company search with all filters |
+| POST | `/api/unlisted/enrich/{acn}` | Fetch contacts for a company |
+
+**Startup sequence:**
+1. `_load_dotenv()` — loads `webapp/.env`
+2. `_ensure_db_schema()` — creates `company_news` if missing
+3. Background thread runs `migrate_to_erd.py`
+4. `[asic]` loads 122 infringement records
+5. `[asx]` loads ASX companies from disk cache
+
+---
+
+## Environment Variables (webapp/.env — never commit)
+
+```
+APOLLO_API_KEY=...
+ROCKETREACH_API_KEY=...
+ANTHROPIC_API_KEY=...     # Used for AFR article summarisation
+BOX_CLIENT_ID=...
+BOX_CLIENT_SECRET=...
+```
+
+---
+
+## Data Sources
+
+| Source | What | How |
+|--------|------|-----|
+| ASIC bulk data | 3.96M companies | Loaded into `companies` table via migration |
+| ASIC infringement notices | 54 notices, 118 companies | JSON → `infringements` table |
+| Apollo.io | Contacts, revenue | `/api/unlisted/enrich` endpoint |
+| RocketReach | Contacts, revenue | `/api/unlisted/enrich` endpoint |
+| AFR scraper | News articles | `afr_scraper.py` (local only) → `company_news` |
+
+---
+
+## Workflow: After Local Scraping
+
+```
+1. Run scraper locally:
+   python webapp/api/scripts/afr_scraper.py
+
+2. Sync to production:
+   python webapp/api/scripts/sync_to_prod.py
+
+3. Verify production:
+   curl -X POST https://gp-busopp-project-production.up.railway.app/api/admin/sql \
+     -H "Content-Type: application/json" \
+     -d '{"query": "SELECT COUNT(*) FROM company_news"}'
+```
+
+---
+
+## Outstanding Work
+
+| Item | Priority | Notes |
+|------|----------|-------|
+| Apollo 199 credits — enrich infringement companies | HIGH | Use remaining credits on the 118 ASIC infringement companies |
+| UX credit limit display | MEDIUM | Show Apollo credit balance in the UI |
+| ASIC Form 388 validation | LOW | Manual deep-link approach currently |
+
+---
+
+## Known Gotchas
+
+1. **CORS on 500 errors** — Fixed: exception handler now returns explicit CORS headers
+2. **`import json` inside function** — causes `UnboundLocalError` if placed after first use in same function
+3. **Playwright on Railway** — NEVER add to `requirements.txt`. Playwright is local-only.
+4. **`DELETE FROM metrics/contacts`** in `migrate_to_erd.py` wipes prod data — now fixed to INSERT OR REPLACE/IGNORE
+5. **`DROP TABLE company_news`** wipes scraped articles — now fixed to CREATE TABLE IF NOT EXISTS
+6. **newsSourceFilter was missing from useEffect deps** — now fixed
+7. **Filter payload was missing entityTypeFilter/classFilter/subclassFilter** — now fixed
+
+---
+
+## Disclosure Review Kit (Original Feature — Still Working)
+
+The original ASIC disclosure screening tool is still live. See the original CLAUDE.md content for details. Runs at the same Railway URL under `/api/review`, `/api/generate`, etc.
+
 
 ## What this project is
 
