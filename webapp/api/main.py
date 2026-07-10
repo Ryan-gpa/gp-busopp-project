@@ -74,19 +74,27 @@ def _find_libreoffice() -> str | None:
 app = FastAPI(title="Disclosure Review Kit API")
 
 
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
-    tb = traceback.format_exc()
-    print(f"[ERROR] Unhandled exception on {request.url}:\n{tb}", file=sys.stderr)
-    return JSONResponse(status_code=500, content={"detail": str(exc), "traceback": tb[-2000:]})
-
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exc()
+    print(f"[ERROR] Unhandled exception on {request.url}:\n{tb}", file=sys.stderr)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "traceback": tb[-2000:]},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
+
 
 # Paths
 _in_prod = os.environ.get("RAILWAY_ENVIRONMENT") is not None
