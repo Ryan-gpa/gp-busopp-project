@@ -1750,13 +1750,15 @@ async def unlisted_search(body: dict):
 
     else:
         # ---- Strategy B: drive from companies (4.4M rows) ----
-        # Only safe when we have indexed company filters, or we accept "up to 5000" with no COUNT.
+        # CRITICAL: ORDER BY must use an indexed column so SQLite stops after LIMIT rows.
+        # ORDER BY has_infringement would require scanning all 4.4M rows first.
+        # Use ORDER BY c.acn DESC — companies.acn is indexed, SQLite terminates at LIMIT 5000.
         data_query = f"""
             SELECT {SELECT_COLS}
             FROM companies c
             {JOINS}
             {where_str}
-            ORDER BY has_infringement DESC, (m.revenue IS NOT NULL) DESC, c.acn DESC
+            ORDER BY c.acn DESC
             LIMIT 5000
         """
         params = company_params

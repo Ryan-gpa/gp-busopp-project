@@ -88,16 +88,15 @@ def main():
     # Backfill any rows that have a null source
     conn.execute("UPDATE company_news SET source = 'AFR' WHERE source IS NULL OR source = ''")
 
-    # Filter indexes on companies for fast WHERE clause filtering
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_companies_status   ON companies(status)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_companies_type     ON companies(type)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_companies_class    ON companies(class)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_companies_subclass ON companies(subclass)")
+    # NOTE: companies filter indexes (status, type, class, subclass) are NOT created here.
+    # Building indexes on 4.4M rows takes 10-30 minutes and would block startup.
+    # Apply them once via /api/admin/sql after initial data load.
 
     # Remove any bad metrics/contacts rows where acn is not a valid 9-digit ASIC ACN
-    # (i.e. Apollo hex IDs that were imported by mistake)
+    # (i.e. Apollo hex IDs that were imported by mistake — safe to run repeatedly, fast DELETEs)
     conn.execute("DELETE FROM metrics WHERE org_id NOT LIKE 'asic_%' AND org_id NOT LIKE 'rr_%'")
     conn.execute("DELETE FROM contacts WHERE LENGTH(acn) != 9 OR CAST(acn AS INTEGER) = 0")
+
     
     print("Migrating Infringements...")
     conn.execute("DROP TABLE IF EXISTS infringements")
