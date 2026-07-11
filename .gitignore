@@ -40,6 +40,8 @@ Thumbs.db
 
 # Secrets — never commit
 disclosure-review-kit/config/box_config.json
+webapp/.env
+**/.env
 
 # Runtime data — never commit
 disclosure-review-kit/config/audit_log.json
