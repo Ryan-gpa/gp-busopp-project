@@ -2880,11 +2880,19 @@ def execute_sql(req: SqlReq):
     import sqlite3
     db_path = DATA_DIR / "unified_companies.db"
     try:
-        conn = sqlite3.connect(str(db_path))
+        conn = sqlite3.connect(str(db_path), timeout=30)
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.row_factory = sqlite3.Row
         cur = conn.execute(req.query)
-        rows = cur.fetchall()
-        return [dict(r) for r in rows]
+        # cur.description is None for statements that return no rows
+        # (INSERT/UPDATE/DELETE/CREATE/etc) — those must be committed or the
+        # pending transaction is rolled back when the connection closes.
+        if cur.description is not None:
+            rows = cur.fetchall()
+            conn.commit()
+            return [dict(r) for r in rows]
+        conn.commit()
+        return {"rowcount": cur.rowcount}
     except Exception as e:
         return {"error": str(e)}
     finally:
