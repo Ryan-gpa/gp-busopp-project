@@ -61,3 +61,28 @@ asic_test.html
 *.njsproj
 *.sln
 *.sw?
+
+# Scratch / throwaway scripts & data dumps (repo root — never commit)
+/check.py
+/count.py
+/fix.py
+/get_distinct.py
+/rr_test.py
+/run_migrate.py
+/run_search.py
+/wait.py
+/test.py
+/patch*.py
+/test_*.py
+/asic.json
+/out.json
+/force-fix-result.json
+/railway_db.sqlite
+
+# Scratch working directories
+/scratch/
+/data/
+
+# Stray scratch scripts / sensitive session files under webapp
+webapp/patch_filters2.py
+webapp/api/afr_session.json
