@@ -54,6 +54,21 @@ const fmtNewsDate = (v: number | string | null | undefined): string => {
   return d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" })
 }
 
+// Strips leftover markdown (leading "# Summary" heading, other headings, bold/italic markers)
+// from AI-generated news summaries so they read as clean prose.
+const cleanSummary = (s: string | null | undefined): string => {
+  if (!s) return ""
+  return s
+    .replace(/^\s*#{1,6}\s*summary\s*/i, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .trim()
+}
+
+// Shows a URL without the scheme/"www." so it reads cleanly (full URL kept in the link + title).
+const prettyUrl = (url: string): string => url.replace(/^https?:\/\/(www\.)?/i, "")
+
 const getRevenueValue = (c: UnlistedCompany): number | null => {
   const v = c.organization_revenue ?? c.annual_revenue ?? c.estimated_revenue
   return v ?? null
@@ -518,40 +533,51 @@ export default function UnlistedCompaniesPage() {
                   {expandedNews[company.id] ? "Hide" : "Show"} {company.news.length} news article{company.news.length > 1 ? "s" : ""}
                 </button>
                 {expandedNews[company.id] && (
-                  <div className="mt-2 border-t pt-2 overflow-x-auto">
-                    <table className="w-full text-xs border-collapse">
-                      <thead>
-                        <tr className="text-left text-gray-500 border-b">
-                          <th className="py-1.5 pr-3 font-semibold">Source</th>
-                          <th className="py-1.5 pr-3 font-semibold whitespace-nowrap">Date Loaded</th>
-                          <th className="py-1.5 pr-3 font-semibold whitespace-nowrap">Article Date</th>
-                          <th className="py-1.5 pr-3 font-semibold">Story</th>
-                          <th className="py-1.5 font-semibold">Link</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {company.news
-                          .filter(n => newsSourceFilter === 'all' || n.source === newsSourceFilter)
-                          .map((n, i) => (
-                          <tr key={i} className="border-b last:border-0 align-top">
-                            <td className="py-2 pr-3">
-                              <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{n.source}</span>
-                            </td>
-                            <td className="py-2 pr-3 text-gray-600 whitespace-nowrap">{fmtNewsDate(n.fetchedAt)}</td>
-                            <td className="py-2 pr-3 text-gray-500 whitespace-nowrap">{fmtNewsDate(n.publishedAt)}</td>
-                            <td className="py-2 pr-3 min-w-[240px]">
-                              <div className="font-medium text-gray-900 leading-tight">{n.title}</div>
-                              <p className="text-gray-600 leading-relaxed mt-0.5">{n.summary}</p>
-                            </td>
-                            <td className="py-2 max-w-[160px]">
-                              <a href={n.url} target="_blank" rel="noreferrer" title={n.url} className="text-blue-700 hover:underline block truncate">
-                                {n.url}
-                              </a>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="mt-2 border-t pt-2 space-y-2 max-w-2xl">
+                    {company.news
+                      .filter(n => newsSourceFilter === 'all' || n.source === newsSourceFilter)
+                      .map((n, i) => (
+                      <div key={i} className="rounded-md border border-gray-200 bg-white p-3">
+                        {/* meta row: source + dates on the left, article link on the right */}
+                        <div className="flex items-start justify-between gap-3 mb-1.5">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
+                            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{n.source}</span>
+                            <span>Loaded {fmtNewsDate(n.fetchedAt)}</span>
+                            <span className="text-gray-300">·</span>
+                            <span>Article date: {fmtNewsDate(n.publishedAt)}</span>
+                          </div>
+                          <a
+                            href={n.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline whitespace-nowrap"
+                          >
+                            Read article ↗
+                          </a>
+                        </div>
+                        {/* headline */}
+                        <a
+                          href={n.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block font-semibold text-gray-900 text-sm leading-snug hover:underline"
+                        >
+                          {n.title}
+                        </a>
+                        {/* summary */}
+                        <p className="text-xs text-gray-600 leading-relaxed mt-1">{cleanSummary(n.summary)}</p>
+                        {/* visible URL (cleaned, truncated, full URL on hover) */}
+                        <a
+                          href={n.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={n.url}
+                          className="block mt-1.5 text-[11px] text-gray-400 hover:text-blue-600 truncate"
+                        >
+                          {prettyUrl(n.url)}
+                        </a>
+                      </div>
+                    ))}
                   </div>
                 )}
               </>
