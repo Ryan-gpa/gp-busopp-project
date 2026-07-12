@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react"
+import { Fragment, useMemo, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, AlertCircle, Rocket, Landmark, ShieldAlert, Telescope, ChevronUp, ChevronDown, ChevronsUpDown, ExternalLink } from "lucide-react"
 import type { UnlistedSearchResult, UnlistedCompany } from "@/types"
@@ -426,8 +426,11 @@ export default function UnlistedCompaniesPage() {
       )
       : (company.estimated_num_employees || "?")
 
+    const newsItems = (company.news ?? []).filter(n => newsSourceFilter === 'all' || n.source === newsSourceFilter)
+
     return (
-      <tr key={company.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+      <Fragment key={company.id}>
+      <tr className="border-b last:border-0 hover:bg-gray-50 transition-colors">
         <td className="p-4">
           <div className="font-medium text-gray-900 flex items-center">
             {renderSourceIcon(company.dataSource)}
@@ -524,63 +527,13 @@ export default function UnlistedCompaniesPage() {
               </>
             )}
             {company.news && company.news.length > 0 && (
-              <>
-                <button
-                  type="button"
-                  className="text-xs text-blue-600 hover:underline mt-1 block"
-                  onClick={() => setExpandedNews(prev => ({ ...prev, [company.id]: !prev[company.id] }))}
-                >
-                  {expandedNews[company.id] ? "Hide" : "Show"} {company.news.length} news article{company.news.length > 1 ? "s" : ""}
-                </button>
-                {expandedNews[company.id] && (
-                  <div className="mt-2 border-t pt-2 space-y-2 max-w-2xl">
-                    {company.news
-                      .filter(n => newsSourceFilter === 'all' || n.source === newsSourceFilter)
-                      .map((n, i) => (
-                      <div key={i} className="rounded-md border border-gray-200 bg-white p-3">
-                        {/* meta row: source + dates on the left, article link on the right */}
-                        <div className="flex items-start justify-between gap-3 mb-1.5">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
-                            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{n.source}</span>
-                            <span>Loaded {fmtNewsDate(n.fetchedAt)}</span>
-                            <span className="text-gray-300">·</span>
-                            <span>Article date: {fmtNewsDate(n.publishedAt)}</span>
-                          </div>
-                          <a
-                            href={n.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline whitespace-nowrap"
-                          >
-                            Read article ↗
-                          </a>
-                        </div>
-                        {/* headline */}
-                        <a
-                          href={n.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block font-semibold text-gray-900 text-sm leading-snug hover:underline"
-                        >
-                          {n.title}
-                        </a>
-                        {/* summary */}
-                        <p className="text-xs text-gray-600 leading-relaxed mt-1">{cleanSummary(n.summary)}</p>
-                        {/* visible URL (cleaned, truncated, full URL on hover) */}
-                        <a
-                          href={n.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          title={n.url}
-                          className="block mt-1.5 text-[11px] text-gray-400 hover:text-blue-600 truncate"
-                        >
-                          {prettyUrl(n.url)}
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
+              <button
+                type="button"
+                className="text-xs text-blue-600 hover:underline mt-1 block"
+                onClick={() => setExpandedNews(prev => ({ ...prev, [company.id]: !prev[company.id] }))}
+              >
+                {expandedNews[company.id] ? "Hide" : "Show"} {company.news.length} news article{company.news.length > 1 ? "s" : ""}
+              </button>
             )}
           </div>
         </td>
@@ -697,6 +650,56 @@ export default function UnlistedCompaniesPage() {
           })()}
         </td>
       </tr>
+      {expandedNews[company.id] && newsItems.length > 0 && (
+        <tr className="border-b last:border-0 bg-gray-50/60">
+          <td colSpan={5} className="px-4 pb-4 pt-0">
+            <div className="space-y-2 max-w-4xl">
+              {newsItems.map((n, i) => (
+                <div key={i} className="rounded-md border border-gray-200 bg-white p-3">
+                  {/* meta row: source + dates on the left, article link on the right */}
+                  <div className="flex items-start justify-between gap-3 mb-1.5">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{n.source}</span>
+                      <span>Loaded {fmtNewsDate(n.fetchedAt)}</span>
+                      <span className="text-gray-300">·</span>
+                      <span>Article date: {fmtNewsDate(n.publishedAt)}</span>
+                    </div>
+                    <a
+                      href={n.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline whitespace-nowrap"
+                    >
+                      Read article <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  {/* headline */}
+                  <a
+                    href={n.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block font-semibold text-gray-900 text-sm leading-snug hover:underline break-words"
+                  >
+                    {n.title}
+                  </a>
+                  {/* summary */}
+                  <p className="text-xs text-gray-600 leading-relaxed mt-1 break-words">{cleanSummary(n.summary)}</p>
+                  {/* full URL, wrapped so it is always visible */}
+                  <a
+                    href={n.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block mt-1.5 text-[11px] text-gray-400 hover:text-blue-600 break-all"
+                  >
+                    {prettyUrl(n.url)}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </td>
+        </tr>
+      )}
+      </Fragment>
     )
   }
 
