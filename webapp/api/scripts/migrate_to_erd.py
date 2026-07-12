@@ -85,6 +85,9 @@ def main():
     if 'source' not in existing_cols:
         conn.execute("ALTER TABLE company_news ADD COLUMN source TEXT NOT NULL DEFAULT 'AFR'")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_source ON company_news(source)")
+    # published_at: date the article was published at the source (nullable, backfilled later)
+    if 'published_at' not in existing_cols:
+        conn.execute("ALTER TABLE company_news ADD COLUMN published_at TEXT")
     # Backfill any rows that have a null source
     conn.execute("UPDATE company_news SET source = 'AFR' WHERE source IS NULL OR source = ''")
 

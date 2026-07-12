@@ -158,6 +158,7 @@ export interface CompanyNews {
   summary: string;
   source: string;
   fetchedAt: number;
+  publishedAt?: string | null;
 }
 
 export interface UnlistedCompany {

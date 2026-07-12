@@ -46,6 +46,14 @@ const PAGE_SIZE = 25
 type SortKey = "name" | "revenue" | "employees"
 type SortState = { key: SortKey; dir: "asc" | "desc" }
 
+// Formats a news date: fetchedAt is unix seconds (number); publishedAt is an ISO string or null.
+const fmtNewsDate = (v: number | string | null | undefined): string => {
+  if (v === null || v === undefined || v === "") return "—"
+  const d = typeof v === "number" ? new Date(v * 1000) : new Date(v)
+  if (isNaN(d.getTime())) return String(v)
+  return d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" })
+}
+
 const getRevenueValue = (c: UnlistedCompany): number | null => {
   const v = c.organization_revenue ?? c.annual_revenue ?? c.estimated_revenue
   return v ?? null
@@ -510,22 +518,40 @@ export default function UnlistedCompaniesPage() {
                   {expandedNews[company.id] ? "Hide" : "Show"} {company.news.length} news article{company.news.length > 1 ? "s" : ""}
                 </button>
                 {expandedNews[company.id] && (
-                  <div className="mt-2 text-xs space-y-3 border-t pt-2">
-                    {company.news
-                      .filter(n => newsSourceFilter === 'all' || n.source === newsSourceFilter)
-                      .map((n, i) => (
-                      <div key={i} className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{n.source}</span>
-                          <a href={n.url} target="_blank" rel="noreferrer" className="text-blue-700 font-medium hover:underline leading-tight">
-                            {n.title}
-                          </a>
-                        </div>
-                        <p className="text-gray-700 leading-relaxed bg-blue-50/50 p-2 rounded">
-                          {n.summary}
-                        </p>
-                      </div>
-                    ))}
+                  <div className="mt-2 border-t pt-2 overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="text-left text-gray-500 border-b">
+                          <th className="py-1.5 pr-3 font-semibold">Source</th>
+                          <th className="py-1.5 pr-3 font-semibold whitespace-nowrap">Date Loaded</th>
+                          <th className="py-1.5 pr-3 font-semibold whitespace-nowrap">Article Date</th>
+                          <th className="py-1.5 pr-3 font-semibold">Story</th>
+                          <th className="py-1.5 font-semibold">Link</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {company.news
+                          .filter(n => newsSourceFilter === 'all' || n.source === newsSourceFilter)
+                          .map((n, i) => (
+                          <tr key={i} className="border-b last:border-0 align-top">
+                            <td className="py-2 pr-3">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{n.source}</span>
+                            </td>
+                            <td className="py-2 pr-3 text-gray-600 whitespace-nowrap">{fmtNewsDate(n.fetchedAt)}</td>
+                            <td className="py-2 pr-3 text-gray-500 whitespace-nowrap">{fmtNewsDate(n.publishedAt)}</td>
+                            <td className="py-2 pr-3 min-w-[240px]">
+                              <div className="font-medium text-gray-900 leading-tight">{n.title}</div>
+                              <p className="text-gray-600 leading-relaxed mt-0.5">{n.summary}</p>
+                            </td>
+                            <td className="py-2 max-w-[160px]">
+                              <a href={n.url} target="_blank" rel="noreferrer" title={n.url} className="text-blue-700 hover:underline block truncate">
+                                {n.url}
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </>

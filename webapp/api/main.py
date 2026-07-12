@@ -129,11 +129,14 @@ def _ensure_db_schema():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_acn    ON company_news(acn)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_source ON company_news(source)")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_acn_name ON contacts(acn, name)")
-        # Add source column if this is an older schema
+        # Add columns if this is an older schema (never DROP — scraped data is expensive)
         cols = [r[1] for r in conn.execute("PRAGMA table_info(company_news)").fetchall()]
         if "source" not in cols:
             conn.execute("ALTER TABLE company_news ADD COLUMN source TEXT NOT NULL DEFAULT 'AFR'")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_company_news_source ON company_news(source)")
+        if "published_at" not in cols:
+            # Date the article was published at the source (nullable — backfilled when scraper captures it)
+            conn.execute("ALTER TABLE company_news ADD COLUMN published_at TEXT")
         conn.commit()
         conn.close()
         print("[startup] DB schema verified/created (WAL mode enabled).")
@@ -1795,14 +1798,15 @@ async def unlisted_search(body: dict):
                 
             # Fetch company news
             news_by_acn = {}
-            nr_rows = c.execute(f"SELECT acn, url, title, summary, COALESCE(source, 'AFR') as source, fetched_at FROM company_news WHERE acn IN ({placeholders})", acns).fetchall()
+            nr_rows = c.execute(f"SELECT acn, url, title, summary, COALESCE(source, 'AFR') as source, fetched_at, published_at FROM company_news WHERE acn IN ({placeholders}) ORDER BY fetched_at DESC", acns).fetchall()
             for nr in nr_rows:
                 news_by_acn.setdefault(nr['acn'], []).append({
                     "url": nr['url'],
                     "title": nr['title'],
                     "summary": nr['summary'],
                     "source": nr['source'],
-                    "fetchedAt": nr['fetched_at']
+                    "fetchedAt": nr['fetched_at'],
+                    "publishedAt": nr['published_at']
                 })
             
             # Fetch contacts
