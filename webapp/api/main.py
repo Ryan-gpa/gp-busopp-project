@@ -1809,10 +1809,27 @@ async def unlisted_search(body: dict):
                     "publishedAt": nr['published_at']
                 })
             
-            # Fetch contacts
-            cr_rows = c.execute(f"SELECT acn, raw_json FROM contacts WHERE acn IN ({placeholders})", acns).fetchall()
+            # Fetch contacts. Build the contact object from the real columns
+            # (name/title/email/linkedin_url) and merge any extra fields from
+            # raw_json — older Apollo/RR rows stashed the full contact in raw_json,
+            # while organic rows keep only metadata there, so columns are the source of truth.
+            cr_rows = c.execute(f"SELECT acn, name, title, email, linkedin_url, source, raw_json FROM contacts WHERE acn IN ({placeholders})", acns).fetchall()
             for cr in cr_rows:
-                contacts_by_acn.setdefault(cr[0], []).append(json.loads(cr[1]))
+                try:
+                    base = json.loads(cr['raw_json']) if cr['raw_json'] else {}
+                    if not isinstance(base, dict):
+                        base = {}
+                except Exception:
+                    base = {}
+                contact = {
+                    **base,
+                    "name": cr['name'] or base.get('name'),
+                    "title": cr['title'] or base.get('title'),
+                    "email": cr['email'] or base.get('email'),
+                    "linkedinUrl": cr['linkedin_url'] or base.get('linkedin_url') or base.get('linkedinUrl'),
+                    "source": cr['source'] or base.get('source'),
+                }
+                contacts_by_acn.setdefault(cr['acn'], []).append(contact)
         else:
             news_by_acn = {}
         
