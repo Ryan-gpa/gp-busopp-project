@@ -545,7 +545,16 @@ export default function UnlistedCompaniesPage() {
                 .map((c, i) => (
                 <div key={i} className="text-sm">
                   <span className="font-medium text-gray-900">{c.name}</span>
+                  {c.source && renderContactSourceIcons(c.source)}
                   <span className="text-gray-500 ml-2">{c.title}</span>
+                  {c.email && (
+                    <div className="text-xs text-gray-500">
+                      <a href={`mailto:${c.email}`} className="hover:underline">{c.email}</a>
+                    </div>
+                  )}
+                  {c.linkedinUrl && (
+                    <a href={c.linkedinUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">LinkedIn ↗</a>
+                  )}
                 </div>
               ))}
               <Button
@@ -553,8 +562,9 @@ export default function UnlistedCompaniesPage() {
                 variant="outline"
                 className="mt-2 w-max text-xs h-7"
                 onClick={() => findContacts(company.id)}
+                title="Search Apollo/RocketReach for verified email + phone (may use credits)"
               >
-                Find Details
+                Find email / phone
               </Button>
             </div>
           ) : (() => {
@@ -619,10 +629,36 @@ export default function UnlistedCompaniesPage() {
             const apolloAvailable = !company.id.startsWith("rr_")
             const rrAvailable = true
             const isEmpty = fetchState?.status === "done" && (!fetchState.contacts || fetchState.contacts.length === 0)
-            
+            // Contacts we already have (e.g. from organic research) — keep showing them
+            // even after a live Apollo/RR lookup returns nothing, rather than wiping to an error.
+            const existing = (company.contacts || []).filter((c, idx, arr) => arr.findIndex(x => x.name === c.name) === idx)
+
             return (
               <div className="flex flex-col gap-1.5">
-                {isEmpty && <span className="text-sm text-gray-400 mb-1">No CEO/CFO found</span>}
+                {existing.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    {existing.map((c, i) => (
+                      <div key={i} className="text-sm">
+                        <span className="font-medium text-gray-900">{c.name}</span>
+                        {c.source && renderContactSourceIcons(c.source)}
+                        <span className="text-gray-500 ml-2">{c.title}</span>
+                        {c.email && (
+                          <div className="text-xs text-gray-500">
+                            <a href={`mailto:${c.email}`} className="hover:underline">{c.email}</a>
+                          </div>
+                        )}
+                        {c.linkedinUrl && (
+                          <a href={c.linkedinUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">LinkedIn ↗</a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {isEmpty && (
+                  <span className="text-xs text-gray-400 mb-1">
+                    {existing.length > 0 ? "No additional contacts found via live lookup" : "No CEO/CFO found"}
+                  </span>
+                )}
                 {apolloAvailable && (
                   <Button
                     size="sm"

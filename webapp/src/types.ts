@@ -174,7 +174,7 @@ export interface UnlistedCompany {
   dataSource?: 'apollo' | 'rocketreach' | 'asic' | 'linkedin' | 'web' | 'other';
   revenueBand?: string; // band/obligation label when no point estimate exists (RocketReach filter or ASIC lodgement signal)
   asic?: Record<string, string>; // server-side ASIC register join, same shape as /api/unlisted/validate
-  contacts?: { name: string; title: string; linkedin_url?: string }[];
+  contacts?: { name: string; title: string; linkedin_url?: string; linkedinUrl?: string; email?: string | null; emailStatus?: string; source?: string; phoneNumbers?: string[] }[];
   has_cached_contacts?: boolean;
   prefetched_contact_fetch?: ContactFetchState;
   _asx_exclusion_reason?: string
