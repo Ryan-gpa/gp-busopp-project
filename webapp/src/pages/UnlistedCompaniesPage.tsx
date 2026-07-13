@@ -341,18 +341,34 @@ export default function UnlistedCompaniesPage() {
   // or both for a merged record (e.g. name from Apollo, email filled by
   // RocketReach). Contacts saved before source-tagging existed default to
   // Apollo — everything predating RocketReach came from there.
+  // Where a contact was enriched from — shown as a small "via ..." label on each contact.
   const renderContactSourceIcons = (source?: string) => {
-    const s = source || "apollo"
+    if (!source) return null
+    const s = source.toLowerCase()
+    const map: Record<string, { label: string; cls: string }> = {
+      apollo:      { label: "via Apollo",       cls: "bg-indigo-50 text-indigo-600" },
+      rocketreach: { label: "via RocketReach",  cls: "bg-teal-50 text-teal-700" },
+      exa:         { label: "via Exa search",   cls: "bg-slate-100 text-slate-600" },
+      web:         { label: "via web research", cls: "bg-slate-100 text-slate-600" },
+    }
+    const key = s.includes("apollo") ? "apollo"
+      : s.includes("rocketreach") ? "rocketreach"
+      : s.includes("exa") ? "exa"
+      : s.includes("organic") || s.includes("web") ? "web"
+      : ""
+    const m = map[key] || { label: `via ${source}`, cls: "bg-slate-100 text-slate-600" }
     return (
-      <span className="inline-flex items-center gap-0.5 ml-1.5 align-middle">
-        {s.includes("apollo") && (
-          <Rocket className="h-3 w-3 text-indigo-500" aria-label="Sourced from Apollo" />
-        )}
-        {s.includes("rocketreach") && (
-          <Telescope className="h-3 w-3 text-teal-600" aria-label="Sourced from RocketReach" />
-        )}
+      <span className={`ml-1.5 align-middle inline-block text-[10px] px-1.5 py-0.5 rounded ${m.cls}`} title={`Contact enriched ${m.label}`}>
+        {m.label}
       </span>
     )
+  }
+
+  // Apollo reveals spend paid credits — always confirm first. RocketReach is free per lookup.
+  const confirmApollo = (companyId: string) => {
+    if (window.confirm("Apollo uses paid credits to reveal a verified email/phone.\n\nRocketReach is free per lookup and is the default. Spend an Apollo credit for this company?")) {
+      findContacts(companyId, "apollo")
+    }
   }
 
   const renderValidationBadge = (status?: string) => {
@@ -561,10 +577,10 @@ export default function UnlistedCompaniesPage() {
                 size="sm"
                 variant="outline"
                 className="mt-2 w-max text-xs h-7"
-                onClick={() => findContacts(company.id)}
-                title="Search Apollo/RocketReach for verified email + phone (may use credits)"
+                onClick={() => findContacts(company.id, "rocketreach")}
+                title="Searches RocketReach (free per lookup) for verified email + phone. Apollo (paid) is offered separately."
               >
-                Find email / phone
+                🔭 Find email / phone (free)
               </Button>
             </div>
           ) : (() => {
@@ -578,7 +594,7 @@ export default function UnlistedCompaniesPage() {
               return (
                 <div>
                   {fetchState.error && <p className="text-xs text-red-600 mb-1">{fetchState.error}</p>}
-                  <Button size="sm" variant="outline" onClick={() => findContacts(company.id)}>Retry</Button>
+                  <Button size="sm" variant="outline" onClick={() => findContacts(company.id, "rocketreach")}>Retry (RocketReach)</Button>
                 </div>
               )
             }
@@ -659,26 +675,26 @@ export default function UnlistedCompaniesPage() {
                     {existing.length > 0 ? "No additional contacts found via live lookup" : "No CEO/CFO found"}
                   </span>
                 )}
-                {apolloAvailable && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => findContacts(company.id, "apollo")}
-                    title="Uses Apollo credits to reveal verified email — costs money, high quality"
-                    className="text-xs h-7"
-                  >
-                    🔵 Apollo
-                  </Button>
-                )}
                 {rrAvailable && (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => findContacts(company.id, "rocketreach")}
-                    title="Uses RocketReach to find contacts — no per-lookup credit cost"
+                    title="Free per lookup — no credits used. Default source."
                     className="text-xs h-7"
                   >
-                    🔭 RocketReach
+                    🔭 RocketReach (free)
+                  </Button>
+                )}
+                {apolloAvailable && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => confirmApollo(company.id)}
+                    title="Uses paid Apollo credits — asks for confirmation before spending"
+                    className="text-xs h-7 border-amber-300 text-amber-700"
+                  >
+                    🔵 Apollo (uses credits)
                   </Button>
                 )}
               </div>
