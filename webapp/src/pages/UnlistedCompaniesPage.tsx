@@ -364,9 +364,10 @@ export default function UnlistedCompaniesPage() {
     )
   }
 
-  // Apollo reveals spend paid credits — always confirm first. RocketReach is free per lookup.
+  // Apollo reveals spend per-reveal paid credits — always confirm first. Use only after
+  // the free pass (web/Exa/enrich.py) and RocketReach haven't produced the contact.
   const confirmApollo = (companyId: string) => {
-    if (window.confirm("Apollo uses paid credits to reveal a verified email/phone.\n\nRocketReach is free per lookup and is the default. Spend an Apollo credit for this company?")) {
+    if (window.confirm("Apollo spends a per-reveal paid credit for a verified email/phone.\n\nUse this only after the free enrichment and RocketReach haven't found it. Spend an Apollo credit for this company?")) {
       findContacts(companyId, "apollo")
     }
   }
@@ -578,9 +579,9 @@ export default function UnlistedCompaniesPage() {
                 variant="outline"
                 className="mt-2 w-max text-xs h-7"
                 onClick={() => findContacts(company.id, "rocketreach")}
-                title="Searches RocketReach (free per lookup) for verified email + phone. Apollo (paid) is offered separately."
+                title="Verify/fill via RocketReach (paid, flat-rate — no per-lookup credit). Apollo (per-credit) is offered separately."
               >
-                🔭 Find email / phone (free)
+                🔭 Verify via RocketReach
               </Button>
             </div>
           ) : (() => {
@@ -680,10 +681,10 @@ export default function UnlistedCompaniesPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => findContacts(company.id, "rocketreach")}
-                    title="Free per lookup — no credits used. Default source."
+                    title="Paid (flat-rate, no per-lookup credit). Try this before Apollo."
                     className="text-xs h-7"
                   >
-                    🔭 RocketReach (free)
+                    🔭 RocketReach (verify)
                   </Button>
                 )}
                 {apolloAvailable && (
