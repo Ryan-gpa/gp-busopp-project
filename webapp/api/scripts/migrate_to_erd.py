@@ -120,14 +120,20 @@ def main():
     if infringements_json_path.exists():
         with open(infringements_json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
+        import re
+        loaded_acns = []
         for item in data:
+            # Prefer the explicit "acn" field (authoritative, verified against the ASIC
+            # notice PDF). Fall back to "licenceOrAcn" only if "acn" is absent.
+            # NOTE: the scraped source historically mis-paired some names with ACNs;
+            # the "acn" field holds the corrected value taken from the notice's "TO:" line.
             acn = str(item.get("acn", item.get("licenceOrAcn", "")))
-            import re
             acn_match = re.search(r'(\d[\d\s]*\d)', acn)
             if not acn_match:
                 continue
             acn = acn_match.group(1).replace(" ", "").zfill(9)
+            loaded_acns.append((acn, item.get("name")))
             conn.execute("""
                 INSERT INTO infringements (acn, name, notice_date, offence, penalty_paid, amount, url, raw_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -141,7 +147,25 @@ def main():
                 item.get("noticePdfUrl") or item.get("url"),
                 json.dumps(item)
             ))
-            
+
+        # Safeguard: flag any infringement ACN that has no matching company row, or
+        # whose company name shares no token with the notice name (possible mislink).
+        # Logs only — never mutates — so bad source data surfaces without breaking startup.
+        def _toks(s):
+            return {t for t in re.sub(r'[^a-z0-9 ]', ' ', (s or '').lower()).split()
+                    if len(t) > 2 and t not in ('pty', 'ltd', 'limited', 'the', 'group', 'holdings')}
+        warned = 0
+        for acn, name in loaded_acns:
+            co = conn.execute("SELECT name FROM companies WHERE acn = ?", (acn,)).fetchone()
+            if co is None:
+                print(f"[infr-check] ACN {acn} ({name}) not found in companies table")
+                warned += 1
+            elif name and not (_toks(name) & _toks(co[0])):
+                print(f"[infr-check] possible mislink: {acn} notice='{name}' vs register='{co[0]}'")
+                warned += 1
+        if warned:
+            print(f"[infr-check] {warned} infringement ACN(s) flagged for manual review")
+
     print("Migrating Metrics...")
     # ONLY import rows where org_id is asic_ or rr_ prefixed — Apollo hex IDs cannot join to companies
     if cache_db_path.exists():
