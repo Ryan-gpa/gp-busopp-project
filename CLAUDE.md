@@ -149,6 +149,41 @@ Migrates contacts from legacy cache format.
 
 ---
 
+## Contact enrichment → HubSpot pipeline (agent-runnable)
+
+Any agent (Claude, Gemini, cron) can run this head-less. Enrichment tools = **Hunter.io,
+RocketReach, Apollo** — keys live in `webapp/.env` (`HUNTER_API_KEY`, `ROCKETREACH_API_KEY`,
+`APOLLO_API_KEY`). The app dispatch is `GET /api/unlisted/contacts/{org_id}?source=auto|hunter|rocketreach|apollo`.
+
+**Step 1 — enrich** (populates `contacts_cache` + the live `contacts` table):
+```powershell
+python webapp/api/scripts/enrich_asic_contacts.py --source hunter --limit 50
+# --source: auto (Hunter if domain else RocketReach) | hunter | rocketreach | apollo
+# --refresh to re-enrich companies that already have contacts
+```
+
+**Step 2 — push to HubSpot** (`scripts/hubspot_sync.py`):
+```powershell
+python webapp/api/scripts/hubspot_sync.py            # credible contacts only
+python webapp/api/scripts/hubspot_sync.py --dry-run  # preview
+python webapp/api/scripts/hubspot_sync.py --all      # skip the quality filter
+```
+- **Requires `HUBSPOT_TOKEN` in `webapp/.env`** (HubSpot → Settings → Private Apps; scopes
+  `crm.objects.contacts.read`+`write`). The script loads `.env` itself and **never prompts**
+  (that was the old bug — `getpass` hung non-interactive agents; there was also no token and a
+  bad `comp.domain` query). Claude's HubSpot **MCP** path needs no token.
+- Flags every contact `lead_source_gp=ASIC` + `gp_campaign=ASIC`, sets `hs_linkedin_url`,
+  `gp_email_confidence`; upserts via POST→PATCH-on-409.
+- **Quality filter (default on):** skips free-mail (aol/gmail…) and emails whose domain doesn't
+  match the company — RocketReach/Hunter return some wrong-company matches. `--all` overrides.
+
+**Step 3 — push to prod app DB:** `python webapp/api/scripts/sync_to_prod.py`
+
+**Gotcha:** the two paths can duplicate a person if their real email ≠ the guessed one. Dedupe
+by merging in the HubSpot UI (the MCP can't delete/merge).
+
+---
+
 ## Frontend Filters (UnlistedCompaniesPage.tsx)
 
 All 5 filters send to backend and trigger a new search:
