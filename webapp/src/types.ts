@@ -171,7 +171,7 @@ export interface UnlistedCompany {
   estimated_num_employees?: number;
   linkedin_employee_count?: number; // despite the name, this is org["estimated_num_employees"] unless employeeCountSource says otherwise
   employeeCountSource?: 'manual_research' | 'apollo_estimate';
-  dataSource?: 'apollo' | 'rocketreach' | 'asic' | 'linkedin' | 'web' | 'other';
+  dataSource?: 'apollo' | 'rocketreach' | 'hunter' | 'asic' | 'linkedin' | 'web' | 'other';
   revenueBand?: string; // band/obligation label when no point estimate exists (RocketReach filter or ASIC lodgement signal)
   asic?: Record<string, string>; // server-side ASIC register join, same shape as /api/unlisted/validate
   contacts?: { name: string; title: string; linkedin_url?: string; linkedinUrl?: string; email?: string | null; emailStatus?: string; source?: string; phoneNumbers?: string[] }[];

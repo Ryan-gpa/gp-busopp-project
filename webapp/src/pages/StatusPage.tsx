@@ -14,6 +14,7 @@ type StatusData = {
     last_checked?: number | null
   }
   rocketreach?: { configured: boolean }
+  hunter?: { configured: boolean }
   disk?: { total_gb: number; used_gb: number; free_gb: number; used_pct: number }
   volume_files?: { name: string; size_mb: number }[]
 }
@@ -64,6 +65,7 @@ export default function StatusPage() {
   const infEmoji = inf?.exists ? "🟢" : "🟡"
   const apolloEmoji = !apollo?.configured ? "🔴" : apollo.credits_exhausted ? "🟡" : apollo.rate_limited ? "🟡" : "🟢"
   const rrEmoji = rr?.configured ? "🟢" : "🟡"
+  const hunterEmoji = data?.hunter?.configured ? "🟢" : "🟡"
 
   // --- Pulse Check logic (priority order) ---
   let pulseMessage = ""
@@ -131,6 +133,9 @@ export default function StatusPage() {
         </div>
         <div title={rr?.configured ? "RocketReach configured" : "Not configured — add ROCKETREACH_API_KEY"}>
           RocketReach {rrEmoji}
+        </div>
+        <div title={data?.hunter?.configured ? "Hunter.io configured" : "Not configured — add HUNTER_API_KEY"}>
+          Hunter {hunterEmoji}
         </div>
         {disk && (
           <div

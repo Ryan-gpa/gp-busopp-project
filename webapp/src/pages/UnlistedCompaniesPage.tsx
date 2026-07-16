@@ -348,11 +348,13 @@ export default function UnlistedCompaniesPage() {
     const map: Record<string, { label: string; cls: string }> = {
       apollo:      { label: "via Apollo",       cls: "bg-indigo-50 text-indigo-600" },
       rocketreach: { label: "via RocketReach",  cls: "bg-teal-50 text-teal-700" },
+      hunter:      { label: "via Hunter.io",    cls: "bg-orange-50 text-orange-600" },
       exa:         { label: "via Exa search",   cls: "bg-slate-100 text-slate-600" },
       web:         { label: "via web research", cls: "bg-slate-100 text-slate-600" },
     }
     const key = s.includes("apollo") ? "apollo"
       : s.includes("rocketreach") ? "rocketreach"
+      : s.includes("hunter") ? "hunter"
       : s.includes("exa") ? "exa"
       : s.includes("organic") || s.includes("web") ? "web"
       : ""
@@ -369,6 +371,12 @@ export default function UnlistedCompaniesPage() {
   const confirmApollo = (companyId: string) => {
     if (window.confirm("Apollo spends a per-reveal paid credit for a verified email/phone.\n\nUse this only after the free enrichment and RocketReach haven't found it. Spend an Apollo credit for this company?")) {
       findContacts(companyId, "apollo")
+    }
+  }
+
+  const confirmHunter = (companyId: string) => {
+    if (window.confirm("Hunter.io spends a domain search credit (50 free/mo).\n\nSpend a Hunter credit for this company?")) {
+      findContacts(companyId, "hunter")
     }
   }
 
@@ -645,6 +653,7 @@ export default function UnlistedCompaniesPage() {
             // Show source-choice buttons when not yet fetched OR when 0 results found (allows retry with different source/bypassing cache)
             const apolloAvailable = !company.id.startsWith("rr_")
             const rrAvailable = true
+            const hunterAvailable = !!company.domain
             const isEmpty = fetchState?.status === "done" && (!fetchState.contacts || fetchState.contacts.length === 0)
             // Contacts we already have (e.g. from organic research) — keep showing them
             // even after a live Apollo/RR lookup returns nothing, rather than wiping to an error.
@@ -685,6 +694,17 @@ export default function UnlistedCompaniesPage() {
                     className="text-xs h-7"
                   >
                     🔭 RocketReach (verify)
+                  </Button>
+                )}
+                {hunterAvailable && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => confirmHunter(company.id)}
+                    title="Uses free Hunter.io credits (50/mo) — asks for confirmation"
+                    className="text-xs h-7 border-orange-300 text-orange-700"
+                  >
+                    🎯 Hunter (verify)
                   </Button>
                 )}
                 {apolloAvailable && (

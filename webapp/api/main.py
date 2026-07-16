@@ -2038,6 +2038,55 @@ def _contact_title_rank(title: str) -> int:
 # treat the first real run as the integration test.
 _ROCKETREACH_API_KEY_ENV = "ROCKETREACH_API_KEY"
 
+# ── Hunter.io (tertiary contact source) ──────────────────────────────────
+_HUNTER_API_KEY_ENV = "HUNTER_API_KEY"
+
+def _hunter_find_contacts(domain: str, company_name: str) -> list:
+    """Best-effort CEO/CFO lookup via Hunter.io Domain Search API.
+    Used when Apollo/RocketReach fail or are explicitly bypassed.
+    Returns [] on any failure, missing key, or no match — never raises."""
+    hunter_key = os.environ.get(_HUNTER_API_KEY_ENV)
+    if not hunter_key or not domain:
+        return []
+
+    try:
+        resp = requests.get(
+            "https://api.hunter.io/v2/domain-search",
+            params={"domain": domain, "api_key": hunter_key, "limit": 10},
+            timeout=20,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", {})
+    except Exception as e:
+        print(f"[hunter] domain search failed for {domain!r}: {e}", file=sys.stderr)
+        return []
+
+    emails = data.get("emails", [])
+    
+    candidates = [
+        e for e in emails 
+        if _is_decision_maker_title(e.get("position"))
+    ]
+    candidates.sort(key=lambda p: _contact_title_rank(p.get("position")))
+    
+    contacts = []
+    for c in candidates[:2]:
+        name = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
+        if not name:
+            name = company_name
+            
+        contacts.append({
+            "name": name,
+            "title": c.get("position") or "",
+            "email": c.get("value"),
+            "emailStatus": "verified" if c.get("confidence", 0) >= 90 else "unverified",
+            "linkedinUrl": c.get("linkedin"),
+            "phoneNumbers": [c.get("phone_number")] if c.get("phone_number") else [],
+            "source": "hunter",
+        })
+        
+    return contacts
+
 
 def _fmt_millions(v: float) -> str:
     return f"${v / 1_000_000:g}M"
@@ -2487,6 +2536,19 @@ def find_contacts(org_id: str, source: str = "auto", force: bool = False):
             finally:
                 cache_conn.close()
             return {"contacts": cached_data, "fromCache": True, "fetchedAt": row[1], "revenue": rev, "employees": emp}
+
+    # If user explicitly requested Hunter - go straight there
+    if source == "hunter":
+        hunter_name, hunter_domain = _company_identity_for_org(org_id)
+        hunter_contacts = _hunter_find_contacts(hunter_domain, hunter_name) if hunter_domain else []
+        metrics = _fetch_and_persist_rr_metrics(org_id, hunter_name)
+        now = time.time()
+        conn = _unlisted_cache_conn()
+        try:
+            save_contacts(org_id, hunter_contacts, "hunter")
+        finally:
+            conn.close()
+        return {"contacts": hunter_contacts, "fromCache": False, "fetchedAt": now, "source": "hunter", "revenue": metrics.get("revenue"), "employees": metrics.get("employees")}
 
     # If user explicitly requested RocketReach - go straight there regardless of org_id prefix
     if source == "rocketreach":
@@ -3041,7 +3103,14 @@ def system_status():
     status["rocketreach"] = {
         "configured": bool(rr_key)
     }
-    # 6. Disk usage
+    
+    # 6. Hunter.io
+    hunter_key = os.environ.get(_HUNTER_API_KEY_ENV)
+    status["hunter"] = {
+        "configured": bool(hunter_key)
+    }
+    
+    # 7. Disk usage
     import shutil
     disk = shutil.disk_usage(str(DATA_DIR))
     status["disk"] = {
