@@ -2490,6 +2490,12 @@ def _insert_live_contacts(org_id: str, contacts_list: list, source: str):
 def save_contacts(org_id: str, contacts_list: list, source: str):
     import time, json
     now = time.time()
+    
+    # Inject the source into the payload so it correctly flags in the CSV export
+    for c in contacts_list:
+        if 'source' not in c:
+            c['source'] = source
+
     conn = _unlisted_cache_conn()
     try:
         conn.execute("INSERT OR REPLACE INTO contacts_cache (org_id, contacts_json, fetched_at) VALUES (?, ?, ?)",
